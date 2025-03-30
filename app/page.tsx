@@ -5,6 +5,9 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { useState } from "react";
+import MyServiceName from "@/components/my-service-name";
+import MyServiceLogo from "@/components/my-service-logo";
+import heroImage from "@/app/ui/icons/hero-image.png";
 
 export default function Page() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -15,14 +18,7 @@ export default function Page() {
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-            <Image
-              src="/placeholder.svg?height=30&width=30"
-              width={30}
-              height={30}
-              alt="ロゴ"
-              className="rounded"
-            />
-            <span>サービス名</span>
+            <MyServiceLogo />
           </Link>
 
           {/* デスクトップナビゲーション */}
@@ -75,24 +71,25 @@ export default function Page() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                    シンプルでしかない
+                    ソリューションって言えば
                     <br />
-                    ソリューション
+                    なんかそれっぽい
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    ソリューションと言っておけば大体なんとかなる。
+                    それが <MyServiceName />
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Button size="lg" asChild>
-                    <Link href="/login">
-                      サービスへログイン <ArrowRight className="ml-2 h-4 w-4" />
+                    <Link href="/signup">
+                      <MyServiceName /> を試す
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
                 </div>
               </div>
               <Image
-                src="/placeholder.svg?height=500&width=500"
+                src={heroImage}
                 width={500}
                 height={500}
                 alt="ヒーローイメージ"
@@ -108,27 +105,26 @@ export default function Page() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
-                  サービス内容
+                  <MyServiceName /> でできること
                 </h2>
                 <p className="max-w-[700px] text-muted-foreground md:text-xl">
-                  お客様のニーズに合わせた最適なソリューションをご提供します。
+                  全人類待望のサービスです
                 </p>
               </div>
             </div>
             <div className="mx-auto grid max-w-5xl gap-8 py-8 md:grid-cols-3">
               {[
                 {
-                  title: "サービスA",
-                  description: "お客様のビジネスを効率化するサービスです。",
+                  title: "癒し",
+                  description: "忙しい現代人にやすらぎを。",
                 },
                 {
-                  title: "サービスB",
-                  description: "データ分析によって意思決定をサポートします。",
+                  title: "収入アップ",
+                  description: "フリーランスで年収1000万円。",
                 },
                 {
-                  title: "サービスC",
-                  description:
-                    "セキュリティ対策で安心・安全な環境を提供します。",
+                  title: "斧投げ",
+                  description: "物理的にマサカリを投げよう。",
                 },
               ].map((service, i) => (
                 <div
@@ -159,7 +155,8 @@ export default function Page() {
         <div className="container px-4 md:px-6">
           <div className="mt-8 border-t pt-8">
             <p className="text-xs text-muted-foreground text-center">
-              &copy; {new Date().getFullYear()} サービス名 All rights reserved.
+              &copy; {new Date().getFullYear()} <MyServiceName /> All rights
+              reserved.
             </p>
           </div>
         </div>
