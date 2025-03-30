@@ -55,7 +55,7 @@ export const {
     },
     async signIn({ account, profile }) {
       return buildProviderAuthResponse({
-        authType: (await getAndDeleteCookie("mysite_auth_type")) ?? "",
+        authType: (await getAndDeleteCookie("mysite_provider_auth_type")) ?? "",
         profileEmail: profile?.email ?? "",
         providerAccountId: account?.providerAccountId ?? "",
         provider: account?.provider ?? "",

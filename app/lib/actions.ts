@@ -41,7 +41,7 @@ export async function loginWithGithub(
   redirectPath: string,
   _formData: FormData
 ) {
-  setCustomCookie("mysite_auth_type", "githubSignin");
+  setCustomCookie("mysite_provider_auth_type", "signin");
 
   // NOTE: OAuth認証の場合、Auth.js内部のエラーハンドリングの仕組みに任せるのでtry-catchしない
   await signIn("github", {
@@ -53,7 +53,7 @@ export async function signupWithGithub(
   redirectPath: string,
   _formData: FormData
 ) {
-  setCustomCookie("mysite_auth_type", "githubSignup");
+  setCustomCookie("mysite_provider_auth_type", "signup");
 
   // NOTE: OAuth認証の場合、Auth.js内部のエラーハンドリングの仕組みに任せるのでtry-catchしない
   await signIn("github", {

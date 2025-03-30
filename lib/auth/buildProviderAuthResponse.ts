@@ -34,44 +34,55 @@ export async function buildProviderAuthResponse(
       message: "アカウントがすでに存在します。ログインしてください。",
     });
     return "/login";
-  } else {
-    if (props.authType === "githubSignin") {
-      await setFlash({
-        type: "success",
-        message: "ログインしました。",
-      });
-    }
-    if (props.authType === "githubSignup") {
-      await setFlash({
-        type: "success",
-        message: "アカウントを登録しました。",
-      });
-    }
-    return true;
   }
+  if (isSigninRequest(props)) {
+    await setFlash({
+      type: "success",
+      message: "ログインしました。",
+    });
+  }
+  if (isSignupRequest(props)) {
+    await setFlash({
+      type: "success",
+      message: "アカウントを登録しました。",
+    });
+  }
+  return true;
+}
+
+function isSigninRequest({ authType }: Props): boolean {
+  return authType === "signin";
+}
+
+function isSignupRequest({ authType }: Props): boolean {
+  return authType === "signup";
 }
 
 async function userExistsWithoutLinkedAccount(props: Props): Promise<boolean> {
+  const { authType, profileEmail } = props;
   return (
-    ["githubSignup", "githubSignin"].includes(props.authType) &&
-    !!(await adapter.getUserByEmail?.(props.profileEmail)) &&
+    ["signin", "signup"].includes(authType) &&
+    !!(await adapter.getUserByEmail?.(profileEmail)) &&
     !(await hasLinkedAccount(props))
   );
 }
 
 async function isSigninWithoutLinkedAccount(props: Props): Promise<boolean> {
-  return props.authType === "githubSignin" && !(await hasLinkedAccount(props));
+  return isSigninRequest(props) && !(await hasLinkedAccount(props));
 }
 
 async function isSignupWithExistingLinkedAccount(
   props: Props
 ): Promise<boolean> {
-  return props.authType === "githubSignup" && (await hasLinkedAccount(props));
+  return isSignupRequest(props) && (await hasLinkedAccount(props));
 }
 
-async function hasLinkedAccount(props: Props): Promise<boolean> {
+async function hasLinkedAccount({
+  providerAccountId,
+  provider,
+}: Props): Promise<boolean> {
   return !!(await adapter.getUserByAccount?.({
-    providerAccountId: props.providerAccountId,
-    provider: props.provider,
+    providerAccountId: providerAccountId,
+    provider: provider,
   }));
 }
