@@ -11,7 +11,7 @@ type Props = {
   provider: string;
 };
 
-export async function buildProviderAuthResponse(
+export async function validateProviderAuthResponse(
   props: Props
 ): Promise<boolean | string> {
   if (await userExistsWithoutLinkedAccount(props)) {
@@ -34,20 +34,9 @@ export async function buildProviderAuthResponse(
       message: "アカウントがすでに存在します。ログインしてください。",
     });
     return "/login";
+  } else {
+    return true;
   }
-  if (isSigninRequest(props)) {
-    await setFlash({
-      type: "success",
-      message: "ログインしました。",
-    });
-  }
-  if (isSignupRequest(props)) {
-    await setFlash({
-      type: "success",
-      message: "アカウントを登録しました。",
-    });
-  }
-  return true;
 }
 
 function isSigninRequest({ authType }: Props): boolean {

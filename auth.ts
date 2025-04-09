@@ -5,7 +5,7 @@ import GitHub from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/prisma";
 import { getAndDeleteCookie } from "@/lib/auth/serverUtils";
-import { buildProviderAuthResponse } from "./lib/auth/buildProviderAuthResponse";
+import { buildSignInResponse } from "./lib/auth/buildSignInResponse";
 
 export const {
   handlers: { GET, POST },
@@ -53,13 +53,22 @@ export const {
 
       return session;
     },
-    async signIn({ account, profile }) {
-      return buildProviderAuthResponse({
-        authType: (await getAndDeleteCookie("mysite_provider_auth_type")) ?? "",
-        profileEmail: profile?.email ?? "",
-        providerAccountId: account?.providerAccountId ?? "",
-        provider: account?.provider ?? "",
-      });
+    async signIn({ account, profile, email }) {
+      if (account?.type === "email" && !email?.verificationRequest) {
+        return buildSignInResponse({
+          type: "email",
+          email: account.providerAccountId ?? "",
+        });
+      } else {
+        return buildSignInResponse({
+          type: "oauth",
+          authType:
+            (await getAndDeleteCookie("mysite_provider_auth_type")) ?? "",
+          profileEmail: profile?.email ?? "",
+          providerAccountId: account?.providerAccountId ?? "",
+          provider: account?.provider ?? "",
+        });
+      }
     },
   },
 });
