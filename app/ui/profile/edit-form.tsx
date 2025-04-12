@@ -45,7 +45,7 @@ export function EditForm({ userProfile }: Props) {
       <div>
         <h3 className="text-lg font-medium">プロフィール</h3>
         <p className="text-sm text-muted-foreground">
-          他のユーザーかに公開される情報です。
+          他のユーザーに公開される情報です。
         </p>
       </div>
       <Separator />
