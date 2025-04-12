@@ -169,27 +169,28 @@ export async function updateUser(
     return submission.reply();
   }
 
-  await prisma.user.update({
-    data: {
-      name: submission.value.name,
-    },
-    where: {
-      id: id,
-    },
-  });
-
-  await prisma.userProfile.upsert({
-    where: {
-      userId: id,
-    },
-    update: {
-      bio: submission.value.bio,
-    },
-    create: {
-      bio: submission.value.bio,
-      userId: id,
-    },
-  });
+  await prisma.$transaction([
+    prisma.user.update({
+      data: {
+        name: submission.value.name,
+      },
+      where: {
+        id: id,
+      },
+    }),
+    prisma.userProfile.upsert({
+      where: {
+        userId: id,
+      },
+      update: {
+        bio: submission.value.bio,
+      },
+      create: {
+        bio: submission.value.bio,
+        userId: id,
+      },
+    }),
+  ]);
 
   revalidatePath("/setting/profile");
   return submission.reply();
