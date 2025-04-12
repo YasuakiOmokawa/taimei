@@ -59,6 +59,7 @@ export function EditForm({ userProfile }: Props) {
         <div className="space-y-2">
           <Label htmlFor="name">表示名</Label>
           <Input
+            id="name"
             type="text"
             key={fields.name.key}
             name={fields.name.name}
@@ -74,6 +75,7 @@ export function EditForm({ userProfile }: Props) {
         <div className="space-y-2">
           <Label htmlFor="bio">自己紹介</Label>
           <Textarea
+            id="bio"
             key={fields.bio.key}
             name={fields.bio.name}
             className="min-h-[100px]"
