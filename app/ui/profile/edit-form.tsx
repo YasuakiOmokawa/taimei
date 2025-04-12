@@ -13,8 +13,13 @@ import { userSchema } from "@/app/lib/schema/profile/schema";
 import { updateUser } from "@/app/lib/actions";
 import { withCallbacks } from "@/lib/with-callbacks";
 import { toast } from "sonner";
+import { UserProfileSelectionById } from "@/app/lib/data";
 
-export function EditForm() {
+type Props = {
+  userProfile: UserProfileSelectionById | null;
+};
+
+export function EditForm({ userProfile }: Props) {
   const { data: session } = useSession();
   const [lastResult, action] = useActionState(
     withCallbacks(updateUser.bind(null, String(session?.user?.id)), {
@@ -40,7 +45,7 @@ export function EditForm() {
       <div>
         <h3 className="text-lg font-medium">プロフィール</h3>
         <p className="text-sm text-muted-foreground">
-          他のユーザーから見える情報です。
+          他のユーザーかに公開される情報です。
         </p>
       </div>
       <Separator />
@@ -57,8 +62,8 @@ export function EditForm() {
             type="text"
             key={fields.name.key}
             name={fields.name.name}
-            defaultValue={fields.name.value ?? String(session?.user?.name)}
-            placeholder="John Doe"
+            defaultValue={fields.name.value ?? session?.user?.name ?? ""}
+            placeholder="山田太郎"
           />
           <p className="text-xs text-muted-foreground">
             他のユーザーから見える名前です。
@@ -69,13 +74,16 @@ export function EditForm() {
         <div className="space-y-2">
           <Label htmlFor="bio">自己紹介</Label>
           <Textarea
-            id="bio"
+            key={fields.bio.key}
+            name={fields.bio.name}
             className="min-h-[100px]"
-            defaultValue="こんにちは！"
+            defaultValue={fields.bio.value ?? userProfile?.bio}
+            placeholder="こんにちは！"
           />
           <p className="text-xs text-muted-foreground">
             あなたについて紹介してください。
           </p>
+          <div className="text-red-500">{fields.bio.errors}</div>
         </div>
 
         <Button type="submit">更新</Button>
