@@ -19,7 +19,7 @@ export function EditForm() {
   const [lastResult, action] = useActionState(
     withCallbacks(updateUser.bind(null, String(session?.user?.id)), {
       onSuccess() {
-        toast.success("profile updated");
+        toast.success("プロフィールが更新されました");
       },
     }),
     undefined
