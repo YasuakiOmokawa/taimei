@@ -178,6 +178,19 @@ export async function updateUser(
     },
   });
 
+  await prisma.userProfile.upsert({
+    where: {
+      userId: id,
+    },
+    update: {
+      bio: submission.value.bio,
+    },
+    create: {
+      bio: submission.value.bio,
+      userId: id,
+    },
+  });
+
   revalidatePath("/setting/profile");
   return submission.reply();
 }
