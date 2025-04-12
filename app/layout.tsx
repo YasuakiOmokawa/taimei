@@ -3,6 +3,7 @@ import { inter } from "@/app/ui/fonts";
 import FlashToaster from "@/lib/flash-toaster";
 import { ReactNode } from "react";
 import { SessionProvider } from "next-auth/react";
+import Providers from "./providers";
 
 export default async function RootLayout({
   children,
@@ -13,7 +14,7 @@ export default async function RootLayout({
     <SessionProvider>
       <html>
         <body className={`${inter.className} antialiased`}>
-          {children}
+          <Providers>{children}</Providers>
           <FlashToaster />
         </body>
       </html>
