@@ -68,6 +68,28 @@ export async function fetchLatestInvoices() {
   }
 }
 
+const userProfileSelectionById = {
+  bio: true,
+} satisfies Prisma.UserProfileSelect;
+
+export type UserProfileSelectionById = Prisma.UserProfileGetPayload<{
+  select: typeof userProfileSelectionById;
+}>;
+
+export async function fetchUserProfile(userId: string) {
+  try {
+    const data = await prisma.userProfile.findUnique({
+      select: userProfileSelectionById,
+      where: {
+        userId: userId,
+      },
+    });
+    return data;
+  } catch (e) {
+    throw new Error("failed to fetch UserProfile.", { cause: e });
+  }
+}
+
 export async function fetchCardData() {
   try {
     // You can probably combine these into a single SQL query
