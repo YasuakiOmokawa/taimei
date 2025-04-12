@@ -3,13 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useActionState } from "react";
@@ -45,9 +38,9 @@ export function EditForm() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium">Profile</h3>
+        <h3 className="text-lg font-medium">プロフィール</h3>
         <p className="text-sm text-muted-foreground">
-          This is how others will see you on the site.
+          他のユーザーから見える情報です。
         </p>
       </div>
       <Separator />
@@ -59,7 +52,7 @@ export function EditForm() {
         noValidate
       >
         <div className="space-y-2">
-          <Label htmlFor="name">Name</Label>
+          <Label htmlFor="name">表示名</Label>
           <Input
             type="text"
             key={fields.name.key}
@@ -68,42 +61,24 @@ export function EditForm() {
             placeholder="John Doe"
           />
           <p className="text-xs text-muted-foreground">
-            This is your public display name.
+            他のユーザーから見える名前です。
           </p>
           <div className="text-red-500">{fields.name.errors}</div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Select>
-            <SelectTrigger id="email">
-              <SelectValue placeholder="Select a verified email to display" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="m@example.com">m@example.com</SelectItem>
-              <SelectItem value="m@google.com">m@google.com</SelectItem>
-              <SelectItem value="m@support.com">m@support.com</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            You can manage verified email addresses in your email settings.
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="bio">Bio</Label>
+          <Label htmlFor="bio">自己紹介</Label>
           <Textarea
             id="bio"
-            placeholder="Tell us a little bit about yourself"
             className="min-h-[100px]"
-            defaultValue="I own a computer."
+            defaultValue="こんにちは！"
           />
           <p className="text-xs text-muted-foreground">
-            You can @mention other users and organizations to link to them.
+            あなたについて紹介してください。
           </p>
         </div>
 
-        <Button type="submit">Update</Button>
+        <Button type="submit">更新</Button>
       </form>
     </div>
   );
