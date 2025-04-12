@@ -35,13 +35,6 @@ model revenue {
   updated_at  DateTime  @db.Timestamp(6) @default(now())
 }
 
-model users {
-  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name     String @db.VarChar(255)
-  email    String @unique
-  password String
-}
-
 model tags {
   id       String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name     String     @db.VarChar(255)
@@ -65,6 +58,17 @@ model User {
   sessions      Session[]
   // Optional for WebAuthn support
   Authenticator Authenticator[]
+  useProfile    UserProfile?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserProfile {
+  id           String   @id @default(cuid())
+  bio          String
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
