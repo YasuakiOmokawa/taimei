@@ -74,7 +74,9 @@ export default function Page() {
               <div className="flex flex-col justify-center space-y-4 lg:space-y-6">
                 <div className="space-y-2 lg:space-y-4">
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl">
-                    若者よ、 世界を救え
+                    心安らかな
+                    <br />
+                    ソリューション
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl lg:text-2xl">
                     それが <MyServiceName />
