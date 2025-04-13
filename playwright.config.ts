@@ -1,5 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import dotenv from "dotenv";
+import dotenvExpand from "dotenv-expand";
 import path from "path";
 import { Env } from "./env";
 
@@ -8,14 +9,14 @@ import { Env } from "./env";
  * https://github.com/motdotla/dotenv
  */
 // import dotenv from 'dotenv';
-dotenv.config({ path: path.resolve(__dirname, ".env") });
+dotenvExpand.expand(dotenv.config({ path: path.resolve(__dirname, ".env") }));
 // override per environment
-if (process.env.TEST_ENV) {
-  dotenv.config({
-    path: path.resolve(__dirname, `.env.${process.env.TEST_ENV}`),
-    override: true,
-  });
-}
+// if (process.env.TEST_ENV) {
+//   dotenv.config({
+//     path: path.resolve(__dirname, `.env.${process.env.TEST_ENV}`),
+//     override: true,
+//   });
+// }
 
 /**
  * See https://playwright.dev/docs/test-configuration.
