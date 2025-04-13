@@ -29,6 +29,7 @@
     "@vercel/postgres": "^0.8.0",
     "autoprefixer": "10.4.19",
     "bcrypt": "^5.1.1",
+    "caniuse-lite": "^1.0.30001713",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "jotai": "^2.11.0",
