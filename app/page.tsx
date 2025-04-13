@@ -21,7 +21,7 @@ export default function Page() {
             href="/"
             className="flex items-center gap-2 font-bold text-xl lg:text-2xl"
           >
-            <MyServiceLogo />
+            <MyServiceLogo height={180} className="-z-10" />
           </Link>
 
           {/* デスクトップナビゲーション */}
