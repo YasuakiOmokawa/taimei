@@ -7,6 +7,13 @@ import { prisma } from "@/prisma";
 import { getAndDeleteCookie } from "@/lib/auth/serverUtils";
 import { buildSignInResponse } from "./lib/auth/buildSignInResponse";
 
+const providers = [
+  Resend({
+    from: "notifications@transactional.ys-polaris.net",
+  }),
+  GitHub,
+];
+
 export const {
   handlers: { GET, POST },
   auth,
@@ -19,12 +26,7 @@ export const {
   session: {
     strategy: "jwt",
   },
-  providers: [
-    Resend({
-      from: "notifications@transactional.ys-polaris.net",
-    }),
-    GitHub,
-  ],
+  providers: providers,
   callbacks: {
     jwt({ token, user }) {
       if (user) {
