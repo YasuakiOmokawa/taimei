@@ -3,10 +3,10 @@ type Person = {
   age: number;
   job?: string;
 };
-interface PersonSpan extends Person {
+interface _PersonSpan extends Person {
   birth: Date;
   death?: Date;
 }
-interface WorkerSpan extends Omit<Person, "job"> {
+interface _WorkerSpan extends Omit<Person, "job"> {
   job: string;
 }
