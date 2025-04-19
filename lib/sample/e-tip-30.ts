@@ -1,3 +1,4 @@
+// tip 30
 interface LngLat {
   lng: number;
   lat: number;
@@ -19,3 +20,20 @@ type LngLatBounds =
 
 declare function _setCamera(camera: CameraOptions): void;
 declare function _viewportForBounds(bounds: LngLatBounds): Camera;
+
+function sum(xs: Iterable<number>): number {
+  let sum = 0;
+  for (const x of xs) {
+    sum += x;
+  }
+  return sum;
+}
+
+console.log(sum([1, 2, 3]));
+
+function* range(limit: number) {
+  for (let i = 0; i < limit; i++) {
+    yield i;
+  }
+}
+console.log(sum(range(10)));
