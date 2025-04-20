@@ -12,20 +12,20 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Cog6ToothIcon, UserIcon } from "@heroicons/react/24/outline";
 import { NavProjects } from "./nav-projects";
+import { useCurrentUser } from "@/app/lib/hooks/useCurrentUser";
 
 export function SettingSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
-  const { data: session } = useSession();
+  const currentUser = useCurrentUser();
   const data = {
     user: {
-      name: session?.user?.name ?? "",
-      email: session?.user?.email ?? "",
-      avatar: session?.user?.image ?? "",
+      name: currentUser.name,
+      email: currentUser.email,
+      avatar: currentUser.image,
     },
     projects: [
       {

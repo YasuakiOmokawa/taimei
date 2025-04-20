@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useActionState } from "react";
-import { useSession } from "next-auth/react";
 import { useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
 import { userSchema } from "@/app/lib/schema/profile/schema";
@@ -14,15 +13,16 @@ import { updateUser } from "@/app/lib/actions";
 import { withCallbacks } from "@/lib/with-callbacks";
 import { toast } from "sonner";
 import { UserProfileSelectionById } from "@/app/lib/data";
+import { useCurrentUser } from "@/app/lib/hooks/useCurrentUser";
 
 type Props = {
   userProfile: UserProfileSelectionById | null;
 };
 
 export function EditForm({ userProfile }: Props) {
-  const { data: session } = useSession();
+  const currentUser = useCurrentUser();
   const [lastResult, action] = useActionState(
-    withCallbacks(updateUser.bind(null, String(session?.user?.id)), {
+    withCallbacks(updateUser.bind(null, String(currentUser.id)), {
       onSuccess() {
         toast.success("プロフィールが更新されました");
       },
@@ -63,7 +63,7 @@ export function EditForm({ userProfile }: Props) {
             type="text"
             key={fields.name.key}
             name={fields.name.name}
-            defaultValue={fields.name.value ?? session?.user?.name ?? ""}
+            defaultValue={fields.name.value ?? currentUser.name}
             placeholder="山田太郎"
           />
           <p className="text-xs text-muted-foreground">
