@@ -3,12 +3,10 @@
 import { deleteUser } from "@/app/lib/actions";
 import { Button } from "@/components/ui/button";
 import { withCallbacks } from "@/lib/with-callbacks";
-import { useSession } from "next-auth/react";
 import { useActionState } from "react";
 import { toast } from "sonner";
 
 export function DeleteUserForm() {
-  const { data: session } = useSession();
   const handleClick = (e: React.FormEvent<HTMLFormElement>) => {
     if (confirm("本当によろしいですか？") === false) {
       e.preventDefault();
@@ -17,7 +15,7 @@ export function DeleteUserForm() {
   };
 
   const [_lastResult, action] = useActionState(
-    withCallbacks(deleteUser.bind(null, session?.user?.id), {
+    withCallbacks(deleteUser, {
       onError(result) {
         if (result.error) {
           const message = result.error[""];

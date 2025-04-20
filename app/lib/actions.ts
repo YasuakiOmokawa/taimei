@@ -13,6 +13,7 @@ import { setFlash } from "@/lib/flash-toaster";
 import { deleteUserSchema, userSchema } from "./schema/profile/schema";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { setCustomCookie } from "@/lib/auth/serverUtils";
+import { fetchCurrentUser } from "./data";
 
 // for create/update
 export type State = {
@@ -279,12 +280,8 @@ export async function deleteInvoice(id: string, _prevState: unknown) {
   revalidatePath("/dashboard/invoices");
 }
 
-export async function deleteUser(
-  id: string | null | undefined,
-  _prevState: unknown,
-  formData: FormData
-) {
-  if (id) formData.set("id", id);
+export async function deleteUser(_prevState: unknown, formData: FormData) {
+  formData.set("id", (await fetchCurrentUser()).id);
 
   const submission = parseWithZod(formData, { schema: deleteUserSchema });
 

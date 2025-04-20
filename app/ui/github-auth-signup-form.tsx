@@ -9,7 +9,7 @@ import { useRedirectPath } from "@/app/lib/hooks/login/useRedirectPath";
 export default function GithubAuthSignupForm() {
   return (
     <form action={signupWithGithub.bind(null, useRedirectPath())}>
-      <Button variant="outline" className="w-full">
+      <Button type="submit" variant="outline" className="w-full">
         <Image
           src={githubIcon}
           alt="GitHub icon for signup"
