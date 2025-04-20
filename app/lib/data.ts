@@ -4,6 +4,24 @@ import { formatCurrency } from "./utils";
 import { Prisma } from "@prisma/client";
 import { Invoices } from "@/app/models/invoices";
 import { prisma } from "@/prisma";
+import { auth } from "@/auth";
+
+export interface CurrentUser {
+  id: string;
+  name: string;
+  email: string;
+  image: string;
+}
+
+export async function fetchCurrentUser(): Promise<CurrentUser> {
+  const { id, name, email, image } = (await auth())?.user ?? {};
+  return {
+    id: id ?? "",
+    name: name ?? "",
+    email: email ?? "",
+    image: image ?? "",
+  };
+}
 
 export async function fetchRevenue() {
   try {
