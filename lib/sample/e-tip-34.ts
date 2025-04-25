@@ -21,3 +21,9 @@ interface PaintLayer {
   paint: PaintPaint;
 }
 type Layer = FillLayer | LineLayer | PaintLayer;
+
+interface Person {
+  name: string;
+  placeOfBirth?: string;
+  dateOfBirth?: Date;
+}
