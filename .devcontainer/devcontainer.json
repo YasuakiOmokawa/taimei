@@ -1,0 +1,8 @@
+{
+  "name": "dev container nextjs joke",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/app",
+  "onCreateCommand": "apt-get update && apt install -y --no-install-recommends curl git sudo openssh-client",
+  "overrideCommand": true // DockerfileのCMDを無効化
+}
