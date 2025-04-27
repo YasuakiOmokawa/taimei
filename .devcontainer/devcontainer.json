@@ -3,6 +3,7 @@
   "dockerComposeFile": "../docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/app",
-  "onCreateCommand": "apt-get update && apt install -y --no-install-recommends curl git sudo openssh-client",
+  "onCreateCommand": "sudo apt-get update && sudo apt install -y --no-install-recommends git openssh-client",
+  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
   "overrideCommand": true // DockerfileのCMDを無効化
 }
