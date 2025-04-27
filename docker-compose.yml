@@ -32,6 +32,13 @@ services:
     command: >
       sh -c "bun dev"
     user: vscode
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+        - action: rebuild
+          path: ./package.json
     depends_on:
       postgres:
         condition: service_healthy
