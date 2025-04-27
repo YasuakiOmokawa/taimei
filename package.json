@@ -2,11 +2,11 @@
   "private": true,
   "scripts": {
     "build": "prisma generate && next build",
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "start": "next start",
     "test": "vitest",
     "lint": "next lint",
-    "deployable-test": "next build"
+    "deployable-test": "next build --turbopack"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
@@ -36,12 +36,12 @@
     "framer-motion": "^12.7.4",
     "jotai": "^2.11.0",
     "lucide-react": "^0.482.0",
-    "next": "15.2.3",
+    "next": "^15.3.1",
     "next-auth": "^5.0.0-beta.25",
     "next-themes": "^0.4.4",
     "postcss": "8.4.38",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss": "3.4.4",
@@ -59,7 +59,7 @@
     "@vitejs/plugin-react": "^4.3.1",
     "dotenv": "^16.5.0",
     "eslint": "^8",
-    "eslint-config-next": "15.2.3",
+    "eslint-config-next": "^15.3.1",
     "jsdom": "^24.1.1",
     "prisma": "^6.3.1",
     "ts-node": "^10.9.2",
