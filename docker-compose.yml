@@ -17,3 +17,20 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
       - POSTGRES_ROOT_PASSWORD=root
+    healthcheck:
+      test: pg_isready -U postgres -d postgres
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build:
+      context: '.'
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    command: >
+      sh -c "bun dev"
+    depends_on:
+      postgres:
+        condition: service_healthy
