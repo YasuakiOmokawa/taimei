@@ -1,9 +1,0 @@
-{
-  "name": "dev container nextjs joke",
-  "dockerComposeFile": "../docker-compose.yml",
-  "service": "app",
-  "workspaceFolder": "/app",
-  "onCreateCommand": "sudo apt-get update && sudo apt install -y --no-install-recommends git openssh-client",
-  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
-  "overrideCommand": true // DockerfileのCMDを無効化
-}
