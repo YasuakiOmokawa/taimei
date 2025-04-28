@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16.8-alpine3.21
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DATABASE=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_ROOT_PASSWORD=root
+    healthcheck:
+      test: pg_isready -U postgres -d postgres
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build:
+      context: '.'
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    command: >
+      sh -c "bunx prisma migrate deploy && bun start"
+    user: vscode
+    environment:
+      - POSTGRES_PRISMA_URL=postgres://postgres:password@postgres:5432/postgres?pgbouncer=true&connect_timeout=15
+      - POSTGRES_URL_NON_POOLING=postgres://postgres:password@postgres:5432/postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  e2e:
+    build:
+      context: ./
+      dockerfile: ./e2e/Dockerfile
+    environment:
+      - CI=${CI}
+      - PLAYWRIGHT_BASE_URL=http://app:3000
+      - POSTGRES_PRISMA_URL=postgres://postgres:password@postgres:5432/postgres?pgbouncer=true&connect_timeout=15
+      - POSTGRES_URL_NON_POOLING=postgres://postgres:password@postgres:5432/postgres
+    volumes:
+      - ./test-results:/app/test-results
+    ports:
+      - "9323:9323"
+    depends_on:
+      - app
