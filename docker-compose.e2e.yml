@@ -14,7 +14,7 @@ services:
       timeout: 3s
       retries: 5
 
-  app:
+  application:
     build:
       context: '.'
       dockerfile: Dockerfile
@@ -27,6 +27,7 @@ services:
       - POSTGRES_PRISMA_URL=postgres://postgres:password@postgres:5432/postgres?pgbouncer=true&connect_timeout=15
       - POSTGRES_URL_NON_POOLING=postgres://postgres:password@postgres:5432/postgres
       - APP_ENV=test
+      - AUTH_TRUST_HOST=http://application:3000
     depends_on:
       postgres:
         condition: service_healthy
@@ -39,7 +40,7 @@ services:
         - common=./
     environment:
       - CI=${CI}
-      - PLAYWRIGHT_BASE_URL=http://app:3000
+      - PLAYWRIGHT_BASE_URL=http://application:3000
       - POSTGRES_PRISMA_URL=postgres://postgres:password@postgres:5432/postgres?pgbouncer=true&connect_timeout=15
       - POSTGRES_URL_NON_POOLING=postgres://postgres:password@postgres:5432/postgres
     volumes:
@@ -47,4 +48,4 @@ services:
     ports:
       - "9323:9323"
     depends_on:
-      - app
+      - application

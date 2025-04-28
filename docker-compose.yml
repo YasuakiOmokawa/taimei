@@ -22,7 +22,7 @@ services:
       timeout: 3s
       retries: 5
 
-  app:
+  application:
     build:
       context: '.'
       dockerfile: Dockerfile
