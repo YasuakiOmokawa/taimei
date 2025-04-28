@@ -26,14 +26,17 @@ services:
     environment:
       - POSTGRES_PRISMA_URL=postgres://postgres:password@postgres:5432/postgres?pgbouncer=true&connect_timeout=15
       - POSTGRES_URL_NON_POOLING=postgres://postgres:password@postgres:5432/postgres
+      - APP_ENV=test
     depends_on:
       postgres:
         condition: service_healthy
 
   e2e:
     build:
-      context: ./
-      dockerfile: ./e2e/Dockerfile
+      context: './e2e'
+      dockerfile: Dockerfile
+      additional_contexts:
+        - common=./
     environment:
       - CI=${CI}
       - PLAYWRIGHT_BASE_URL=http://app:3000

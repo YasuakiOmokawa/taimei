@@ -1,13 +1,14 @@
-FROM mcr.microsoft.com/playwright:v1.52.0
+FROM mcr.microsoft.com/playwright:v1.52.0-noble
 
 EXPOSE 9323
 WORKDIR /app
 
-COPY ./e2e/package*.json .
+COPY ./package*.json .
 RUN npm ci
 
-COPY ./e2e .
-COPY ../prisma ./prisma
+COPY . .
+COPY --from=common ./tsconfig.json .
+COPY --from=common ./prisma prisma/
 RUN npx prisma generate
 
 CMD ["npm", "test"]
