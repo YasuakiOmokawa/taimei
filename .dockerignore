@@ -11,3 +11,4 @@ LICENSE
 .next
 *.swp
 /scripts
+/e2e
