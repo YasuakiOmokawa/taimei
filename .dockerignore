@@ -11,5 +11,9 @@ LICENSE
 .next
 *.swp
 /scripts
+
+# e2e tests
 /e2e
+
+# unit tests
 /__tests__
