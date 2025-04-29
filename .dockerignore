@@ -12,3 +12,4 @@ LICENSE
 *.swp
 /scripts
 /e2e
+/__tests__
