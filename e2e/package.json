@@ -6,8 +6,8 @@
     "test-ui": "playwright test --ui-host=0.0.0.0 --ui-port=9323"
   },
   "devDependencies": {
-    "@playwright/test": "^1.51.1",
-    "@prisma/client": "^6.3.1",
-    "@types/node": "20.14.8"
+    "@playwright/test": "^1.52.0",
+    "@prisma/client": "^6.6.0",
+    "@types/node": "22.15.3"
   }
 }
