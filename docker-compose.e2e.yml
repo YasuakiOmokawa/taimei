@@ -1,35 +1,37 @@
 services:
-  postgres:
+  e2e-postgres:
     image: postgres:16.8-alpine3.21
     ports:
-      - "5432:5432"
+      - "5433:5433"
     environment:
       - POSTGRES_DATABASE=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
       - POSTGRES_ROOT_PASSWORD=root
+      - PGPORT=5433
     healthcheck:
       test: pg_isready -U postgres -d postgres
       interval: 3s
       timeout: 3s
       retries: 5
 
-  application:
+  e2e-application:
     build:
       context: '.'
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3001:3001"
     command: >
       sh -c "bunx prisma migrate deploy && bun start"
     user: vscode
     environment:
-      - POSTGRES_PRISMA_URL=postgres://postgres:password@postgres:5432/postgres?pgbouncer=true&connect_timeout=15
-      - POSTGRES_URL_NON_POOLING=postgres://postgres:password@postgres:5432/postgres
+      - POSTGRES_PRISMA_URL=postgres://postgres:password@e2e-postgres:5433/postgres?pgbouncer=true&connect_timeout=15
+      - POSTGRES_URL_NON_POOLING=postgres://postgres:password@e2e-postgres:5433/postgres
       - APP_ENV=test
-      - AUTH_TRUST_HOST=http://application:3000
+      - AUTH_TRUST_HOST=http://e2e-application:3001
+      - PORT=3001
     depends_on:
-      postgres:
+      e2e-postgres:
         condition: service_healthy
 
   e2e:
@@ -40,9 +42,10 @@ services:
         - common=./
     environment:
       - CI=${CI}
-      - PLAYWRIGHT_BASE_URL=http://application:3000
-      - POSTGRES_PRISMA_URL=postgres://postgres:password@postgres:5432/postgres?pgbouncer=true&connect_timeout=15
-      - POSTGRES_URL_NON_POOLING=postgres://postgres:password@postgres:5432/postgres
+      - PLAYWRIGHT_BASE_URL=http://e2e-application:3001
+      - POSTGRES_PRISMA_URL=postgres://postgres:password@e2e-postgres:5433/postgres?pgbouncer=true&connect_timeout=15
+      - POSTGRES_URL_NON_POOLING=postgres://postgres:password@e2e-postgres:5433/postgres
+      - APPDOMAIN=e2e-application
     command: >
       sh -c "npm run test-ui"
     volumes:
@@ -50,4 +53,4 @@ services:
     ports:
       - "9323:9323"
     depends_on:
-      - application
+      - e2e-application

@@ -8,7 +8,7 @@ export async function signIn(browser: Browser): Promise<BrowserContext> {
     {
       name: "authjs.session-token",
       value: "dummy",
-      domain: "localhost",
+      domain: process.env.APPDOMAIN,
       path: "/",
     },
   ]);
