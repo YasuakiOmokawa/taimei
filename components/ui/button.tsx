@@ -48,11 +48,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     props["children"] = isSending ? "Sending..." : props["children"];
     const Comp = asChild ? Slot : "button";
 
-    if (isSending) {
-      BProgress.start();
-    } else {
-      BProgress.done();
-    }
+    React.useEffect(() => {
+      BProgress.configure({ showSpinner: false });
+      if (isSending) {
+        BProgress.start();
+      } else {
+        BProgress.done();
+      }
+    }, [isSending]);
 
     return (
       <Comp
