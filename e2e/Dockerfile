@@ -15,5 +15,3 @@ COPY --from=common ./tsconfig.json .
 COPY --from=common ./prisma prisma/
 COPY --from=common ./prisma.ts .
 RUN npx prisma generate
-
-CMD ["npm", "test"]
