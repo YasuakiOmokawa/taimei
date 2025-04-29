@@ -62,7 +62,7 @@ services:
       - POSTGRES_URL_NON_POOLING=postgres://postgres:password@e2e-postgres:5433/postgres
       - APPDOMAIN=e2e-application
     command: >
-      sh -c "npm run test-ui"
+      sh -c "npm ${TEST_COMMAND}"
     volumes:
       - ./test-results:/app/test-results
     ports:
