@@ -52,5 +52,12 @@ services:
       - ./test-results:/app/test-results
     ports:
       - "9323:9323"
+    develop:
+      watch:
+        - action: sync
+          path: ./e2e
+          target: /app
+        - action: rebuild
+          path: ./e2e/package.json
     depends_on:
       - e2e-application
