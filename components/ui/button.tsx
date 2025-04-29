@@ -47,9 +47,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const isSending = status.pending && props["type"] === "submit";
     props["children"] = isSending ? "Sending..." : props["children"];
     const Comp = asChild ? Slot : "button";
+    BProgress.configure({ showSpinner: false });
 
     React.useEffect(() => {
-      BProgress.configure({ showSpinner: false });
       if (isSending) {
         BProgress.start();
       } else {
