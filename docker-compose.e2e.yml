@@ -62,6 +62,7 @@ services:
     command: >
       sh -c "${TEST_COMMAND}"
     volumes:
+      - ./e2e/playwright-report:/app/playwright-report
       - ./e2e/test-results:/app/test-results
     ports:
       - "9323:9323"
