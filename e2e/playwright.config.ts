@@ -1,21 +1,4 @@
 import { defineConfig, devices } from "@playwright/test";
-// import dotenv from "dotenv";
-// import dotenvExpand from "dotenv-expand";
-// import path from "path";
-
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// import dotenv from 'dotenv';
-// dotenvExpand.expand(dotenv.config({ path: path.resolve(__dirname, ".env") }));
-// override per environment
-// if (process.env.TEST_ENV) {
-//   dotenv.config({
-//     path: path.resolve(__dirname, `.env.${process.env.TEST_ENV}`),
-//     override: true,
-//   });
-// }
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -81,11 +64,4 @@ export default defineConfig({
     //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
     // },
   ],
-
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://127.0.0.1:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
 });
