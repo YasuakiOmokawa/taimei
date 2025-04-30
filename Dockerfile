@@ -31,5 +31,9 @@ COPY --chown=${username}:${username} . .
 # パフォーマンス向上のため、vercelへの情報提供を抑止
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# 開発環境で環境立ち上げの速度を上げたい場合、以下コマンドを実行して
+# 立ち上げること
+# $ docker compose build --build-arg APP_BUILD_CMD='' && docker compose up --watch
+ARG APP_BUILD_CMD='bun deployable-test'
 RUN bunx prisma generate \
-&& bun deployable-test
+&& ${APP_BUILD_CMD}
