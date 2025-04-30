@@ -27,7 +27,7 @@ services:
     ports:
       - "3001:3001"
     command: >
-      sh -c "bunx prisma migrate deploy && bun start"
+      sh -c "bun deployable-test && bunx prisma migrate deploy && bun start"
     user: vscode
     environment:
       - POSTGRES_PRISMA_URL=postgres://postgres:password@e2e-postgres:5433/postgres?pgbouncer=true&connect_timeout=15
