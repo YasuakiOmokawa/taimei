@@ -17,6 +17,8 @@ npm --prefix ./e2e install ./e2e
 
 ## 開発環境起動
 
+`--watch`オプションを指定するとホットリロードが可能です。
+
 ```console
 docker compose up --build --watch
 ```
