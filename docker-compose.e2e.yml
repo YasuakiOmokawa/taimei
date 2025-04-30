@@ -6,7 +6,6 @@ services:
     image: postgres:16.8-alpine3.21
     volumes:
       - pg-data:/var/lib/postgresql/data
-      - /dump:/dump
     ports:
       - "5433:5433"
     environment:
@@ -28,7 +27,7 @@ services:
     ports:
       - "3001:3001"
     command: >
-      sh -c "bunx prisma migrate deploy && bun dev"
+      sh -c "bunx prisma migrate deploy && bun start"
     user: vscode
     environment:
       - POSTGRES_PRISMA_URL=postgres://postgres:password@e2e-postgres:5433/postgres?pgbouncer=true&connect_timeout=15
@@ -61,9 +60,9 @@ services:
       - POSTGRES_URL_NON_POOLING=postgres://postgres:password@e2e-postgres:5433/postgres
       - APPDOMAIN=e2e-application
     command: >
-      sh -c "npm ${TEST_COMMAND}"
+      sh -c "${TEST_COMMAND}"
     volumes:
-      - ./test-results:/app/test-results
+      - ./e2e/test-results:/app/test-results
     ports:
       - "9323:9323"
     develop:

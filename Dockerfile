@@ -31,6 +31,5 @@ COPY --chown=${username}:${username} . .
 # パフォーマンス向上のため、vercelへの情報提供を抑止
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN bunx prisma generate
-
-RUN bun deployable-test
+RUN bunx prisma generate \
+&& bun deployable-test
