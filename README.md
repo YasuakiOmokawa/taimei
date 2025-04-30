@@ -1,4 +1,4 @@
-## サービス説明
+## Yasuaki Code
 
 心安らかなソリューション。
 それがYasuaki Code。
