@@ -60,7 +60,7 @@ services:
       - POSTGRES_URL_NON_POOLING=postgres://postgres:password@e2e-postgres:5433/postgres
       - APPDOMAIN=e2e-application
     command: >
-      sh -c "${TEST_COMMAND}"
+      sh -c "${E2E_SERVICE_COMMAND}"
     volumes:
       - ./e2e/playwright-report:/app/playwright-report
       - ./e2e/test-results:/app/test-results

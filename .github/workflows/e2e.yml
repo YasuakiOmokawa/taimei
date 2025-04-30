@@ -14,7 +14,7 @@ jobs:
         run: docker compose -f docker-compose.e2e.yml build
 
       - name: Run Playwright tests
-        run: TEST_COMMAND='npm test' docker compose -f docker-compose.e2e.yml up --abort-on-container-exit --exit-code-from e2e
+        run: E2E_SERVICE_COMMAND='npm test' docker compose -f docker-compose.e2e.yml up --abort-on-container-exit --exit-code-from e2e
 
       - uses: actions/upload-artifact@v4
         if: always()
