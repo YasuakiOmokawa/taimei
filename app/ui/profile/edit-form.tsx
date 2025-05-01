@@ -14,12 +14,15 @@ import { withCallbacks } from "@/lib/with-callbacks";
 import { toast } from "sonner";
 import { UserProfileSelectionById } from "@/app/lib/data";
 import { useCurrentUser } from "@/app/lib/hooks/useCurrentUser";
+import { ListBlobResult } from "@vercel/blob";
+import Image from "next/image";
 
 type Props = {
   userProfile: UserProfileSelectionById | null;
+  images: ListBlobResult;
 };
 
-export function EditForm({ userProfile }: Props) {
+export function EditForm({ userProfile, images }: Props) {
   const currentUser = useCurrentUser();
   const [lastResult, action] = useActionState(
     withCallbacks(updateUser.bind(null, String(currentUser.id)), {
@@ -90,6 +93,18 @@ export function EditForm({ userProfile }: Props) {
 
         <Button type="submit">更新</Button>
       </form>
+      <section>
+        {images.blobs.map((image) => (
+          <Image
+            priority
+            key={image.pathname}
+            src={image.url}
+            alt="Image"
+            width={200}
+            height={200}
+          />
+        ))}
+      </section>
     </div>
   );
 }
