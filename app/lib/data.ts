@@ -5,17 +5,12 @@ import { Prisma } from "@prisma/client";
 import { Invoices } from "@/app/models/invoices";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
-import { list } from "@vercel/blob";
 
 export interface CurrentUser {
   id: string;
   name: string;
   email: string;
   image: string;
-}
-
-export async function fetchImages() {
-  return await list();
 }
 
 export async function fetchCurrentUser(): Promise<CurrentUser> {

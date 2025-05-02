@@ -187,7 +187,7 @@ export async function updateUser(
         bio: submission.value.bio,
       },
       create: {
-        bio: submission.value.bio,
+        bio: submission.value.bio ?? "",
         userId: id,
       },
     }),
