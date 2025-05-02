@@ -1,0 +1,133 @@
+"use client";
+
+import type React from "react";
+
+import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Trash2 } from "lucide-react";
+// import { deleteAvatar } from "@/app/lib/actions";
+// import { avatarSchema } from "@/app/lib/schema/profile/schema";
+
+interface AvatarUploadProps {
+  currentAvatarUrl: string;
+  userName: string;
+}
+
+export function AvatarUpload({
+  currentAvatarUrl,
+  userName,
+}: AvatarUploadProps) {
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(
+    currentAvatarUrl || null
+  );
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // ファイルバリデーション
+    try {
+      // avatarSchema.parse({ avatar: file });
+      setError(null);
+    } catch (_err) {
+      // setError(err.errors?.[0]?.message || "ファイルが無効です");
+      e.target.value = "";
+      return;
+    }
+
+    // プレビュー表示
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDeleteAvatar = async () => {
+    // if (!currentAvatarUrl) return;
+    // const result = await deleteAvatar(currentAvatarUrl);
+    // if (result.status === "success") {
+    //   setAvatarPreview(null);
+    //   if (fileInputRef.current) fileInputRef.current.value = "";
+    //   toast.success("アバターを削除しました");
+    // } else {
+    //   toast.error(result.message || "アバターの削除に失敗しました");
+    // }
+  };
+
+  const getInitials = (name: string) => {
+    return (
+      name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .substring(0, 2) || "??"
+    );
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-muted/10">
+      <div className="relative">
+        <Avatar className="w-28 h-28 border-2 border-muted">
+          {avatarPreview ? (
+            <AvatarImage
+              src={avatarPreview || "/placeholder.svg"}
+              alt="プロフィール画像"
+            />
+          ) : (
+            <AvatarFallback>{getInitials(userName || "")}</AvatarFallback>
+          )}
+        </Avatar>
+        {avatarPreview && (
+          <Button
+            variant="destructive"
+            size="icon"
+            className="absolute -top-2 -right-2 h-8 w-8 rounded-full"
+            onClick={handleDeleteAvatar}
+            type="button"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">アバターを削除</span>
+          </Button>
+        )}
+      </div>
+
+      <div className="flex flex-col items-center gap-2 w-full">
+        <p className="text-sm font-medium">プロフィール画像</p>
+        <input
+          type="file"
+          id="avatar"
+          name="avatar"
+          accept="image/png, image/jpeg, image/jpg, image/webp"
+          className="hidden"
+          onChange={handleFileChange}
+          ref={fileInputRef}
+        />
+        <input
+          type="hidden"
+          name="currentAvatarUrl"
+          value={currentAvatarUrl || ""}
+        />
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          画像を選択
+        </Button>
+
+        {error && <p className="text-xs text-red-500">{error}</p>}
+        <p className="text-xs text-muted-foreground">
+          JPG、PNG、WEBP形式（最大5MB）
+        </p>
+      </div>
+    </div>
+  );
+}

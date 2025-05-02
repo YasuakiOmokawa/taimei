@@ -12,17 +12,15 @@ import { userSchema } from "@/app/lib/schema/profile/schema";
 import { updateUser } from "@/app/lib/actions";
 import { withCallbacks } from "@/lib/with-callbacks";
 import { toast } from "sonner";
-import { UserProfileSelectionById } from "@/app/lib/data";
+import type { UserProfileSelectionById } from "@/app/lib/data";
 import { useCurrentUser } from "@/app/lib/hooks/useCurrentUser";
-import { ListBlobResult } from "@vercel/blob";
-import Image from "next/image";
+import { AvatarUpload } from "@/components/avatar-upload";
 
 type Props = {
   userProfile: UserProfileSelectionById | null;
-  images: ListBlobResult;
 };
 
-export function EditForm({ userProfile, images }: Props) {
+export function EditForm({ userProfile }: Props) {
   const currentUser = useCurrentUser();
   const [lastResult, action] = useActionState(
     withCallbacks(updateUser.bind(null, String(currentUser.id)), {
@@ -44,7 +42,7 @@ export function EditForm({ userProfile, images }: Props) {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-3xl mx-auto">
       <div>
         <h3 className="text-lg font-medium">プロフィール</h3>
         <p className="text-sm text-muted-foreground">
@@ -59,52 +57,58 @@ export function EditForm({ userProfile, images }: Props) {
         action={action}
         noValidate
       >
-        <div className="space-y-2">
-          <Label htmlFor="name">表示名</Label>
-          <Input
-            id="name"
-            type="text"
-            key={fields.name.key}
-            name={fields.name.name}
-            defaultValue={fields.name.value ?? currentUser.name}
-            placeholder="山田太郎"
-          />
-          <p className="text-xs text-muted-foreground">
-            他のユーザーから見える名前です。
-          </p>
-          <div className="text-red-500">{fields.name.errors}</div>
-        </div>
+        <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-8">
+          <div className="space-y-6">
+            {/* プロフィールフィールドのコンテナ */}
+            <div className="space-y-2">
+              <Label htmlFor="name">表示名</Label>
+              <Input
+                id="name"
+                type="text"
+                key={fields.name.key}
+                name={fields.name.name}
+                defaultValue={fields.name.value ?? currentUser.name}
+                placeholder="山田太郎"
+              />
+              <p className="text-xs text-muted-foreground">
+                他のユーザーから見える名前です。
+              </p>
+              <div className="text-red-500">{fields.name.errors}</div>
+            </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="bio">自己紹介</Label>
-          <Textarea
-            id="bio"
-            key={fields.bio.key}
-            name={fields.bio.name}
-            className="min-h-[100px]"
-            defaultValue={fields.bio.value ?? userProfile?.bio}
-            placeholder="こんにちは！"
-          />
-          <p className="text-xs text-muted-foreground">
-            あなたについて紹介してください。
-          </p>
-          <div className="text-red-500">{fields.bio.errors}</div>
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="bio">自己紹介</Label>
+              <Textarea
+                id="bio"
+                key={fields.bio.key}
+                name={fields.bio.name}
+                className="min-h-[100px]"
+                defaultValue={fields.bio.value ?? userProfile?.bio}
+                placeholder="こんにちは！"
+              />
+              <p className="text-xs text-muted-foreground">
+                あなたについて紹介してください。
+              </p>
+              <div className="text-red-500">{fields.bio.errors}</div>
+            </div>
 
-        <Button type="submit">更新</Button>
+            {/* 将来的なフィールド用のスペース */}
+            {/* 新しいフィールドはここに追加 */}
+
+            <div className="pt-4">
+              <Button type="submit">更新</Button>
+            </div>
+          </div>
+
+          {/* アバターアップロードコンポーネント - 右側に固定 */}
+          <div className="md:sticky md:top-8">
+            <AvatarUpload
+              currentAvatarUrl={currentUser.image}
+              userName={currentUser.name}
+            />
+          </div>
+        </div>
       </form>
-      <section>
-        {images.blobs.map((image) => (
-          <Image
-            priority
-            key={image.pathname}
-            src={image.url}
-            alt="Image"
-            width={200}
-            height={200}
-          />
-        ))}
-      </section>
     </div>
   );
 }
