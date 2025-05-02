@@ -1,7 +1,7 @@
-# Yasuaki Code
+# Taimei
 
 心安らかなソリューション。
-それがYasuaki Code。
+それがTaimei
 
 # パッケージインストール
 
