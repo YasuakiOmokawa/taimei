@@ -9,7 +9,7 @@ import { buildSignInResponse } from "./lib/auth/buildSignInResponse";
 
 const providers = [
   Resend({
-    from: "notifications@transactional.ys-polaris.net",
+    from: "notifications@transactional.taimei-code.com",
   }),
   GitHub,
 ];
