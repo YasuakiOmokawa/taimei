@@ -16,10 +16,13 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { useCurrentUser } from "@/app/lib/hooks/useCurrentUser";
+import { CurrentUser } from "@/app/lib/data";
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const currentUser = useCurrentUser();
+type Props = {
+  currentUser: CurrentUser;
+} & React.ComponentProps<typeof Sidebar>;
+
+export function AppSidebar({ currentUser, ...props }: Props) {
   const data = {
     user: {
       name: currentUser.name,
