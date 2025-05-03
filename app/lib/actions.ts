@@ -170,28 +170,34 @@ export async function updateUser(
     return submission.reply();
   }
 
-  await prisma.$transaction([
-    prisma.user.update({
-      data: {
-        name: submission.value.name,
-      },
-      where: {
-        id: id,
-      },
-    }),
-    prisma.userProfile.upsert({
-      where: {
-        userId: id,
-      },
-      update: {
-        bio: submission.value.bio,
-      },
-      create: {
-        bio: submission.value.bio ?? "",
-        userId: id,
-      },
-    }),
-  ]);
+  const updateUserQuery = {
+    data: {
+      name: submission.value.name,
+    },
+    where: {
+      id: id,
+    },
+  };
+
+  if (submission.value.bio) {
+    await prisma.$transaction([
+      prisma.user.update(updateUserQuery),
+      prisma.userProfile.upsert({
+        where: {
+          userId: id,
+        },
+        update: {
+          bio: submission.value.bio,
+        },
+        create: {
+          bio: submission.value.bio,
+          userId: id,
+        },
+      }),
+    ]);
+  } else {
+    prisma.user.update(updateUserQuery);
+  }
 
   revalidatePath("/setting/profile");
   return submission.reply();
