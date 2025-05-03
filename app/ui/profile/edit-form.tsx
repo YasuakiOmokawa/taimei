@@ -13,7 +13,6 @@ import { updateUser } from "@/app/lib/actions";
 import { withCallbacks } from "@/lib/with-callbacks";
 import { toast } from "sonner";
 import type { CurrentUser, UserProfileSelectionById } from "@/app/lib/data";
-import { useCurrentUser } from "@/app/lib/hooks/useCurrentUser";
 import { AvatarUpload } from "@/components/avatar-upload";
 
 type Props = {
@@ -102,7 +101,12 @@ export function EditForm({ userProfile, user }: Props) {
 
           {/* アバターアップロードコンポーネント - 右側に固定 */}
           <div className="md:sticky md:top-8">
-            <AvatarUpload avatarUrl={user.image} userName={user.name} />
+            <AvatarUpload
+              avatarUrl={user.image}
+              userName={user.name}
+              avatarField={fields.avatar}
+              avatarUrlField={fields.avatarUrl}
+            />
           </div>
         </div>
       </form>

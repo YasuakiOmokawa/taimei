@@ -6,15 +6,24 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trash2 } from "lucide-react";
+import { FieldMetadata } from "@conform-to/react";
 // import { deleteAvatar } from "@/app/lib/actions";
-// import { avatarSchema } from "@/app/lib/schema/profile/schema";
+import { avatarSchema } from "@/app/lib/schema/profile/schema";
+import { z } from "zod";
 
 interface AvatarUploadProps {
   avatarUrl: string;
   userName: string;
+  avatarField: FieldMetadata<File | undefined>;
+  avatarUrlField: FieldMetadata<string | undefined>;
 }
 
-export function AvatarUpload({ avatarUrl, userName }: AvatarUploadProps) {
+export function AvatarUpload({
+  avatarUrl,
+  userName,
+  avatarField,
+  avatarUrlField,
+}: AvatarUploadProps) {
   const [avatarPreview, setAvatarPreview] = useState<string>(avatarUrl);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,10 +34,14 @@ export function AvatarUpload({ avatarUrl, userName }: AvatarUploadProps) {
 
     // ファイルバリデーション
     try {
-      // avatarSchema.parse({ avatar: file });
+      avatarSchema.parse({ avatar: file });
       setError(null);
-    } catch (_err) {
-      // setError(err.errors?.[0]?.message || "ファイルが無効です");
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        setError(err.errors.at(0)?.message ?? "ファイルが無効です");
+      } else {
+        setError("予期しないエラーが発生しました");
+      }
       e.target.value = "";
       return;
     }
@@ -96,13 +109,14 @@ export function AvatarUpload({ avatarUrl, userName }: AvatarUploadProps) {
         <input
           type="file"
           id="avatar"
-          name="avatar"
+          name={avatarField.name}
+          key={avatarField.key}
           accept="image/png, image/jpeg, image/jpg, image/webp"
           className="hidden"
           onChange={handleFileChange}
           ref={fileInputRef}
         />
-        <input type="hidden" name="avatarUrl" value={avatarUrl || ""} />
+        <input type="hidden" name={avatarUrlField.name} value={avatarUrl} />
 
         <Button
           type="button"
@@ -115,6 +129,9 @@ export function AvatarUpload({ avatarUrl, userName }: AvatarUploadProps) {
         </Button>
 
         {error && <p className="text-xs text-red-500">{error}</p>}
+        {avatarField.errors && (
+          <p className="text-xs text-red-500">{avatarField.errors}</p>
+        )}
         <p className="text-xs text-muted-foreground">
           JPG、PNG、WEBP形式（最大5MB）
         </p>
