@@ -12,18 +12,18 @@ import { userSchema } from "@/app/lib/schema/profile/schema";
 import { updateUser } from "@/app/lib/actions";
 import { withCallbacks } from "@/lib/with-callbacks";
 import { toast } from "sonner";
-import type { UserProfileSelectionById } from "@/app/lib/data";
+import type { CurrentUser, UserProfileSelectionById } from "@/app/lib/data";
 import { useCurrentUser } from "@/app/lib/hooks/useCurrentUser";
 import { AvatarUpload } from "@/components/avatar-upload";
 
 type Props = {
+  user: CurrentUser;
   userProfile: UserProfileSelectionById | null;
 };
 
-export function EditForm({ userProfile }: Props) {
-  const currentUser = useCurrentUser();
+export function EditForm({ userProfile, user }: Props) {
   const [lastResult, action] = useActionState(
-    withCallbacks(updateUser.bind(null, String(currentUser.id)), {
+    withCallbacks(updateUser.bind(null, String(user.id)), {
       onSuccess() {
         toast.success("プロフィールが更新されました");
       },
@@ -67,7 +67,7 @@ export function EditForm({ userProfile }: Props) {
                 type="text"
                 key={fields.name.key}
                 name={fields.name.name}
-                defaultValue={fields.name.value ?? currentUser.name}
+                defaultValue={fields.name.value ?? user.name}
                 placeholder="山田太郎"
               />
               <p className="text-xs text-muted-foreground">
@@ -102,10 +102,7 @@ export function EditForm({ userProfile }: Props) {
 
           {/* アバターアップロードコンポーネント - 右側に固定 */}
           <div className="md:sticky md:top-8">
-            <AvatarUpload
-              currentAvatarUrl={currentUser.image}
-              userName={currentUser.name}
-            />
+            <AvatarUpload avatarUrl={user.image} userName={user.name} />
           </div>
         </div>
       </form>
