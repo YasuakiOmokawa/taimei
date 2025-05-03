@@ -15,12 +15,13 @@ import {
 import Link from "next/link";
 import { Cog6ToothIcon, UserIcon } from "@heroicons/react/24/outline";
 import { NavProjects } from "./nav-projects";
-import { useCurrentUser } from "@/app/lib/hooks/useCurrentUser";
+import { CurrentUser } from "@/app/lib/data";
 
-export function SettingSidebar({
-  ...props
-}: React.ComponentProps<typeof Sidebar>) {
-  const currentUser = useCurrentUser();
+type Props = {
+  currentUser: CurrentUser;
+} & React.ComponentProps<typeof Sidebar>;
+
+export function SettingSidebar({ currentUser, ...props }: Props) {
   const data = {
     user: {
       name: currentUser.name,
