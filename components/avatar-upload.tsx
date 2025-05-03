@@ -10,17 +10,12 @@ import { Trash2 } from "lucide-react";
 // import { avatarSchema } from "@/app/lib/schema/profile/schema";
 
 interface AvatarUploadProps {
-  currentAvatarUrl: string;
+  avatarUrl: string;
   userName: string;
 }
 
-export function AvatarUpload({
-  currentAvatarUrl,
-  userName,
-}: AvatarUploadProps) {
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(
-    currentAvatarUrl || null
-  );
+export function AvatarUpload({ avatarUrl, userName }: AvatarUploadProps) {
+  const [avatarPreview, setAvatarPreview] = useState<string>(avatarUrl);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,8 +42,8 @@ export function AvatarUpload({
   };
 
   const handleDeleteAvatar = async () => {
-    // if (!currentAvatarUrl) return;
-    // const result = await deleteAvatar(currentAvatarUrl);
+    // if (!avatarUrl) return;
+    // const result = await deleteAvatar(avatarUrl);
     // if (result.status === "success") {
     //   setAvatarPreview(null);
     //   if (fileInputRef.current) fileInputRef.current.value = "";
@@ -79,7 +74,7 @@ export function AvatarUpload({
               alt="プロフィール画像"
             />
           ) : (
-            <AvatarFallback>{getInitials(userName || "")}</AvatarFallback>
+            <AvatarFallback>{getInitials(userName)}</AvatarFallback>
           )}
         </Avatar>
         {avatarPreview && (
@@ -107,11 +102,7 @@ export function AvatarUpload({
           onChange={handleFileChange}
           ref={fileInputRef}
         />
-        <input
-          type="hidden"
-          name="currentAvatarUrl"
-          value={currentAvatarUrl || ""}
-        />
+        <input type="hidden" name="avatarUrl" value={avatarUrl || ""} />
 
         <Button
           type="button"
