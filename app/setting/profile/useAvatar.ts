@@ -37,7 +37,6 @@ export function useAvatar(avatarUrl: string) {
     if (result.status === "success") {
       setAvatarPreview(undefined);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      avatarUrl = "";
       toast.success("アバターを削除しました");
     } else {
       toast.error(result.message ?? "予期せぬエラーが発生しました");
@@ -49,6 +48,6 @@ export function useAvatar(avatarUrl: string) {
     avatarPreview,
     updatePreview,
     fileInputRef,
-    handlDeleteAvatar,
+    handleDeleteAvatar,
   };
 }

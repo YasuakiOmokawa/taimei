@@ -38,7 +38,7 @@ export function AvatarUpload({
             size="icon"
             className="absolute -top-2 -right-2 h-8 w-8 rounded-full"
             onClick={() => {
-              handlDeleteAvatar();
+              handleDeleteAvatar();
             }}
             type="button"
           >
