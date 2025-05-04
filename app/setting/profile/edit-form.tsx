@@ -13,7 +13,7 @@ import { updateUser } from "@/app/lib/actions";
 import { withCallbacks } from "@/lib/with-callbacks";
 import { toast } from "sonner";
 import type { CurrentUser, UserProfileSelectionById } from "@/app/lib/data";
-import { AvatarUpload } from "@/components/avatar-upload";
+import { AvatarUpload } from "@/app/setting/profile/avatar-upload";
 
 type Props = {
   user: CurrentUser;

@@ -2,14 +2,15 @@
 
 import type React from "react";
 
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trash2 } from "lucide-react";
 import { FieldMetadata } from "@conform-to/react";
+import { useAvatar } from "./useAvatar";
 // import { deleteAvatar } from "@/app/lib/actions";
 
-interface AvatarUploadProps {
+interface Props {
   avatarUrl: string;
   userName: string;
   avatarField: FieldMetadata<File | undefined>;
@@ -21,20 +22,12 @@ export function AvatarUpload({
   userName,
   avatarField,
   avatarUrlField,
-}: AvatarUploadProps) {
-  const [avatarPreview, setAvatarPreview] = useState<string>(avatarUrl);
+}: Props) {
+  const { avatarPreview, updatePreview } = useAvatar(avatarUrl);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // プレビュー表示
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setAvatarPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    updatePreview(e);
   };
 
   const handleDeleteAvatar = async () => {

@@ -1,6 +1,6 @@
 import { fetchUserProfile } from "@/app/lib/data";
-import { EditForm } from "@/app/ui/profile/edit-form";
 import { fetchCurrentUser } from "@/app/lib/data";
+import { EditForm } from "./edit-form";
 
 export default async function Page() {
   const currentUser = await fetchCurrentUser();
