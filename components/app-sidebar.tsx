@@ -24,11 +24,6 @@ type Props = {
 
 export function AppSidebar({ currentUser, ...props }: Props) {
   const data = {
-    user: {
-      name: currentUser.name,
-      email: currentUser.email,
-      avatar: currentUser.image,
-    },
     navMain: [
       {
         title: "ダッシュボード",
@@ -75,7 +70,7 @@ export function AppSidebar({ currentUser, ...props }: Props) {
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser {...currentUser} />
       </SidebarFooter>
     </Sidebar>
   );
