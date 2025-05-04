@@ -7,8 +7,9 @@ import { deleteAvatar } from "@/app/lib/actions";
 
 export function useAvatar(avatarUrl: string) {
   const [avatarPreview, setAvatarPreview] = React.useState<string | undefined>(
-    avatarUrl || undefined
+    avatarUrl
   );
+  const [blobUrl, setBlobUrl] = React.useState<string>(avatarUrl);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const updatePreview = React.useCallback(
@@ -26,28 +27,22 @@ export function useAvatar(avatarUrl: string) {
   );
 
   const handleDeleteAvatar = React.useCallback(async () => {
-    if (!avatarUrl) {
-      setAvatarPreview(undefined);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
-
     BProgress.start();
-    const result = await deleteAvatar(avatarUrl);
+    const result = await deleteAvatar(blobUrl);
     if (result.status === "success") {
       setAvatarPreview(undefined);
+      setBlobUrl("");
       if (fileInputRef.current) fileInputRef.current.value = "";
       toast.success("アバターを削除しました");
-    } else {
-      toast.error(result.message ?? "予期せぬエラーが発生しました");
     }
     BProgress.done();
-  }, [avatarUrl, setAvatarPreview, deleteAvatar]);
+  }, [avatarUrl, setAvatarPreview, deleteAvatar, setBlobUrl]);
 
   return {
     avatarPreview,
     updatePreview,
     fileInputRef,
     handleDeleteAvatar,
+    blobUrl,
   };
 }

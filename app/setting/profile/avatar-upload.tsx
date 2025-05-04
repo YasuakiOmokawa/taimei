@@ -22,8 +22,13 @@ export function AvatarUpload({
   avatarField,
   avatarUrlField,
 }: Props) {
-  const { avatarPreview, updatePreview, fileInputRef, handleDeleteAvatar } =
-    useAvatar(avatarUrl);
+  const {
+    avatarPreview,
+    updatePreview,
+    fileInputRef,
+    handleDeleteAvatar,
+    blobUrl,
+  } = useAvatar(avatarUrl);
 
   return (
     <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-muted/10">
@@ -62,7 +67,7 @@ export function AvatarUpload({
           }}
           ref={fileInputRef}
         />
-        <input type="hidden" name={avatarUrlField.name} value={avatarUrl} />
+        <input type="hidden" name={avatarUrlField.name} value={blobUrl} />
 
         <Button
           type="button"

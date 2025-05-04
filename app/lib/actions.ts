@@ -205,8 +205,6 @@ export async function updateUser(
 }
 
 export async function deleteAvatar(url: string) {
-  if (!url) return { status: "error", message: "URLが指定されていません" };
-
   if (url.includes("vercel-blob.com")) await del(url);
   await prisma.user.update({
     data: {
