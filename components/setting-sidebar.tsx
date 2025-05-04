@@ -68,7 +68,7 @@ export function SettingSidebar({ currentUser, ...props }: Props) {
         <NavProjects title="基本設定" projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser {...currentUser} />
       </SidebarFooter>
     </Sidebar>
   );
