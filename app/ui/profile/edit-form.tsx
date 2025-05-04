@@ -102,7 +102,6 @@ export function EditForm({ userProfile, user }: Props) {
           {/* アバターアップロードコンポーネント - 右側に固定 */}
           <div className="md:sticky md:top-8">
             <AvatarUpload
-              formId={form.id}
               avatarUrl={user.image}
               userName={user.name}
               avatarField={fields.avatar}
