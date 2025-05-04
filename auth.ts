@@ -21,7 +21,7 @@ export const {
   signOut,
 } = NextAuth({
   ...authConfig,
-  debug: true,
+  debug: process.env.NODE_ENV === "production" ? false : true,
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt",
