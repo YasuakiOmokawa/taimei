@@ -22,7 +22,7 @@ export function AvatarUpload({
   avatarField,
   avatarUrlField,
 }: Props) {
-  const { avatarPreview, updatePreview, fileInputRef, handlDeleteAvatar } =
+  const { avatarPreview, updatePreview, fileInputRef, handleDeleteAvatar } =
     useAvatar(avatarUrl);
 
   return (

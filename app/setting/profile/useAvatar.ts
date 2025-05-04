@@ -25,7 +25,7 @@ export function useAvatar(avatarUrl: string) {
     [setAvatarPreview]
   );
 
-  const handlDeleteAvatar = React.useCallback(async () => {
+  const handleDeleteAvatar = React.useCallback(async () => {
     if (!avatarUrl) {
       setAvatarPreview(undefined);
       if (fileInputRef.current) fileInputRef.current.value = "";
