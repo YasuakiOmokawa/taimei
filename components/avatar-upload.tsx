@@ -112,8 +112,8 @@ export function AvatarUpload({
         </Button>
 
         {avatarField.errors &&
-          avatarField.errors.map((error) => (
-            <p key={error} className="text-xs text-red-500">
+          avatarField.errors.map((error, index) => (
+            <p key={`${error}-${index}`} className="text-xs text-red-500">
               {error}
             </p>
           ))}
