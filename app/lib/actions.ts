@@ -217,7 +217,6 @@ export async function deleteAvatar(url: string) {
     },
   });
 
-  revalidatePath("/setting/profile");
   return { status: "success" };
 }
 
