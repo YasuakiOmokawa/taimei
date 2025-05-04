@@ -23,7 +23,7 @@ export function AvatarUpload({
   avatarField,
   avatarUrlField,
 }: Props) {
-  const { avatarPreview, updatePreview } = useAvatar(avatarUrl);
+  const { avatarPreview, updatePreview, getInitials } = useAvatar(avatarUrl);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,17 +40,6 @@ export function AvatarUpload({
     // } else {
     //   toast.error(result.message || "アバターの削除に失敗しました");
     // }
-  };
-
-  const getInitials = (name: string) => {
-    return (
-      name
-        ?.split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .substring(0, 2) || "??"
-    );
   };
 
   return (

@@ -20,5 +20,16 @@ export function useAvatar(avatarUrl: string) {
     [setAvatarPreview]
   );
 
-  return { avatarPreview, updatePreview };
+  const getInitials = React.useCallback((name: string) => {
+    return (
+      name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .substring(0, 2) || "??"
+    );
+  }, []);
+
+  return { avatarPreview, updatePreview, getInitials };
 }
