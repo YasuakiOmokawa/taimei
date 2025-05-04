@@ -36,7 +36,7 @@ export function EditForm({ userProfile, user }: Props) {
       return parseWithZod(formData, { schema: userSchema });
     },
 
-    shouldValidate: "onBlur",
+    shouldValidate: "onInput",
     shouldRevalidate: "onInput",
   });
 

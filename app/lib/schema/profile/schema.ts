@@ -25,10 +25,6 @@ export const userSchema = z.object({
   avatarUrl: z.string().optional(),
 });
 
-export const avatarSchema = userSchema.pick({
-  avatar: true,
-});
-
 export const deleteUserSchema = z.object({
   id: z.string(),
 });

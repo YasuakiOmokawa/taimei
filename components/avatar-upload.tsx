@@ -8,8 +8,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trash2 } from "lucide-react";
 import { FieldMetadata } from "@conform-to/react";
 // import { deleteAvatar } from "@/app/lib/actions";
-import { avatarSchema } from "@/app/lib/schema/profile/schema";
-import { z } from "zod";
 
 interface AvatarUploadProps {
   avatarUrl: string;
@@ -25,26 +23,11 @@ export function AvatarUpload({
   avatarUrlField,
 }: AvatarUploadProps) {
   const [avatarPreview, setAvatarPreview] = useState<string>(avatarUrl);
-  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // ファイルバリデーション
-    try {
-      avatarSchema.parse({ avatar: file });
-      setError(null);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        setError(err.errors.at(0)?.message ?? "ファイルが無効です");
-      } else {
-        setError("予期しないエラーが発生しました");
-      }
-      e.target.value = "";
-      return;
-    }
 
     // プレビュー表示
     const reader = new FileReader();
@@ -128,10 +111,12 @@ export function AvatarUpload({
           画像を選択
         </Button>
 
-        {error && <p className="text-xs text-red-500">{error}</p>}
-        {avatarField.errors && (
-          <p className="text-xs text-red-500">{avatarField.errors}</p>
-        )}
+        {avatarField.errors &&
+          avatarField.errors.map((error, index) => (
+            <p key={`${error}-${index}`} className="text-xs text-red-500">
+              {error}
+            </p>
+          ))}
         <p className="text-xs text-muted-foreground">
           JPG、PNG、WEBP形式（最大5MB）
         </p>
