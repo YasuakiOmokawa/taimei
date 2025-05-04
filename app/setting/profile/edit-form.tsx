@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { useActionState } from "react";
 import { useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
-import { userSchema } from "@/app/lib/schema/profile/schema";
+import { userSchema } from "@/app/setting/profile/schema";
 import { updateUser } from "@/app/lib/actions";
 import { withCallbacks } from "@/lib/with-callbacks";
 import { toast } from "sonner";

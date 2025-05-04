@@ -10,7 +10,7 @@ import { emailLinkLoginSchema } from "./schema/login/schema";
 import { signOut as SignOut } from "@/auth";
 import { prisma } from "@/prisma";
 import { setFlash } from "@/lib/flash-toaster";
-import { deleteUserSchema, userSchema } from "./schema/profile/schema";
+import { deleteUserSchema, userSchema } from "../setting/profile/schema";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { setCustomCookie } from "@/lib/auth/serverUtils";
 import { fetchCurrentUser } from "./data";
