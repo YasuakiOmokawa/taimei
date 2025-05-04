@@ -9,7 +9,7 @@ import { Trash2 } from "lucide-react";
 import { FieldMetadata } from "@conform-to/react";
 // import { deleteAvatar } from "@/app/lib/actions";
 
-interface AvatarUploadProps {
+interface Props {
   avatarUrl: string;
   userName: string;
   avatarField: FieldMetadata<File | undefined>;
@@ -21,7 +21,7 @@ export function AvatarUpload({
   userName,
   avatarField,
   avatarUrlField,
-}: AvatarUploadProps) {
+}: Props) {
   const [avatarPreview, setAvatarPreview] = useState<string>(avatarUrl);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
