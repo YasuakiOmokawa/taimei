@@ -14,6 +14,7 @@ import { deleteUserSchema, userSchema } from "../setting/profile/schema";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { setCustomCookie } from "@/lib/auth/serverUtils";
 import { fetchCurrentUser } from "./data";
+import { del } from "@vercel/blob";
 
 // for create/update
 export type State = {
@@ -201,6 +202,23 @@ export async function updateUser(
 
   revalidatePath("/setting/profile");
   return submission.reply();
+}
+
+export async function deleteAvatar(url: string) {
+  if (!url) return { status: "error", message: "URLが指定されていません" };
+
+  if (url.includes("vercel-blob.com")) await del(url);
+  await prisma.user.update({
+    data: {
+      image: null,
+    },
+    where: {
+      id: (await fetchCurrentUser()).id,
+    },
+  });
+
+  revalidatePath("/setting/profile");
+  return { status: "success" };
 }
 
 export async function createInvoice(_prevState: State, formData: FormData) {

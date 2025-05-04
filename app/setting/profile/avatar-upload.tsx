@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trash2 } from "lucide-react";
 import { FieldMetadata } from "@conform-to/react";
 import { useAvatar } from "./useAvatar";
+import { deleteAvatar } from "@/app/lib/actions";
+import { toast } from "sonner";
 // import { deleteAvatar } from "@/app/lib/actions";
 
 interface Props {
@@ -23,7 +25,8 @@ export function AvatarUpload({
   avatarField,
   avatarUrlField,
 }: Props) {
-  const { avatarPreview, updatePreview, getInitials } = useAvatar(avatarUrl);
+  const { avatarPreview, updatePreview, getInitials, setAvatarPreview } =
+    useAvatar(avatarUrl);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,15 +34,21 @@ export function AvatarUpload({
   };
 
   const handleDeleteAvatar = async () => {
-    // if (!avatarUrl) return;
-    // const result = await deleteAvatar(avatarUrl);
-    // if (result.status === "success") {
-    //   setAvatarPreview(null);
-    //   if (fileInputRef.current) fileInputRef.current.value = "";
-    //   toast.success("アバターを削除しました");
-    // } else {
-    //   toast.error(result.message || "アバターの削除に失敗しました");
-    // }
+    // アバターがDBにない状態でプレビューを更新した場合の対応
+    if (!avatarUrl) {
+      setAvatarPreview(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    const result = await deleteAvatar(avatarUrl);
+    if (result.status === "success") {
+      setAvatarPreview(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      toast.success("アバターを削除しました");
+    } else {
+      toast.error(result.message ?? "予期せぬエラーが発生しました");
+    }
   };
 
   return (
@@ -48,7 +57,7 @@ export function AvatarUpload({
         <Avatar className="w-28 h-28 border-2 border-muted">
           {avatarPreview ? (
             <AvatarImage
-              src={avatarPreview || "/placeholder.svg"}
+              src={avatarPreview ?? "/placeholder.svg"}
               alt="プロフィール画像"
             />
           ) : (
