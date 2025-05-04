@@ -10,6 +10,7 @@ import { FieldMetadata } from "@conform-to/react";
 import { useAvatar } from "./useAvatar";
 import { deleteAvatar } from "@/app/lib/actions";
 import { toast } from "sonner";
+import { BProgress } from "@bprogress/core";
 // import { deleteAvatar } from "@/app/lib/actions";
 
 interface Props {
@@ -41,6 +42,7 @@ export function AvatarUpload({
       return;
     }
 
+    BProgress.start();
     const result = await deleteAvatar(avatarUrl);
     if (result.status === "success") {
       setAvatarPreview(null);
@@ -49,6 +51,7 @@ export function AvatarUpload({
     } else {
       toast.error(result.message ?? "予期せぬエラーが発生しました");
     }
+    BProgress.done();
   };
 
   return (
