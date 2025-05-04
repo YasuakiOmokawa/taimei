@@ -3,7 +3,9 @@
 import React from "react";
 
 export function useAvatar(avatarUrl: string) {
-  const [avatarPreview, setAvatarPreview] = React.useState<string>(avatarUrl);
+  const [avatarPreview, setAvatarPreview] = React.useState<string | null>(
+    avatarUrl
+  );
 
   const updatePreview = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -20,5 +22,16 @@ export function useAvatar(avatarUrl: string) {
     [setAvatarPreview]
   );
 
-  return { avatarPreview, updatePreview };
+  const getInitials = React.useCallback((name: string) => {
+    return (
+      name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .substring(0, 2) || "??"
+    );
+  }, []);
+
+  return { avatarPreview, updatePreview, getInitials, setAvatarPreview };
 }
