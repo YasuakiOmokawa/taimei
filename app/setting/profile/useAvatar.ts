@@ -26,17 +26,28 @@ export function useAvatar(avatarUrl: string) {
     [setAvatarPreview]
   );
 
+  const emptyPreview = () => {
+    setAvatarPreview(undefined);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleDeleteAvatar = React.useCallback(async () => {
+    if (!blobUrl) {
+      emptyPreview();
+      return;
+    }
+
     BProgress.start();
     const result = await deleteAvatar(blobUrl);
     if (result.status === "success") {
-      setAvatarPreview(undefined);
       setBlobUrl("");
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      emptyPreview();
       toast.success("アバターを削除しました");
+    } else {
+      toast.error(result.message);
     }
     BProgress.done();
-  }, [setAvatarPreview, deleteAvatar, setBlobUrl, blobUrl]);
+  }, [setBlobUrl, blobUrl]);
 
   return {
     avatarPreview,

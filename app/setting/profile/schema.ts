@@ -12,16 +12,24 @@ export const userSchema = z.object({
   name: z.string(),
   bio: z.string().optional(),
   avatar: z
-    .instanceof(File)
+    .instanceof(File, { message: "有効なファイルではありません" })
+    .optional()
     .refine(
-      (file) => file.size <= MAX_FILE_SIZE,
-      "ファイルサイズは最大5MBまでです"
+      (file) => {
+        if (!file) return true;
+
+        return file.size <= MAX_FILE_SIZE;
+      },
+      { message: "ファイルサイズは最大5MBまでです" }
     )
     .refine(
-      (file) => ACCEPTED_IMAGE_TYPES.includes(file.type),
-      "JPG、PNG、またはWEBP形式の画像のみアップロード可能です"
-    )
-    .optional(),
+      (file) => {
+        if (!file) return true;
+
+        return ACCEPTED_IMAGE_TYPES.includes(file.type);
+      },
+      { message: "JPG、PNG、またはWEBP形式の画像のみアップロード可能です" }
+    ),
   avatarUrl: z.string().optional(),
 });
 
