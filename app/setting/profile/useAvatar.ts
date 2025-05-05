@@ -36,7 +36,7 @@ export function useAvatar(avatarUrl: string) {
       toast.success("アバターを削除しました");
     }
     BProgress.done();
-  }, [setAvatarPreview, deleteAvatar, setBlobUrl, blobUrl]);
+  }, [setAvatarPreview, setBlobUrl, blobUrl]);
 
   return {
     avatarPreview,
