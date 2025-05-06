@@ -45,4 +45,4 @@ E2E_SERVICE_COMMAND='npm run test-ui' docker compose -f docker-compose.e2e.yml u
 
 # TODO
 - [ ] パンくずリストの整備
-- [ ] ファイルアップロード機能をつくる
+- [ ] プロフィール画像の調整機能をつくる
