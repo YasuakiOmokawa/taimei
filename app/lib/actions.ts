@@ -14,7 +14,7 @@ import { deleteUserSchema, userSchema } from "../setting/profile/schema";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { setCustomCookie } from "@/lib/auth/serverUtils";
 import { fetchCurrentUser } from "./data";
-import { del } from "@vercel/blob";
+import { del, put } from "@vercel/blob";
 
 // for create/update
 export type State = {
@@ -160,6 +160,52 @@ export async function signupWithEmailLink(
   }
 }
 
+async function updateAvatar(
+  id: string,
+  parsedValue: {
+    avatarUrl?: string;
+    avatar?: File;
+  }
+) {
+  if (
+    parsedValue.avatarUrl &&
+    parsedValue.avatarUrl.includes("vercel-storage.com")
+  ) {
+    await del(parsedValue.avatarUrl);
+  }
+
+  if (parsedValue.avatar) {
+    const blob = await put(
+      `avatars/${id}/${Date.now()}-${parsedValue.avatar.name}`,
+      parsedValue.avatar,
+      {
+        access: "public",
+        contentType: parsedValue.avatar.type,
+      }
+    );
+    return blob.url;
+  }
+}
+
+async function buildUpdateUserQuery(
+  id: string,
+  parsedValue: Record<string, unknown>
+) {
+  const updateColumn: Record<string, unknown> = {
+    name: parsedValue.name,
+  };
+
+  const blobUrl = await updateAvatar(id, { ...parsedValue });
+  if (blobUrl) updateColumn.image = blobUrl;
+
+  return {
+    data: updateColumn,
+    where: {
+      id: id,
+    },
+  };
+}
+
 export async function updateUser(
   id: string,
   _prevState: unknown,
@@ -171,14 +217,7 @@ export async function updateUser(
     return submission.reply();
   }
 
-  const updateUserQuery = {
-    data: {
-      name: submission.value.name,
-    },
-    where: {
-      id: id,
-    },
-  };
+  const updateUserQuery = await buildUpdateUserQuery(id, submission.value);
 
   if (submission.value.bio) {
     await prisma.$transaction([
@@ -209,7 +248,7 @@ export async function deleteAvatar(url: string) {
     return { status: "error", message: "URLが指定されていません" };
   }
 
-  if (url.includes("vercel-blob.com")) await del(url);
+  if (url.includes("vercel-storage.com")) await del(url);
   await prisma.user.update({
     data: {
       image: null,
