@@ -11,25 +11,25 @@ const ACCEPTED_IMAGE_TYPES = [
 export const userSchema = z.object({
   name: z.string(),
   bio: z.string().optional(),
-  avatar: z
-    .instanceof(File, { message: "有効なファイルではありません" })
-    .optional()
-    .refine(
-      (file) => {
-        if (!file) return true;
+  avatar: z.custom<File>().transform((file, ctx) => {
+    if (file.size === 0) return file;
 
-        return file.size <= MAX_FILE_SIZE;
-      },
-      { message: "ファイルサイズは最大5MBまでです" }
-    )
-    .refine(
-      (file) => {
-        if (!file) return true;
+    if (file.size > MAX_FILE_SIZE) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "ファイルサイズは最大5MBまでです",
+      });
+    }
 
-        return ACCEPTED_IMAGE_TYPES.includes(file.type);
-      },
-      { message: "JPG、PNG、またはWEBP形式の画像のみアップロード可能です" }
-    ),
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "JPG、PNG、またはWEBP形式の画像のみアップロード可能です",
+      });
+    }
+
+    return file;
+  }),
   avatarUrl: z.string().optional(),
 });
 
