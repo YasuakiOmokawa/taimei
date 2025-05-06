@@ -34,6 +34,7 @@ export function useAvatar(avatarUrl: string) {
   const handleDeleteAvatar = React.useCallback(async () => {
     if (!blobUrl) {
       emptyPreview();
+      toast.success("プレビューを削除しました");
       return;
     }
 
