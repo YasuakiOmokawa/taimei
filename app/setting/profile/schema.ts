@@ -12,6 +12,7 @@ export const userSchema = z.object({
   name: z.string(),
   bio: z.string().optional(),
   avatar: z.custom<File>().transform((file, ctx) => {
+    // 画像が未選択でも更新を許可する
     if (file.size === 0) return file;
 
     if (file.size > MAX_FILE_SIZE) {
