@@ -41,11 +41,29 @@ export const useContent = () => {
     [stepOneDone, stepThreeDone, stepTwoDone]
   );
 
+  const isInactiveStep = useCallback(
+    (currentStep: StepKey) => {
+      const stepProgressStatus = [stepOneDone, stepTwoDone, stepThreeDone];
+      const stepIndex: Record<StepKey, number> = {
+        one: 0,
+        two: 1,
+        three: 2,
+      };
+
+      const prevSteps = stepProgressStatus.filter(
+        (_step, index) => index < stepIndex[currentStep]
+      );
+      return prevSteps.some((isDone) => isDone === false);
+    },
+    [stepOneDone, stepThreeDone, stepTwoDone]
+  );
+
   return {
     setStepState,
     getStepState,
     stepOneDone,
     stepTwoDone,
     stepThreeDone,
+    isInactiveStep,
   };
 };
