@@ -51,7 +51,7 @@ export const useContent = () => {
       };
 
       const prevSteps = stepProgressStatus.filter(
-        (_step, index) => index < stepIndex[currentStep]
+        (_, index) => index < stepIndex[currentStep]
       );
       return prevSteps.some((isDone) => isDone === false);
     },
