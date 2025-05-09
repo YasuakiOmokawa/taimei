@@ -61,9 +61,6 @@ export const useContent = () => {
   return {
     setStepState,
     getStepState,
-    stepOneDone,
-    stepTwoDone,
-    stepThreeDone,
     isInactiveStep,
   };
 };
