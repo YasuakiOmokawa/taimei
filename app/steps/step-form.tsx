@@ -2,14 +2,12 @@
 
 import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/app/ui/button";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
+import { StepKey, useContent } from "./useContent";
 
 export default function StepForm() {
-  const [stepOneDone, setStepOneDone] = useState(false);
-  const [stepTwoDone, setStepTwoDone] = useState(false);
-  const [stepThreeDone, setStepThreeDone] = useState(false);
-
-  type StepKey = "one" | "two" | "three";
+  const { stepOneDone, stepTwoDone, stepThreeDone, setStepState } =
+    useContent();
 
   const isInactiveStep = useCallback(
     (currentStep: StepKey) => {
@@ -43,22 +41,6 @@ export default function StepForm() {
     },
     [stepOneDone, stepThreeDone, stepTwoDone]
   );
-
-  const setStepState = useCallback((step: StepKey, state: boolean) => {
-    switch (step) {
-      case "one":
-        setStepOneDone(state);
-        break;
-      case "two":
-        setStepTwoDone(state);
-        break;
-      case "three":
-        setStepThreeDone(state);
-        break;
-      default:
-        throw new Error(`unexpected step: ${step satisfies never}`);
-    }
-  }, []);
 
   const renderStepButton = useCallback(
     (step: StepKey) => {
