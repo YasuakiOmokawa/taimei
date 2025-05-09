@@ -25,5 +25,27 @@ export const useContent = () => {
     }
   }, []);
 
-  return { setStepState, stepOneDone, stepTwoDone, stepThreeDone };
+  const getStepState = useCallback(
+    (step: StepKey) => {
+      switch (step) {
+        case "one":
+          return stepOneDone;
+        case "two":
+          return stepTwoDone;
+        case "three":
+          return stepThreeDone;
+        default:
+          throw new Error(`unexpected step: ${step satisfies never}`);
+      }
+    },
+    [stepOneDone, stepThreeDone, stepTwoDone]
+  );
+
+  return {
+    setStepState,
+    getStepState,
+    stepOneDone,
+    stepTwoDone,
+    stepThreeDone,
+  };
 };

@@ -6,8 +6,13 @@ import { useCallback } from "react";
 import { StepKey, useContent } from "./useContent";
 
 export default function StepForm() {
-  const { stepOneDone, stepTwoDone, stepThreeDone, setStepState } =
-    useContent();
+  const {
+    stepOneDone,
+    stepTwoDone,
+    stepThreeDone,
+    setStepState,
+    getStepState,
+  } = useContent();
 
   const isInactiveStep = useCallback(
     (currentStep: StepKey) => {
@@ -22,22 +27,6 @@ export default function StepForm() {
         (_step, index) => index < stepIndex[currentStep]
       );
       return prevSteps.some((isDone) => isDone === false);
-    },
-    [stepOneDone, stepThreeDone, stepTwoDone]
-  );
-
-  const getStepState = useCallback(
-    (step: StepKey) => {
-      switch (step) {
-        case "one":
-          return stepOneDone;
-        case "two":
-          return stepTwoDone;
-        case "three":
-          return stepThreeDone;
-        default:
-          throw new Error(`unexpected step: ${step satisfies never}`);
-      }
     },
     [stepOneDone, stepThreeDone, stepTwoDone]
   );
