@@ -189,13 +189,13 @@ async function updateAvatar(
 
 async function buildUpdateUserQuery(
   id: string,
+  blobUrl: string | undefined,
   parsedValue: Record<string, unknown>
 ) {
   const updateColumn: Record<string, unknown> = {
     name: parsedValue.name,
   };
 
-  const blobUrl = await updateAvatar(id, { ...parsedValue });
   if (blobUrl) updateColumn.image = blobUrl;
 
   return {
@@ -217,7 +217,12 @@ export async function updateUser(
     return submission.reply();
   }
 
-  const updateUserQuery = await buildUpdateUserQuery(id, submission.value);
+  const blobUrl = await updateAvatar(id, { ...submission.value });
+  const updateUserQuery = await buildUpdateUserQuery(
+    id,
+    blobUrl,
+    submission.value
+  );
 
   if (submission.value.bio) {
     await prisma.$transaction([
