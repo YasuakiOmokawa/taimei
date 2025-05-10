@@ -9,7 +9,7 @@ import { useActionState } from "react";
 import { useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
 import { userSchema } from "@/app/setting/profile/schema";
-import { updateUser } from "@/app/lib/actions";
+import { updateUser } from "./actions";
 import { withCallbacks } from "@/lib/with-callbacks";
 import { toast } from "sonner";
 import type { CurrentUser, UserProfileSelectionById } from "@/app/lib/data";
