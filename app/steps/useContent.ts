@@ -1,39 +1,35 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { stepsAtom } from "./atoms";
+import { useAtom } from "jotai/react";
 
 export type StepKey = "one" | "two" | "three";
 
-type stepProgress = {
+export type StepProgress = {
   key: StepKey;
   isDone: boolean;
 };
 
 export const useContent = () => {
-  const [stepProgresses, setStepProgress] = useState<stepProgress[]>([
-    {
-      key: "one",
-      isDone: false,
-    },
-    {
-      key: "two",
-      isDone: false,
-    },
-    {
-      key: "three",
-      isDone: false,
-    },
-  ]);
+  const [storedSteps, setStoredSteps] = useAtom(stepsAtom);
+  const [stepProgresses, setStepProgress] =
+    useState<StepProgress[]>(storedSteps);
 
   const handleClickStep = useCallback(
     (step: StepKey, state: boolean) => {
-      setStepProgress(
-        stepProgresses.map((prevVal) =>
-          prevVal.key === step ? { key: prevVal.key, isDone: state } : prevVal
-        )
+      const newProgress = stepProgresses.map((prevVal) =>
+        prevVal.key === step
+          ? {
+              key: prevVal.key,
+              isDone: state,
+            }
+          : prevVal
       );
+      setStepProgress(newProgress);
+      setStoredSteps(newProgress);
     },
-    [stepProgresses]
+    [setStoredSteps, stepProgresses]
   );
 
   const getStepProgress = useCallback(
