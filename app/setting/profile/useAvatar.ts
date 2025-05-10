@@ -3,7 +3,7 @@
 import React from "react";
 import { toast } from "sonner";
 import { BProgress } from "@bprogress/core";
-import { deleteAvatar } from "@/app/lib/actions";
+import { deleteAvatar } from "./actions";
 
 export function useAvatar(avatarUrl: string) {
   const [avatarPreview, setAvatarPreview] = React.useState<string | undefined>(
