@@ -4,41 +4,43 @@ import { useCallback, useState } from "react";
 
 export type StepKey = "one" | "two" | "three";
 
+type stepProgress = {
+  key: StepKey;
+  isDone: boolean;
+};
+
 export const useContent = () => {
-  const [stepOneDone, setStepOneDone] = useState(false);
-  const [stepTwoDone, setStepTwoDone] = useState(false);
-  const [stepThreeDone, setStepThreeDone] = useState(false);
-
-  const setStepState = useCallback((step: StepKey, state: boolean) => {
-    switch (step) {
-      case "one":
-        setStepOneDone(state);
-        break;
-      case "two":
-        setStepTwoDone(state);
-        break;
-      case "three":
-        setStepThreeDone(state);
-        break;
-      default:
-        throw new Error(`unexpected step: ${step satisfies never}`);
-    }
-  }, []);
-
-  const getStepState = useCallback(
-    (step: StepKey) => {
-      switch (step) {
-        case "one":
-          return stepOneDone;
-        case "two":
-          return stepTwoDone;
-        case "three":
-          return stepThreeDone;
-        default:
-          throw new Error(`unexpected step: ${step satisfies never}`);
-      }
+  const [stepProgresses, setStepProgress] = useState<stepProgress[]>([
+    {
+      key: "one",
+      isDone: false,
     },
-    [stepOneDone, stepThreeDone, stepTwoDone]
+    {
+      key: "two",
+      isDone: false,
+    },
+    {
+      key: "three",
+      isDone: false,
+    },
+  ]);
+
+  const handleClickStep = useCallback(
+    (step: StepKey, state: boolean) => {
+      setStepProgress(
+        stepProgresses.map((prevVal) =>
+          prevVal.key === step ? { key: prevVal.key, isDone: state } : prevVal
+        )
+      );
+    },
+    [stepProgresses]
+  );
+
+  const getStepProgress = useCallback(
+    (step: StepKey) => {
+      return stepProgresses.find((value) => value.key === step)?.isDone;
+    },
+    [stepProgresses]
   );
 
   // 前段のステップが完了してなければ完了ボタンを押せないようにしたい
@@ -60,8 +62,8 @@ export const useContent = () => {
   );
 
   return {
-    setStepState,
-    getStepState,
+    handleClickStep,
+    getStepProgress,
     isInactiveStep,
   };
 };

@@ -6,25 +6,28 @@ import { useCallback } from "react";
 import { StepKey, useContent } from "./useContent";
 
 export default function StepForm() {
-  const { setStepState, getStepState, isInactiveStep } = useContent();
+  const { handleClickStep, getStepProgress, isInactiveStep } = useContent();
 
   const renderStepButton = useCallback(
     (step: StepKey) => {
-      return getStepState(step) ? (
-        <Button className="bg-black" onClick={() => setStepState(step, false)}>
+      return getStepProgress(step) ? (
+        <Button
+          className="bg-black"
+          onClick={() => handleClickStep(step, false)}
+        >
           未完了に戻る
         </Button>
       ) : (
         <Button
           className="ml-4"
-          onClick={() => setStepState(step, true)}
+          onClick={() => handleClickStep(step, true)}
           disabled={isInactiveStep(step)}
         >
           完了
         </Button>
       );
     },
-    [getStepState, isInactiveStep, setStepState]
+    [getStepProgress, isInactiveStep, handleClickStep]
   );
 
   return (
