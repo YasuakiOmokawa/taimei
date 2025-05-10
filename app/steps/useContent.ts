@@ -41,6 +41,7 @@ export const useContent = () => {
     [stepOneDone, stepThreeDone, stepTwoDone]
   );
 
+  // 前段のステップが完了してなければ完了ボタンを押せないようにしたい
   const isInactiveStep = useCallback(
     (currentStep: StepKey) => {
       const stepProgressStatus = [stepOneDone, stepTwoDone, stepThreeDone];
