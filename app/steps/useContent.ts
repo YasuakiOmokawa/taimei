@@ -42,9 +42,11 @@ export const useContent = () => {
   // 前段のステップがすべて終わってなければ完了ボタンを押せないようにしたい
   const isInactiveStep = useCallback(
     (currentStep: StepKey) => {
+      const currentStepIndex = stepProgresses.findIndex(
+        (step) => step.key === currentStep
+      );
       const prevSteps = stepProgresses.filter(
-        (_, index) =>
-          index < stepProgresses.findIndex((step) => step.key === currentStep)
+        (_, index) => index < currentStepIndex
       );
       return prevSteps.some((step) => step.isDone === false);
     },
