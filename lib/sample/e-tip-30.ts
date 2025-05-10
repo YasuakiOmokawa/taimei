@@ -37,3 +37,20 @@ function* range(limit: number) {
   }
 }
 console.log(sum(range(10)));
+
+interface ABC {
+  a: string;
+  b: string;
+  c: string;
+}
+
+type FooType = (abc: ABC) => void;
+const loopFoo: FooType = (abc: ABC) => {
+  for (const kStr in abc) {
+    const k = kStr as keyof typeof abc;
+    const v = abc[k];
+    console.log(v);
+  }
+};
+
+loopFoo({ a: "a", b: "b", c: "c" });
