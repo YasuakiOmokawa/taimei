@@ -43,22 +43,16 @@ export const useContent = () => {
     [stepProgresses]
   );
 
-  // 前段のステップが完了してなければ完了ボタンを押せないようにしたい
+  // 前段のステップがすべて終わってなければ完了ボタンを押せないようにしたい
   const isInactiveStep = useCallback(
     (currentStep: StepKey) => {
-      const stepProgressStatus = [stepOneDone, stepTwoDone, stepThreeDone];
-      const stepIndex: Record<StepKey, number> = {
-        one: 0,
-        two: 1,
-        three: 2,
-      };
-
-      const prevSteps = stepProgressStatus.filter(
-        (_, index) => index < stepIndex[currentStep]
+      const prevSteps = stepProgresses.filter(
+        (_, index) =>
+          index < stepProgresses.findIndex((step) => step.key === currentStep)
       );
-      return prevSteps.some((isDone) => isDone === false);
+      return prevSteps.some((step) => step.isDone === false);
     },
-    [stepOneDone, stepThreeDone, stepTwoDone]
+    [stepProgresses]
   );
 
   return {
