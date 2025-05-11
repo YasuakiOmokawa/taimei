@@ -8,6 +8,7 @@ import { Trash2 } from "lucide-react";
 import { FieldMetadata } from "@conform-to/react";
 import { useAvatar } from "./useAvatar";
 import { getInitials } from "./utils";
+import { CropModal } from "./crop-modal";
 
 interface Props {
   avatarUrl: string;
@@ -28,6 +29,10 @@ export function AvatarUpload({
     fileInputRef,
     handleDeleteAvatar,
     blobUrl,
+    isCropModalOpen,
+    setIsCropModalOpen,
+    imageToEdit,
+    onCropComplete,
   } = useAvatar(avatarUrl);
 
   return (
@@ -89,6 +94,15 @@ export function AvatarUpload({
           JPG、PNG、WEBP形式（最大5MB）
         </p>
       </div>
+
+      {imageToEdit && (
+        <CropModal
+          image={imageToEdit}
+          isOpen={isCropModalOpen}
+          onClose={() => setIsCropModalOpen(false)}
+          onCropComplete={onCropComplete}
+        />
+      )}
     </div>
   );
 }

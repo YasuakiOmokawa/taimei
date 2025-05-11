@@ -93,7 +93,7 @@ export default function Page() {
               </div>
               <div className="flex justify-center lg:justify-end">
                 <Image
-                  src={heroImage || "/placeholder.svg"}
+                  src={heroImage}
                   width={600}
                   height={600}
                   alt="ヒーローイメージ"
