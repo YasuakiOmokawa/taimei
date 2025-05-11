@@ -63,7 +63,7 @@ export function useAvatar(avatarUrl: string) {
     BProgress.done();
   }, [setBlobUrl, blobUrl]);
 
-  // Base64文字列をFileオブジェクトに変換する関数の型を明示的に定義
+  // Base64文字列をFileオブジェクトに変換
   const dataURLtoFile = React.useCallback(
     (dataurl: string, filename: string): File => {
       const arr = dataurl.split(",");
@@ -79,27 +79,19 @@ export function useAvatar(avatarUrl: string) {
     []
   );
 
-  // クロップした画像をFileInputに設定する
   const setFileFromCroppedImage = React.useCallback(
     (croppedImageUrl: string) => {
       if (!fileInputRef.current) return;
 
-      // 既存のDataTransferオブジェクトを作成
       const dataTransfer = new DataTransfer();
-
-      // クロップした画像をFileオブジェクトに変換
       const file = dataURLtoFile(croppedImageUrl, "cropped-image.jpg");
 
-      // DataTransferオブジェクトにファイルを追加
       dataTransfer.items.add(file);
-
-      // input要素のfilesプロパティを更新
       fileInputRef.current.files = dataTransfer.files;
     },
     [dataURLtoFile]
   );
 
-  // クロップ完了時の処理を拡張
   const onCropComplete = React.useCallback(
     (croppedImage: string) => {
       handleCropComplete(croppedImage);

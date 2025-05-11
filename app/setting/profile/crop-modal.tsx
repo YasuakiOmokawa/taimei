@@ -48,7 +48,7 @@ export function CropModal({ image, isOpen, onClose, onCropComplete }: Props) {
     if (!croppedAreaPixelsRef.current) return;
 
     try {
-      const croppedImage = await getCroppedImg(
+      const croppedImage = await getCroppedImage(
         image,
         croppedAreaPixelsRef.current
       );
@@ -100,8 +100,7 @@ export function CropModal({ image, isOpen, onClose, onCropComplete }: Props) {
   );
 }
 
-// 画像のクロップ処理を行う関数
-const createImage = async (url: string): Promise<HTMLImageElement> =>
+const createCroppedImage = async (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image();
     image.addEventListener("load", () => resolve(image));
@@ -114,12 +113,12 @@ const getRadianAngle = (degreeValue: number) => {
   return (degreeValue * Math.PI) / 180;
 };
 
-const getCroppedImg = async (
+const getCroppedImage = async (
   imageSrc: string,
   pixelCrop: Area,
   rotation = 0
 ): Promise<string> => {
-  const image = await createImage(imageSrc);
+  const image = await createCroppedImage(imageSrc);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
