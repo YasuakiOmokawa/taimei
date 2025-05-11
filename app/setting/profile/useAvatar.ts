@@ -13,12 +13,15 @@ export function useAvatar(avatarUrl: string) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isCropModalOpen, setIsCropModalOpen] = React.useState(false);
   const [imageToEdit, setImageToEdit] = React.useState<string | null>(null);
+  const fileMimeRefToCreateCroppedImage = React.useRef<string>(null);
 
   const updatePreview = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       console.log(file?.type);
       if (!file) return;
+
+      fileMimeRefToCreateCroppedImage.current = file.type;
 
       const reader = new FileReader();
       reader.onloadend = () => {

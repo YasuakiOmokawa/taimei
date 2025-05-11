@@ -101,7 +101,7 @@ export function CropModal({ image, isOpen, onClose, onCropComplete }: Props) {
 }
 
 // 画像のクロップ処理を行う関数
-const createImage = (url: string): Promise<HTMLImageElement> =>
+const createImage = async (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image();
     image.addEventListener("load", () => resolve(image));
@@ -110,15 +110,15 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
     image.src = url;
   });
 
-function getRadianAngle(degreeValue: number) {
+const getRadianAngle = (degreeValue: number) => {
   return (degreeValue * Math.PI) / 180;
-}
+};
 
-async function getCroppedImg(
+const getCroppedImg = async (
   imageSrc: string,
   pixelCrop: Area,
   rotation = 0
-): Promise<string> {
+): Promise<string> => {
   const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -162,4 +162,4 @@ async function getCroppedImg(
 
   // キャンバスをBase64文字列に変換
   return canvas.toDataURL("image/jpeg");
-}
+};
