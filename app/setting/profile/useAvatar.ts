@@ -18,7 +18,6 @@ export function useAvatar(avatarUrl: string) {
   const updatePreview = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      console.log(file?.type);
       if (!file) return;
 
       fileMimeRefToCreateCroppedImage.current = file.type;
@@ -119,5 +118,6 @@ export function useAvatar(avatarUrl: string) {
     setIsCropModalOpen,
     imageToEdit,
     onCropComplete,
+    fileMimeRefToCreateCroppedImage,
   };
 }
