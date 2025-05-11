@@ -44,7 +44,7 @@ export function CropModal({ image, isOpen, onClose, onCropComplete }: Props) {
     setZoom(zoom);
   };
 
-  const createCroppedImage = async () => {
+  const handleClickApplyCrop = async () => {
     if (!croppedAreaPixelsRef.current) return;
 
     try {
@@ -57,6 +57,63 @@ export function CropModal({ image, isOpen, onClose, onCropComplete }: Props) {
     } catch (e) {
       throw e;
     }
+  };
+
+  const generateCroppedImage = async (url: string): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener("load", () => resolve(image));
+      image.addEventListener("error", (error) => reject(error));
+      image.crossOrigin = "anonymous";
+      image.src = url;
+    });
+
+  const getCroppedImage = async (
+    imageSrc: string,
+    pixelCrop: Area
+  ): Promise<string> => {
+    const image = await generateCroppedImage(imageSrc);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      return "";
+    }
+
+    const maxSize = Math.max(image.width, image.height);
+    const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2));
+
+    // キャンバスの寸法を設定
+    canvas.width = safeArea;
+    canvas.height = safeArea;
+
+    // キャンバスの中央に画像を描画
+    ctx.translate(safeArea / 2, safeArea / 2);
+    ctx.translate(-safeArea / 2, -safeArea / 2);
+
+    // 画像を描画
+    ctx.drawImage(
+      image,
+      safeArea / 2 - image.width * 0.5,
+      safeArea / 2 - image.height * 0.5
+    );
+
+    // クロップした領域のデータを取得
+    const data = ctx.getImageData(0, 0, safeArea, safeArea);
+
+    // キャンバスのサイズをクロップ領域に合わせる
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+
+    // クロップした画像を描画
+    ctx.putImageData(
+      data,
+      Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
+      Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
+    );
+
+    // キャンバスをBase64文字列に変換
+    return canvas.toDataURL("image/jpeg");
   };
 
   return (
@@ -93,72 +150,9 @@ export function CropModal({ image, isOpen, onClose, onCropComplete }: Props) {
           <Button variant="outline" onClick={onClose}>
             キャンセル
           </Button>
-          <Button onClick={createCroppedImage}>適用</Button>
+          <Button onClick={handleClickApplyCrop}>適用</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-
-const createCroppedImage = async (url: string): Promise<HTMLImageElement> =>
-  new Promise((resolve, reject) => {
-    const image = new Image();
-    image.addEventListener("load", () => resolve(image));
-    image.addEventListener("error", (error) => reject(error));
-    image.crossOrigin = "anonymous";
-    image.src = url;
-  });
-
-const getRadianAngle = (degreeValue: number) => {
-  return (degreeValue * Math.PI) / 180;
-};
-
-const getCroppedImage = async (
-  imageSrc: string,
-  pixelCrop: Area,
-  rotation = 0
-): Promise<string> => {
-  const image = await createCroppedImage(imageSrc);
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-
-  if (!ctx) {
-    return "";
-  }
-
-  const maxSize = Math.max(image.width, image.height);
-  const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2));
-
-  // キャンバスの寸法を設定
-  canvas.width = safeArea;
-  canvas.height = safeArea;
-
-  // キャンバスの中央に画像を描画
-  ctx.translate(safeArea / 2, safeArea / 2);
-  ctx.rotate(getRadianAngle(rotation));
-  ctx.translate(-safeArea / 2, -safeArea / 2);
-
-  // 画像を描画
-  ctx.drawImage(
-    image,
-    safeArea / 2 - image.width * 0.5,
-    safeArea / 2 - image.height * 0.5
-  );
-
-  // クロップした領域のデータを取得
-  const data = ctx.getImageData(0, 0, safeArea, safeArea);
-
-  // キャンバスのサイズをクロップ領域に合わせる
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
-
-  // クロップした画像を描画
-  ctx.putImageData(
-    data,
-    Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
-    Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
-  );
-
-  // キャンバスをBase64文字列に変換
-  return canvas.toDataURL("image/jpeg");
-};
