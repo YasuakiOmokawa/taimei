@@ -23,8 +23,7 @@ interface Props {
 }
 
 export function CropModal({ image, isOpen, onClose, onCropComplete }: Props) {
-  const { getCroppedImage, onCropCompleteCallback, croppedAreaPixelsRef } =
-    useCrop();
+  const { onCropCompleteCallback, onCropApply } = useCrop();
 
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -37,19 +36,8 @@ export function CropModal({ image, isOpen, onClose, onCropComplete }: Props) {
     setZoom(zoom);
   };
 
-  const handleClickApplyCrop = async () => {
-    if (!croppedAreaPixelsRef.current) return;
-
-    try {
-      const croppedImage = await getCroppedImage(
-        image,
-        croppedAreaPixelsRef.current
-      );
-      onCropComplete(croppedImage);
-      onClose();
-    } catch (e) {
-      throw e;
-    }
+  const handleClickApply = async () => {
+    await onCropApply(image, onClose, onCropComplete);
   };
 
   return (
@@ -86,7 +74,7 @@ export function CropModal({ image, isOpen, onClose, onCropComplete }: Props) {
           <Button variant="outline" onClick={onClose}>
             キャンセル
           </Button>
-          <Button onClick={handleClickApplyCrop}>適用</Button>
+          <Button onClick={handleClickApply}>適用</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

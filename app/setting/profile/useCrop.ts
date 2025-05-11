@@ -8,6 +8,25 @@ export function useCrop() {
 
   const croppedAreaPixelsRef = useRef(croppedAreaPixels);
 
+  const onCropApply = async (
+    image: string,
+    onClose: () => void,
+    onCropComplete: (croppedImage: string) => void
+  ) => {
+    if (!croppedAreaPixelsRef.current) return;
+
+    try {
+      const croppedImage = await getCroppedImage(
+        image,
+        croppedAreaPixelsRef.current
+      );
+      onCropComplete(croppedImage);
+      onClose();
+    } catch (e) {
+      throw e;
+    }
+  };
+
   const onCropCompleteCallback = useCallback(
     (_: unknown, croppedAreaPixels: Area) => {
       setCroppedAreaPixels(croppedAreaPixels);
@@ -77,8 +96,7 @@ export function useCrop() {
   };
 
   return {
-    getCroppedImage,
-    croppedAreaPixelsRef,
     onCropCompleteCallback,
+    onCropApply,
   };
 }
