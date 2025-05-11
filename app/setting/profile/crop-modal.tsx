@@ -59,7 +59,7 @@ export function CropModal({ image, isOpen, onClose, onCropComplete }: Props) {
     }
   };
 
-  const createCroppedImage = async (url: string): Promise<HTMLImageElement> =>
+  const generateCroppedImage = async (url: string): Promise<HTMLImageElement> =>
     new Promise((resolve, reject) => {
       const image = new Image();
       image.addEventListener("load", () => resolve(image));
@@ -72,7 +72,7 @@ export function CropModal({ image, isOpen, onClose, onCropComplete }: Props) {
     imageSrc: string,
     pixelCrop: Area
   ): Promise<string> => {
-    const image = await createCroppedImage(imageSrc);
+    const image = await generateCroppedImage(imageSrc);
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
