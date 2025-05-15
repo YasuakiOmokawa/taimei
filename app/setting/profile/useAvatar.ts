@@ -21,11 +21,7 @@ export function useAvatar(avatarUrl: string) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const croppedAreaPixelsRef = React.useRef(croppedAreaPixels);
 
-  const onCropApply = async (
-    image: string,
-    onClose: () => void,
-    onCropComplete: (croppedImage: string) => void
-  ) => {
+  const onCropApply = async (image: string) => {
     if (!croppedAreaPixelsRef.current) return;
 
     try {
@@ -33,8 +29,9 @@ export function useAvatar(avatarUrl: string) {
         image,
         croppedAreaPixelsRef.current
       );
-      onCropComplete(croppedImage);
-      onClose();
+      handleCropComplete(croppedImage);
+      setFileFromCroppedImage(croppedImage);
+      setIsCropModalOpen(false);
     } catch (e) {
       throw e;
     }
@@ -185,14 +182,6 @@ export function useAvatar(avatarUrl: string) {
     [dataURLtoFile]
   );
 
-  const onCropComplete = React.useCallback(
-    (croppedImage: string) => {
-      handleCropComplete(croppedImage);
-      setFileFromCroppedImage(croppedImage);
-    },
-    [handleCropComplete, setFileFromCroppedImage]
-  );
-
   return {
     avatarPreview,
     updatePreview,
@@ -202,7 +191,6 @@ export function useAvatar(avatarUrl: string) {
     isCropModalOpen,
     setIsCropModalOpen,
     imageToEdit,
-    onCropComplete,
     fileMimeRef,
     onCropApply,
     onCropCompleteCallback,
