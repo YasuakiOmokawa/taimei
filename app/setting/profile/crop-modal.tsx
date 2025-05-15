@@ -13,18 +13,29 @@ import {
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { useCrop } from "./useCrop";
+import type { Area } from "react-easy-crop";
 
 interface Props {
   image: string;
   isOpen: boolean;
   onClose: () => void;
   onCropComplete: (croppedImage: string) => void;
+  onCropCompleteCallback: (_: unknown, croppedAreaPixels: Area) => void;
+  onCropApply: (
+    image: string,
+    onClose: () => void,
+    onCropComplete: (croppedImage: string) => void
+  ) => Promise<void>;
 }
 
-export function CropModal({ image, isOpen, onClose, onCropComplete }: Props) {
-  const { onCropCompleteCallback, onCropApply } = useCrop();
-
+export function CropModal({
+  image,
+  isOpen,
+  onClose,
+  onCropComplete,
+  onCropCompleteCallback,
+  onCropApply,
+}: Props) {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
 
