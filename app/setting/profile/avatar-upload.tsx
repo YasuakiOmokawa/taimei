@@ -33,6 +33,8 @@ export function AvatarUpload({
     setIsCropModalOpen,
     imageToEdit,
     onCropComplete,
+    onCropCompleteCallback,
+    onCropApply,
   } = useAvatar(avatarUrl);
 
   return (
@@ -101,6 +103,8 @@ export function AvatarUpload({
           isOpen={isCropModalOpen}
           onClose={() => setIsCropModalOpen(false)}
           onCropComplete={onCropComplete}
+          onCropCompleteCallback={onCropCompleteCallback}
+          onCropApply={onCropApply}
         />
       )}
     </div>

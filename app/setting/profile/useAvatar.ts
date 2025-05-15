@@ -4,23 +4,116 @@ import React from "react";
 import { toast } from "sonner";
 import { BProgress } from "@bprogress/core";
 import { deleteAvatar } from "./actions";
+import type { Area } from "react-easy-crop";
 
 export function useAvatar(avatarUrl: string) {
   const [avatarPreview, setAvatarPreview] = React.useState<string | undefined>(
     avatarUrl
   );
   const [blobUrl, setBlobUrl] = React.useState<string>(avatarUrl);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isCropModalOpen, setIsCropModalOpen] = React.useState(false);
   const [imageToEdit, setImageToEdit] = React.useState<string | null>(null);
-  const fileMimeRefToCreateCroppedImage = React.useRef<string>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = React.useState<Area | null>(
+    null
+  );
+
+  const fileMimeRef = React.useRef<string>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const croppedAreaPixelsRef = React.useRef(croppedAreaPixels);
+
+  const onCropApply = async (
+    image: string,
+    onClose: () => void,
+    onCropComplete: (croppedImage: string) => void
+  ) => {
+    if (!croppedAreaPixelsRef.current) return;
+
+    try {
+      const croppedImage = await getCroppedImage(
+        image,
+        croppedAreaPixelsRef.current
+      );
+      onCropComplete(croppedImage);
+      onClose();
+    } catch (e) {
+      throw e;
+    }
+  };
+
+  const onCropCompleteCallback = React.useCallback(
+    (_: unknown, croppedAreaPixels: Area) => {
+      setCroppedAreaPixels(croppedAreaPixels);
+      croppedAreaPixelsRef.current = croppedAreaPixels;
+    },
+    [croppedAreaPixelsRef, setCroppedAreaPixels]
+  );
+
+  const generateCroppedImage = React.useCallback(
+    async (url: string): Promise<HTMLImageElement> =>
+      new Promise((resolve, reject) => {
+        const image = new Image();
+        image.addEventListener("load", () => resolve(image));
+        image.addEventListener("error", (error) => reject(error));
+        image.crossOrigin = "anonymous";
+        image.src = url;
+      }),
+    []
+  );
+
+  const getCroppedImage = async (
+    imageSrc: string,
+    pixelCrop: Area
+  ): Promise<string> => {
+    const image = await generateCroppedImage(imageSrc);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      return "";
+    }
+
+    const maxSize = Math.max(image.width, image.height);
+    const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2));
+
+    // キャンバスの寸法を設定
+    canvas.width = safeArea;
+    canvas.height = safeArea;
+
+    // キャンバスの中央に画像を描画
+    ctx.translate(safeArea / 2, safeArea / 2);
+    ctx.translate(-safeArea / 2, -safeArea / 2);
+
+    // 画像を描画
+    ctx.drawImage(
+      image,
+      safeArea / 2 - image.width * 0.5,
+      safeArea / 2 - image.height * 0.5
+    );
+
+    // クロップした領域のデータを取得
+    const data = ctx.getImageData(0, 0, safeArea, safeArea);
+
+    // キャンバスのサイズをクロップ領域に合わせる
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+
+    // クロップした画像を描画
+    ctx.putImageData(
+      data,
+      Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
+      Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
+    );
+
+    // キャンバスをBase64文字列に変換
+    return canvas.toDataURL("image/jpeg");
+  };
 
   const updatePreview = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
 
-      fileMimeRefToCreateCroppedImage.current = file.type;
+      fileMimeRef.current = file.type;
 
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -110,6 +203,8 @@ export function useAvatar(avatarUrl: string) {
     setIsCropModalOpen,
     imageToEdit,
     onCropComplete,
-    fileMimeRefToCreateCroppedImage,
+    fileMimeRef,
+    onCropApply,
+    onCropCompleteCallback,
   };
 }
