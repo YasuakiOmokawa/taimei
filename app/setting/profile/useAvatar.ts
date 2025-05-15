@@ -111,7 +111,10 @@ export function useAvatar(avatarUrl: string) {
   const updatePreview = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (!file) return;
+      if (!file) {
+        toast.success("ファイルが選択されていません。");
+        return;
+      }
 
       fileMimeRef.current = file.type;
 
