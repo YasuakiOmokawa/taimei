@@ -69,6 +69,7 @@ export function useAvatar(avatarUrl: string) {
     const ctx = canvas.getContext("2d");
 
     if (!ctx) {
+      toast.success("canvasの2Dコンテキストがありません");
       return "";
     }
 
