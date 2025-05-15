@@ -19,20 +19,14 @@ interface Props {
   image: string;
   isOpen: boolean;
   onClose: () => void;
-  onCropComplete: (croppedImage: string) => void;
   onCropCompleteCallback: (_: unknown, croppedAreaPixels: Area) => void;
-  onCropApply: (
-    image: string,
-    onClose: () => void,
-    onCropComplete: (croppedImage: string) => void
-  ) => Promise<void>;
+  onCropApply: (image: string) => Promise<void>;
 }
 
 export function CropModal({
   image,
   isOpen,
   onClose,
-  onCropComplete,
   onCropCompleteCallback,
   onCropApply,
 }: Props) {
@@ -48,7 +42,7 @@ export function CropModal({
   };
 
   const handleClickApply = async () => {
-    await onCropApply(image, onClose, onCropComplete);
+    await onCropApply(image);
   };
 
   return (

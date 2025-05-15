@@ -17,24 +17,24 @@ export function useAvatar(avatarUrl: string) {
     null
   );
 
-  const fileMimeRef = React.useRef<string>(null);
+  const inputFileTypeRef = React.useRef<string>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const croppedAreaPixelsRef = React.useRef(croppedAreaPixels);
 
-  const onCropApply = async (
-    image: string,
-    onClose: () => void,
-    onCropComplete: (croppedImage: string) => void
-  ) => {
-    if (!croppedAreaPixelsRef.current) return;
+  const onCropApply = async (image: string) => {
+    if (!croppedAreaPixelsRef.current) {
+      toast.success("クロップされた結果がありません。");
+      return;
+    }
 
     try {
       const croppedImage = await getCroppedImage(
         image,
         croppedAreaPixelsRef.current
       );
-      onCropComplete(croppedImage);
-      onClose();
+      handleCropComplete(croppedImage);
+      setFileFromCroppedImage(croppedImage);
+      setIsCropModalOpen(false);
     } catch (e) {
       throw e;
     }
@@ -69,6 +69,7 @@ export function useAvatar(avatarUrl: string) {
     const ctx = canvas.getContext("2d");
 
     if (!ctx) {
+      toast.error("canvasの2Dコンテキストがありません");
       return "";
     }
 
@@ -104,17 +105,24 @@ export function useAvatar(avatarUrl: string) {
       Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
     );
 
+    if (!inputFileTypeRef.current) {
+      toast.error("アップロードされたファイルに画像形式がありません");
+      return "";
+    }
+
     // キャンバスをBase64文字列に変換
-    return canvas.toDataURL("image/jpeg");
+    return canvas.toDataURL(inputFileTypeRef.current);
   };
 
   const updatePreview = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (!file) return;
+      if (!file) {
+        toast.success("ファイルが選択されていません。");
+        return;
+      }
 
-      fileMimeRef.current = file.type;
-
+      inputFileTypeRef.current = file.type;
       const reader = new FileReader();
       reader.onloadend = () => {
         const imageDataUrl = reader.result as string;
@@ -185,14 +193,6 @@ export function useAvatar(avatarUrl: string) {
     [dataURLtoFile]
   );
 
-  const onCropComplete = React.useCallback(
-    (croppedImage: string) => {
-      handleCropComplete(croppedImage);
-      setFileFromCroppedImage(croppedImage);
-    },
-    [handleCropComplete, setFileFromCroppedImage]
-  );
-
   return {
     avatarPreview,
     updatePreview,
@@ -202,8 +202,7 @@ export function useAvatar(avatarUrl: string) {
     isCropModalOpen,
     setIsCropModalOpen,
     imageToEdit,
-    onCropComplete,
-    fileMimeRef,
+    inputFileTypeRef,
     onCropApply,
     onCropCompleteCallback,
   };
