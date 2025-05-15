@@ -22,7 +22,10 @@ export function useAvatar(avatarUrl: string) {
   const croppedAreaPixelsRef = React.useRef(croppedAreaPixels);
 
   const onCropApply = async (image: string) => {
-    if (!croppedAreaPixelsRef.current) return;
+    if (!croppedAreaPixelsRef.current) {
+      toast.success("クロップされた結果がありません。");
+      return;
+    }
 
     try {
       const croppedImage = await getCroppedImage(
