@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { BProgress } from "@bprogress/core";
 import { deleteAvatar } from "./actions";
 import type { Area } from "react-easy-crop";
+import { generateCroppedImage } from "./utils";
 
 export function useAvatar(avatarUrl: string) {
   const [avatarPreview, setAvatarPreview] = React.useState<string | undefined>(
@@ -46,18 +47,6 @@ export function useAvatar(avatarUrl: string) {
       croppedAreaPixelsRef.current = croppedAreaPixels;
     },
     [croppedAreaPixelsRef, setCroppedAreaPixels]
-  );
-
-  const generateCroppedImage = React.useCallback(
-    async (url: string): Promise<HTMLImageElement> =>
-      new Promise((resolve, reject) => {
-        const image = new Image();
-        image.addEventListener("load", () => resolve(image));
-        image.addEventListener("error", (error) => reject(error));
-        image.crossOrigin = "anonymous";
-        image.src = url;
-      }),
-    []
   );
 
   const getCroppedImage = async (
