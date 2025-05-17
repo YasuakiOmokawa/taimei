@@ -46,6 +46,5 @@ E2E_SERVICE_COMMAND='npm run test-ui' docker compose -f docker-compose.e2e.yml u
 # TODO
 - [ ] パンくずリストの整備
 - [ ] 画像アップロードした直後に画像を消すとプレビューだけ消えてしまう
-- [ ] 一度アップロードをキャンセルし、同じ画像をアップロードするとクリッピング機能が動かない
 - [ ] 画像がうまく調整できない。調整幅が低すぎる
 
