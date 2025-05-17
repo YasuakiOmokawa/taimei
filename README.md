@@ -46,4 +46,4 @@ E2E_SERVICE_COMMAND='npm run test-ui' docker compose -f docker-compose.e2e.yml u
 # TODO
 - [ ] パンくずリストの整備
 - [ ] 画像がうまく調整できない。調整幅が低すぎる
-- [ ] クリッピング画像の選択ボタン押下時、sending...とならない
+- [ ] StoryBookの適用

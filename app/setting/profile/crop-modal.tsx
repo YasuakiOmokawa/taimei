@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import type { Area } from "react-easy-crop";
+import { BProgress } from "@bprogress/core";
 
 interface Props {
   image: string;
@@ -42,7 +43,9 @@ export function CropModal({
   };
 
   const handleClickApply = async () => {
+    BProgress.start();
     await onCropApply(image);
+    BProgress.done();
   };
 
   return (
