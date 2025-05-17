@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { BProgress } from "@bprogress/core";
 import { deleteAvatar } from "./actions";
 import type { Area } from "react-easy-crop";
-import { dataURLtoFile, getCroppedImage } from "./utils";
+import { getCroppedImage, setFileFromCroppedImage } from "./utils";
 
 export function useAvatar(avatarUrl: string) {
   const [avatarPreview, setAvatarPreview] = React.useState<string>("");
@@ -32,7 +32,12 @@ export function useAvatar(avatarUrl: string) {
     }
 
     if (!fileInputRef.current) {
-      toast.error("変換する画像形式がされていません。");
+      toast.error("アップロードされたファイルが存在しません。");
+      return;
+    }
+
+    if (!inputFileTypeRef.current) {
+      toast.error("アップロードされたファイルの形式が存在しません。");
       return;
     }
 
@@ -43,7 +48,11 @@ export function useAvatar(avatarUrl: string) {
         croppedAreaPixelsRef.current
       );
       handleCropComplete(croppedImage);
-      setFileFromCroppedImage(croppedImage);
+      setFileFromCroppedImage(
+        croppedImage,
+        fileInputRef.current,
+        inputFileTypeRef.current
+      );
       setIsCropModalOpen(false);
     } catch (e) {
       throw e;
@@ -108,24 +117,6 @@ export function useAvatar(avatarUrl: string) {
     BProgress.done();
   }, [setBlobUrl, blobUrl]);
 
-  const setFileFromCroppedImage = React.useCallback(
-    (croppedImageUrl: string) => {
-      if (!fileInputRef.current) return;
-      if (!inputFileTypeRef.current) return;
-
-      const dataTransfer = new DataTransfer();
-      const fileExtension = inputFileTypeRef.current.split("/").at(1);
-      const file = dataURLtoFile(
-        croppedImageUrl,
-        `cropped-image.${fileExtension}`
-      );
-
-      dataTransfer.items.add(file);
-      fileInputRef.current.files = dataTransfer.files;
-    },
-    []
-  );
-
   return {
     avatarPreview,
     updatePreview,
@@ -135,8 +126,7 @@ export function useAvatar(avatarUrl: string) {
     isCropModalOpen,
     setIsCropModalOpen,
     imageToEdit,
-    inputFileTypeRef,
-    onCropApply,
     onCropCompleteCallback,
+    onCropApply,
   };
 }

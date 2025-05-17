@@ -13,18 +13,20 @@ export const getInitials = (name: string) => {
   );
 };
 
-export const generateCroppedImage = async (
-  url: string
-): Promise<HTMLImageElement> =>
-  new Promise((resolve, reject) => {
-    const image = new Image();
-    image.addEventListener("load", () => resolve(image));
-    image.addEventListener("error", (error) => reject(error));
-    image.crossOrigin = "anonymous";
-    image.src = url;
-  });
+export const setFileFromCroppedImage = (
+  croppedImageUrl: string,
+  fileInput: HTMLInputElement,
+  inputFileType: string
+) => {
+  const dataTransfer = new DataTransfer();
+  const fileExtension = inputFileType.split("/").at(1);
+  const file = dataURLtoFile(croppedImageUrl, `cropped-image.${fileExtension}`);
 
-export const dataURLtoFile = (dataurl: string, filename: string): File => {
+  dataTransfer.items.add(file);
+  fileInput.files = dataTransfer.files;
+};
+
+const dataURLtoFile = (dataurl: string, filename: string): File => {
   const arr = dataurl.split(",");
   const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
   const bstr = atob(arr[1]);
@@ -35,6 +37,17 @@ export const dataURLtoFile = (dataurl: string, filename: string): File => {
   }
   return new File([u8arr], filename, { type: mime });
 };
+
+export const generateCroppedImage = async (
+  url: string
+): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener("load", () => resolve(image));
+    image.addEventListener("error", (error) => reject(error));
+    image.crossOrigin = "anonymous";
+    image.src = url;
+  });
 
 export const getCroppedImage = async (
   fileType: string,
