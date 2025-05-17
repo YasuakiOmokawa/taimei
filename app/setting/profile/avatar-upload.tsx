@@ -72,6 +72,7 @@ export function AvatarUpload({
             updatePreview(e);
           }}
           ref={fileInputRef}
+          onClick={(e) => (e.currentTarget.value = "")}
         />
         <input type="hidden" name={avatarUrlField.name} value={blobUrl} />
 
