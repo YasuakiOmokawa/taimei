@@ -51,3 +51,5 @@ next-env.d.ts
 
 # playwright auth data file
 playwright/.auth
+
+*storybook.log
