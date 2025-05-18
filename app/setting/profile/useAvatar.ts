@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { BProgress } from "@bprogress/core";
 import { deleteAvatar } from "./actions";
 import type { Area } from "react-easy-crop";
-import { getCroppedImage, setFileFromCroppedImage } from "./utils";
+import { getCroppedImage, setFileFromCroppedImage } from "./cropUtils";
 
 export function useAvatar(avatarUrl: string) {
   const [avatarPreview, setAvatarPreview] = React.useState<string>("");
