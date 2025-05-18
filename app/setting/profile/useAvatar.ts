@@ -16,7 +16,7 @@ export function useAvatar(avatarUrl: string) {
     null
   );
 
-  const inputFileTypeRef = React.useRef<string>(null);
+  const inputFileTypeRef = React.useRef("");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const croppedAreaPixelsRef = React.useRef(croppedAreaPixels);
 
