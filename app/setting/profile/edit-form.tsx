@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useActionState } from "react";
 import { useForm } from "@conform-to/react";
-import { parseWithZod } from "@conform-to/zod";
+import { parseWithZod } from "@conform-to/zod/v4";
 import { userSchema } from "@/app/setting/profile/schema";
 import { updateUser } from "./actions";
 import { withCallbacks } from "@/lib/with-callbacks";

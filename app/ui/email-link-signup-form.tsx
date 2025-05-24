@@ -7,7 +7,7 @@ import { useActionState } from "react";
 import { signupWithEmailLink } from "@/app/lib/actions";
 import { useRedirectPath } from "@/app/lib/hooks/login/useRedirectPath";
 import { useForm } from "@conform-to/react";
-import { parseWithZod } from "@conform-to/zod";
+import { parseWithZod } from "@conform-to/zod/v4";
 import { emailLinkLoginSchema } from "@/app/lib/schema/login/schema";
 import { ExclamationCircleIcon } from "@heroicons/react/24/outline";
 

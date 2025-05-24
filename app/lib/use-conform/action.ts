@@ -1,6 +1,6 @@
 "use server";
 
-import { parseWithZod } from "@conform-to/zod";
+import { parseWithZod } from "@conform-to/zod/v4";
 import { schema } from "./schema";
 import { redirect } from "next/navigation";
 
