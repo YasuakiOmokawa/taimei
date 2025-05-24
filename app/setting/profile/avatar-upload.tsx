@@ -9,6 +9,7 @@ import { FieldMetadata } from "@conform-to/react";
 import { useAvatar } from "./useAvatar";
 import { getInitials } from "./utils";
 import { CropModal } from "./crop-modal";
+import { FILE_SIZE_PREFIX } from "./schema";
 
 interface Props {
   avatarUrl: string;
@@ -93,7 +94,7 @@ export function AvatarUpload({
             </p>
           ))}
         <p className="text-xs text-muted-foreground">
-          JPG、PNG、WEBP形式（最大5MB）
+          JPG、PNG、WEBP形式（最大{FILE_SIZE_PREFIX}MB）
         </p>
       </div>
 
