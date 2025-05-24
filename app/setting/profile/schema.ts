@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = [
@@ -17,14 +17,14 @@ export const userSchema = z.object({
 
     if (file.size > MAX_FILE_SIZE) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "ファイルサイズは最大5MBまでです",
       });
     }
 
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "JPG、PNG、またはWEBP形式の画像のみアップロード可能です",
       });
     }

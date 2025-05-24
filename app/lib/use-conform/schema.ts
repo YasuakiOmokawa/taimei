@@ -1,6 +1,6 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 
 export const schema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   name: z.string(),
 });
