@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { parseWithZod } from "@conform-to/zod";
+import { parseWithZod } from "@conform-to/zod/v4";
 import { prisma } from "@/prisma";
 import { fetchCurrentUser } from "@/app/lib/data";
 import { del, put } from "@vercel/blob";

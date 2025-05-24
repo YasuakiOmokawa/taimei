@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { validatesCreateInvoice, validatesUpdateInvoice } from "./validates";
 import { signIn } from "@/auth";
 import { AuthError } from "next-auth";
-import { parseWithZod } from "@conform-to/zod";
+import { parseWithZod } from "@conform-to/zod/v4";
 import { emailLinkLoginSchema } from "./schema/login/schema";
 import { signOut as SignOut } from "@/auth";
 import { prisma } from "@/prisma";
