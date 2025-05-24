@@ -1,16 +1,20 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 
 const InvoiceFormSchema = z.object({
   id: z.string(),
   date: z.date(),
   customerId: z.string({
-    invalid_type_error: "Please select a customer.",
-    required_error: "Customer is required.",
+    error: (issue) =>
+      issue.input === undefined
+        ? "Customer is required."
+        : "Please select a customer.",
   }),
   amount: z.coerce.number().gt(0, "Please enter an amount greater than $0."),
   status: z.enum(["paid", "pending"], {
-    invalid_type_error: "Please select an invoice status.",
-    required_error: "Invoice status is required.",
+    error: (issue) =>
+      issue.input === undefined
+        ? "Invoice status is required."
+        : "Please select an invoice status.",
   }),
 });
 
