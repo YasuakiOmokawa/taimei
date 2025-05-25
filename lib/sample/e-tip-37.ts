@@ -97,3 +97,16 @@ const sq = (n: number): Result<number, number> => ok(n ** 2);
 console.log(ok(2).andThen(sq).andThen(sq)); // 16
 console.log(ok(2).andThen(sq).andThen(err)); // 4
 console.log(ok(5).andThen(sq).andThrough(err)); // 4
+
+const DatabaseError = {
+  NotFound: "NodFound",
+  PoolExhausted: "PoolExhausted",
+} as const;
+type DatabaseError = (typeof DatabaseError)[keyof typeof DatabaseError];
+const dbQueryResult: Result<string, DatabaseError> = err(
+  DatabaseError.NotFound
+);
+const updateQueryResult = dbQueryResult.orElse((dbError) =>
+  dbError === DatabaseError.NotFound ? ok("user not found") : err(dbError)
+);
+console.log(updateQueryResult.isOk() && updateQueryResult.value);
