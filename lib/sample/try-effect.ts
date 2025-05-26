@@ -1,4 +1,4 @@
-import { Effect, Context } from "effect";
+import { Effect, Context, Data } from "effect";
 
 class SomeContext extends Context.Tag("SomeContext")<SomeContext, object>() {}
 declare const _program: Effect.Effect<number, Error, SomeContext>;
@@ -15,3 +15,8 @@ const divide = (a: number, b: number): number => {
 };
 
 console.log(divide(1, 0));
+const _success = Effect.succeed(42);
+const _failure = Effect.fail(new Error("failed due to some error."));
+
+class HttpError extends Data.TaggedError("HttpError")<object> {}
+const _httpProgram = Effect.fail(new HttpError({}));
