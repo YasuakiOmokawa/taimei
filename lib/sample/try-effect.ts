@@ -1,3 +1,4 @@
+import { consoleIntegration } from "@sentry/nextjs";
 import { Effect, Context, Data } from "effect";
 import { unknown } from "zod/v4";
 
@@ -57,4 +58,17 @@ const successParseProgram = jsonParse("{a:'b'}");
 console.table({
   f: failParseProgram,
   s: successParseProgram,
+});
+
+const getTodo = (id: number) =>
+  Effect.tryPromise({
+    try: () => fetch(`https://jsonplaceholder.typicode.com/todos/${id}`),
+    catch: (unknown) => new Error(`todo not found: ${unknown}`),
+  });
+
+const successGetTodo = getTodo(1);
+const failGetTodo = getTodo(0);
+console.table({
+  f: failGetTodo,
+  s: successGetTodo,
 });
