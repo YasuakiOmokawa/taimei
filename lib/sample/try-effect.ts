@@ -1,6 +1,4 @@
-import { consoleIntegration } from "@sentry/nextjs";
 import { Effect, Context, Data } from "effect";
-import { unknown } from "zod/v4";
 
 class SomeContext extends Context.Tag("SomeContext")<SomeContext, object>() {}
 declare const _program: Effect.Effect<number, Error, SomeContext>;
