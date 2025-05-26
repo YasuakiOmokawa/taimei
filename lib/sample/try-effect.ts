@@ -19,3 +19,28 @@ const _failure = Effect.fail(new Error("failed due to some error."));
 
 class HttpError extends Data.TaggedError("HttpError")<object> {}
 const _httpProgram = Effect.fail(new HttpError({}));
+
+interface User {
+  readonly id: number;
+  readonly name: string;
+}
+const getUser = (userId: number): Effect.Effect<User, Error> => {
+  const userDatabase: Record<number, User> = {
+    1: { id: 1, name: "taro" },
+    2: { id: 2, name: "kumi" },
+  };
+
+  const user = userDatabase[userId];
+  if (user) {
+    return Effect.succeed(user);
+  } else {
+    return Effect.fail(new Error("User not found"));
+  }
+};
+
+const successUserEffect = getUser(1);
+const failedUserEffect = getUser(0);
+console.table({
+  success: successUserEffect,
+  fail: failedUserEffect,
+});
