@@ -82,31 +82,3 @@ function calculateLengthL1(v: Vector3D) {
 }
 const vec3D = { x: 3, y: 4, z: 5, address: "saitama" };
 console.log(calculateLengthL1(vec3D));
-
-import { ok, err, Result } from "neverthrow";
-
-const myResult = ok({ myData: "test" });
-console.log(myResult.isOk());
-console.log(myResult.isErr());
-
-const myError = err("no");
-console.log(myError.isOk());
-console.log(myError.isErr());
-
-const sq = (n: number): Result<number, number> => ok(n ** 2);
-console.log(ok(2).andThen(sq).andThen(sq)); // 16
-console.log(ok(2).andThen(sq).andThen(err)); // 4
-console.log(ok(5).andThen(sq).andThrough(err)); // 4
-
-const DatabaseError = {
-  NotFound: "NodFound",
-  PoolExhausted: "PoolExhausted",
-} as const;
-type DatabaseError = (typeof DatabaseError)[keyof typeof DatabaseError];
-const dbQueryResult: Result<string, DatabaseError> = err(
-  DatabaseError.NotFound
-);
-const updateQueryResult = dbQueryResult.orElse((dbError) =>
-  dbError === DatabaseError.NotFound ? ok("user not found") : err(dbError)
-);
-console.log(updateQueryResult.isOk() && updateQueryResult.value);
