@@ -44,3 +44,7 @@ console.table({
   success: successUserEffect,
   fail: failedUserEffect,
 });
+
+const jsonParse = (input: string) => Effect.try(() => JSON.parse(input));
+
+const parseProgram = jsonParse("");
