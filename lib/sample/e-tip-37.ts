@@ -82,9 +82,3 @@ function calculateLengthL1(v: Vector3D) {
 }
 const vec3D = { x: 3, y: 4, z: 5, address: "saitama" };
 console.log(calculateLengthL1(vec3D));
-
-import { Effect, Console } from "effect";
-
-const program = Console.log("Hello, World!");
-
-Effect.runSync(program);
