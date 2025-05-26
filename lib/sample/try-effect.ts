@@ -1,4 +1,5 @@
 import { Effect, Context, Data } from "effect";
+import { unknown } from "zod/v4";
 
 class SomeContext extends Context.Tag("SomeContext")<SomeContext, object>() {}
 declare const _program: Effect.Effect<number, Error, SomeContext>;
@@ -45,6 +46,15 @@ console.table({
   fail: failedUserEffect,
 });
 
-const jsonParse = (input: string) => Effect.try(() => JSON.parse(input));
+const jsonParse = (input: string) =>
+  Effect.try({
+    try: () => JSON.parse(input),
+    catch: (unknown) => new Error(`unexpected error ${unknown}`),
+  });
 
-const parseProgram = jsonParse("");
+const failParseProgram = jsonParse("");
+const successParseProgram = jsonParse("{a:'b'}");
+console.table({
+  f: failParseProgram,
+  s: successParseProgram,
+});
