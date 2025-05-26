@@ -5,3 +5,13 @@ declare const _program: Effect.Effect<number, Error, SomeContext>;
 type _A = Effect.Effect.Success<typeof _program>;
 type _E = Effect.Effect.Error<typeof _program>;
 type _R = Effect.Effect.Context<typeof _program>;
+
+// Type signature doesn't show possible exceptions
+const divide = (a: number, b: number): number => {
+  if (b === 0) {
+    throw new Error("Cannot divide by zero");
+  }
+  return a / b;
+};
+
+console.log(divide(1, 0));
