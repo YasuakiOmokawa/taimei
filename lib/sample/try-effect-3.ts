@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Console } from "effect";
 
 const addServiceCharge = (amount: number) => amount + 1;
 
@@ -56,3 +56,15 @@ const taxProgram = Effect.gen(function* () {
 });
 
 Effect.runPromise(taxProgram);
+
+// invoke error
+const task1 = Console.log("task1..");
+const task2 = Console.log("task2..");
+
+const invokeErrorProgram = Effect.gen(function* () {
+  yield* task1;
+  yield* task2;
+  yield* Effect.fail("something went wrong");
+});
+
+Effect.runPromise(invokeErrorProgram).then(console.log, console.error);
