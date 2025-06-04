@@ -112,14 +112,27 @@ console.log(i);
 
 // console.log(Effect.runSync(blowsUp(32)));
 
-const allGood = (n: number): Effect.Effect<number> => {
-  return n < 2
-    ? Effect.succeed(1)
-    : Effect.zipWith(
-        Effect.suspend(() => allGood(n - 1)),
-        Effect.suspend(() => allGood(n - 2)),
-        (a, b) => a + b
-      );
+// const allGood = (n: number): Effect.Effect<number> => {
+//   return n < 2
+//     ? Effect.succeed(1)
+//     : Effect.zipWith(
+//         Effect.suspend(() => allGood(n - 1)),
+//         Effect.suspend(() => allGood(n - 2)),
+//         (a, b) => a + b
+//       );
+// };
+
+// console.log(Effect.runSync(allGood(32)));
+
+// unify return types
+const withoutSuspend = (a: number, b: number) => {
+  return b === 0 ? Effect.fail(new Error("hoge")) : Effect.succeed(a / b);
 };
 
-console.log(Effect.runSync(allGood(32)));
+const withSuspend = (a: number, b: number) =>
+  Effect.suspend(() =>
+    b === 0 ? Effect.fail(new Error("hoge")) : Effect.succeed(a / b)
+  );
+
+console.log(Effect.runSync(withoutSuspend(1, 1)));
+console.log(Effect.runSync(withSuspend(1, 1)));
