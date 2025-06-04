@@ -92,7 +92,7 @@ type User = {
 
 declare function getUserById(id: string): Effect.Effect<User | undefined>;
 
-function greetUser(id: string) {
+function _greetUser(id: string) {
   return Effect.gen(function* () {
     const user = yield* getUserById(id);
 
@@ -103,3 +103,17 @@ function greetUser(id: string) {
     return `Hello, ${user.name}`;
   });
 }
+
+// access scope with this
+class MyClass {
+  readonly local = 1;
+  compute = Effect.gen(this, function* () {
+    const n = this.local + 1;
+
+    yield* Effect.log(`computed value: ${n}`);
+
+    return n;
+  });
+}
+
+Effect.runPromise(new MyClass().compute).then(console.log);
