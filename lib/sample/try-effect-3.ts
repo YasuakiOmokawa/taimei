@@ -30,3 +30,29 @@ const program = Effect.gen(function* () {
 });
 
 Effect.runPromise(program).then(console.log);
+
+const calculateTax = (
+  amount: number,
+  taxRate: number
+): Effect.Effect<number, Error> =>
+  taxRate > 0
+    ? Effect.succeed((amount * taxRate) / 100)
+    : Effect.fail(new Error("invalid tax rate"));
+
+const taxProgram = Effect.gen(function* () {
+  let i = 1;
+
+  while (true) {
+    if (i === 10) {
+      break;
+    } else {
+      if (i % 2 === 0) {
+        console.log(yield* calculateTax(100, i));
+      }
+      i++;
+      continue;
+    }
+  }
+});
+
+Effect.runPromise(taxProgram);
