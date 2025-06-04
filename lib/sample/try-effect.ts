@@ -86,8 +86,19 @@ const interruptibleTask = Effect.async<void, Error>((resume, signal) => {
 
 const fiberProgram = Effect.gen(function* () {
   const fiber = yield* Effect.fork(interruptibleTask);
-  yield* Effect.sleep("3 second");
+  // yield* Effect.sleep("1 second");
   yield* Fiber.interrupt(fiber);
 });
 
 Effect.runPromise(fiberProgram);
+
+// 遅延評価
+let i = 0;
+const bad = Effect.succeed(i++);
+const good = Effect.suspend(() => Effect.succeed(i++));
+
+console.log(Effect.runSync(bad));
+console.log(Effect.runSync(bad));
+console.log(Effect.runSync(good));
+console.log(Effect.runSync(good));
+console.log(i);
