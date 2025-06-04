@@ -1,4 +1,4 @@
-import { Effect, Context, Data } from "effect";
+import { Effect, Context, Data, Fiber } from "effect";
 
 class SomeContext extends Context.Tag("SomeContext")<SomeContext, object>() {}
 declare const _program: Effect.Effect<number, Error, SomeContext>;
@@ -70,3 +70,24 @@ console.table({
   f: failGetTodo,
   s: successGetTodo,
 });
+
+// abort signal sample
+const interruptibleTask = Effect.async<void, Error>((resume, signal) => {
+  signal.addEventListener("abort", () => {
+    console.log("abort signal received");
+    clearTimeout(timeoutId);
+  });
+
+  const timeoutId = setTimeout(() => {
+    console.log("operation completed");
+    resume(Effect.void);
+  }, 1000);
+});
+
+const fiberProgram = Effect.gen(function* () {
+  const fiber = yield* Effect.fork(interruptibleTask);
+  yield* Effect.sleep("3 second");
+  yield* Fiber.interrupt(fiber);
+});
+
+Effect.runPromise(fiberProgram);
