@@ -1,4 +1,4 @@
-import { Effect, Context, Data } from "effect";
+import { Effect, Context, Data, Fiber } from "effect";
 
 class SomeContext extends Context.Tag("SomeContext")<SomeContext, object>() {}
 declare const _program: Effect.Effect<number, Error, SomeContext>;
@@ -70,3 +70,69 @@ console.table({
   f: failGetTodo,
   s: successGetTodo,
 });
+
+// abort signal sample
+const interruptibleTask = Effect.async<void, Error>((resume, signal) => {
+  signal.addEventListener("abort", () => {
+    console.log("abort signal received");
+    clearTimeout(timeoutId);
+  });
+
+  const timeoutId = setTimeout(() => {
+    console.log("operation completed");
+    resume(Effect.void);
+  }, 1000);
+});
+
+const fiberProgram = Effect.gen(function* () {
+  const fiber = yield* Effect.fork(interruptibleTask);
+  // yield* Effect.sleep("1 second");
+  yield* Fiber.interrupt(fiber);
+});
+
+Effect.runPromise(fiberProgram);
+
+// 遅延評価
+let i = 0;
+const bad = Effect.succeed(i++);
+const good = Effect.suspend(() => Effect.succeed(i++));
+
+console.log(Effect.runSync(bad));
+console.log(Effect.runSync(bad));
+console.log(Effect.runSync(good));
+console.log(Effect.runSync(good));
+console.log(i);
+
+// フィボナッチ数列
+// const blowsUp = (n: number): Effect.Effect<number> => {
+//   return n < 2
+//     ? Effect.succeed(1)
+//     : Effect.zipWith(blowsUp(n - 1), blowsUp(n - 2), (a, b) => a + b);
+// };
+
+// console.log(Effect.runSync(blowsUp(32)));
+
+// const allGood = (n: number): Effect.Effect<number> => {
+//   return n < 2
+//     ? Effect.succeed(1)
+//     : Effect.zipWith(
+//         Effect.suspend(() => allGood(n - 1)),
+//         Effect.suspend(() => allGood(n - 2)),
+//         (a, b) => a + b
+//       );
+// };
+
+// console.log(Effect.runSync(allGood(32)));
+
+// unify return types
+const withoutSuspend = (a: number, b: number) => {
+  return b === 0 ? Effect.fail(new Error("hoge")) : Effect.succeed(a / b);
+};
+
+const withSuspend = (a: number, b: number) =>
+  Effect.suspend(() =>
+    b === 0 ? Effect.fail(new Error("hoge")) : Effect.succeed(a / b)
+  );
+
+console.log(Effect.runSync(withoutSuspend(1, 1)));
+console.log(Effect.runSync(withSuspend(1, 1)));
