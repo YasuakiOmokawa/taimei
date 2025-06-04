@@ -102,3 +102,24 @@ console.log(Effect.runSync(bad));
 console.log(Effect.runSync(good));
 console.log(Effect.runSync(good));
 console.log(i);
+
+// フィボナッチ数列
+// const blowsUp = (n: number): Effect.Effect<number> => {
+//   return n < 2
+//     ? Effect.succeed(1)
+//     : Effect.zipWith(blowsUp(n - 1), blowsUp(n - 2), (a, b) => a + b);
+// };
+
+// console.log(Effect.runSync(blowsUp(32)));
+
+const allGood = (n: number): Effect.Effect<number> => {
+  return n < 2
+    ? Effect.succeed(1)
+    : Effect.zipWith(
+        Effect.suspend(() => allGood(n - 1)),
+        Effect.suspend(() => allGood(n - 2)),
+        (a, b) => a + b
+      );
+};
+
+console.log(Effect.runSync(allGood(32)));
