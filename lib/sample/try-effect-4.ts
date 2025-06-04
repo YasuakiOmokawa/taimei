@@ -1,3 +1,4 @@
+import { fetchFilteredCustomers } from "@/app/lib/data";
 import { pipe, Effect } from "effect";
 
 const increment = (x: number) => x + 1;
@@ -36,3 +37,18 @@ const finalAmount2 = pipe(
 );
 
 Effect.runPromise(finalAmount2).then(console.log).catch(console.error);
+
+// use andThen
+const resultWithoutAndThen = pipe(
+  fetchTransactionAmount,
+  Effect.flatMap((amount) => applyDiscount(amount, 0)),
+  Effect.map((amount) => amount * 2)
+);
+Effect.runPromise(resultWithoutAndThen).then(console.log).catch(console.error);
+
+const resultWithAndThen = pipe(
+  fetchTransactionAmount,
+  Effect.andThen((amount) => applyDiscount(amount, 1)),
+  Effect.andThen((amount) => amount * 2)
+);
+Effect.runPromise(resultWithAndThen).then(console.log).catch(console.error);
