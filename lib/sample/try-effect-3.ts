@@ -84,3 +84,22 @@ const invokeErrorProgram2 = Effect.gen(function* () {
 });
 
 Effect.runPromise(invokeErrorProgram2).then(console.log, console.error);
+
+// extract type check
+type User = {
+  readonly name: string;
+};
+
+declare function getUserById(id: string): Effect.Effect<User | undefined>;
+
+function greetUser(id: string) {
+  return Effect.gen(function* () {
+    const user = yield* getUserById(id);
+
+    if (user === undefined) {
+      return yield* Effect.fail(`User with id ${id} not found`);
+    }
+
+    return `Hello, ${user.name}`;
+  });
+}
