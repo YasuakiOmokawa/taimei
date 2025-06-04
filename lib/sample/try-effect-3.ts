@@ -68,3 +68,19 @@ const invokeErrorProgram = Effect.gen(function* () {
 });
 
 Effect.runPromise(invokeErrorProgram).then(console.log, console.error);
+
+// invoke error 2
+const task3 = Console.log("task3..");
+const task4 = Console.log("task4..");
+const failure = Effect.fail("hoge error");
+
+const invokeErrorProgram2 = Effect.gen(function* () {
+  yield* task1;
+  yield* task2;
+  yield* failure;
+  yield* task3;
+  yield* task4;
+  return "some result";
+});
+
+Effect.runPromise(invokeErrorProgram2).then(console.log, console.error);
