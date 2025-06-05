@@ -1,5 +1,4 @@
-import { fetchFilteredCustomers } from "@/app/lib/data";
-import { pipe, Effect } from "effect";
+import { pipe, Effect, Option, Either, Console } from "effect";
 
 const increment = (x: number) => x + 1;
 const double = (x: number) => x * 2;
@@ -41,7 +40,7 @@ Effect.runPromise(finalAmount2).then(console.log).catch(console.error);
 // use andThen
 const resultWithoutAndThen = pipe(
   fetchTransactionAmount,
-  Effect.flatMap((amount) => applyDiscount(amount, 0)),
+  Effect.flatMap((amount) => applyDiscount(amount, 1)),
   Effect.map((amount) => amount * 2)
 );
 Effect.runPromise(resultWithoutAndThen).then(console.log).catch(console.error);
@@ -52,3 +51,33 @@ const resultWithAndThen = pipe(
   Effect.andThen((amount) => amount * 2)
 );
 Effect.runPromise(resultWithAndThen).then(console.log).catch(console.error);
+
+//option, either
+const fetchNumberValue = Effect.tryPromise(() => Promise.resolve(41));
+
+const optionProgram = pipe(
+  fetchNumberValue,
+  Effect.andThen((x) => (x > 0 ? Option.some(x) : Option.none()))
+);
+Effect.runPromise(optionProgram).then(console.log);
+
+const parseInteger = (input: string): Either.Either<number, string> =>
+  isNaN(parseInt(input))
+    ? Either.left("invalid integer")
+    : Either.right(parseInt(input));
+
+const fetchStringValue = Effect.tryPromise(() => Promise.resolve("あ"));
+
+const parseProgram = pipe(
+  fetchStringValue,
+  Effect.andThen((str) => parseInteger(str))
+);
+Effect.runPromise(parseProgram).then(console.log).catch(console.error);
+
+// use tap
+const finalAmountWithTap = pipe(
+  fetchTransactionAmount,
+  Effect.tap((amount) => Console.log(`amount is ${amount}`)),
+  Effect.flatMap((amount) => applyDiscount(amount, 5))
+);
+Effect.runPromise(finalAmountWithTap).then(console.log);
