@@ -1,4 +1,4 @@
-import { pipe, Effect, Option, Either } from "effect";
+import { pipe, Effect, Option, Either, Console } from "effect";
 
 const increment = (x: number) => x + 1;
 const double = (x: number) => x * 2;
@@ -73,3 +73,11 @@ const parseProgram = pipe(
   Effect.andThen((str) => parseInteger(str))
 );
 Effect.runPromise(parseProgram).then(console.log).catch(console.error);
+
+// use tap
+const finalAmountWithTap = pipe(
+  fetchTransactionAmount,
+  Effect.tap((amount) => Console.log(`amount is ${amount}`)),
+  Effect.flatMap((amount) => applyDiscount(amount, 5))
+);
+Effect.runPromise(finalAmountWithTap).then(console.log);
