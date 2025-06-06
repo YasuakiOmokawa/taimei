@@ -81,3 +81,18 @@ const finalAmountWithTap = pipe(
   Effect.flatMap((amount) => applyDiscount(amount, 5))
 );
 Effect.runPromise(finalAmountWithTap).then(console.log);
+
+// use all
+const webConfig = Effect.promise(() =>
+  Promise.resolve({ dbConnection: "localhost", port: 8080 })
+);
+const checkDatabaseConnectivity = Effect.promise(() =>
+  Promise.resolve("connect to database")
+);
+const startupChecks = Effect.all([webConfig, checkDatabaseConnectivity]);
+
+Effect.runPromise(startupChecks)
+  .then(([config, dbStatus]) => {
+    console.log(`conig: ${JSON.stringify(config)}\nDB status: ${dbStatus}`);
+  })
+  .catch(console.error);
