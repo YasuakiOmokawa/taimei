@@ -1,21 +1,13 @@
 import { Effect, Option, Console, Random } from "effect";
 
+// use when
 const validateWeightOption = (
   weight: number
-): Effect.Effect<Option.Option<number>> => {
-  if (weight >= 0) {
-    return Effect.succeed(Option.some(weight));
-  } else {
-    return Effect.succeed(Option.none());
-  }
-};
+): Effect.Effect<Option.Option<number>> =>
+  Effect.succeed(weight).pipe(Effect.when(() => weight >= 0));
 
-Effect.runPromise(validateWeightOption(5))
-  .then(console.log)
-  .catch(console.error);
-Effect.runPromise(validateWeightOption(-1))
-  .then(console.log)
-  .catch(console.error);
+Effect.runPromise(validateWeightOption(5)).then(console.log);
+Effect.runPromise(validateWeightOption(-1)).then(console.log);
 
 const validateWeightOrFail = (
   weight: number
