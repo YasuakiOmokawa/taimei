@@ -1,4 +1,4 @@
-import { Effect, Option, pipe } from "effect";
+import { Effect, Option, Console, Random } from "effect";
 
 const validateWeightOption = (
   weight: number
@@ -30,3 +30,10 @@ const validateWeightOrFail = (
 Effect.runPromiseExit(
   Effect.forEach([5, -1], (n) => validateWeightOrFail(n))
 ).then(console.log);
+
+// use if
+const flipTheCoin = Effect.if(Random.nextBoolean, {
+  onTrue: () => Console.log("head"),
+  onFalse: () => Console.log("tail"),
+});
+Effect.runFork(flipTheCoin);
