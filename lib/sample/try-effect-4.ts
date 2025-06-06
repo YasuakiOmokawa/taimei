@@ -81,3 +81,33 @@ const finalAmountWithTap = pipe(
   Effect.flatMap((amount) => applyDiscount(amount, 5))
 );
 Effect.runPromise(finalAmountWithTap).then(console.log);
+
+// use all
+const webConfig = Effect.promise(() =>
+  Promise.resolve({ dbConnection: "localhost", port: 8080 })
+);
+const checkDatabaseConnectivity = Effect.promise(() =>
+  Promise.resolve("connect to database")
+);
+const startupChecks = Effect.all([webConfig, checkDatabaseConnectivity]);
+
+Effect.runPromise(startupChecks)
+  .then(([config, dbStatus]) => {
+    console.log(`conig: ${JSON.stringify(config)}\nDB status: ${dbStatus}`);
+  })
+  .catch(console.error);
+
+// assembling transaction pipeline
+const fetchDiscountRate = Effect.promise(() => Promise.resolve(5));
+
+const transactionProgram = pipe(
+  Effect.all([fetchTransactionAmount, fetchDiscountRate]),
+  Effect.andThen(([transactionAmount, discountRate]) =>
+    applyDiscount(transactionAmount, discountRate)
+  ),
+  Effect.andThen(addServiceCarge),
+  Effect.andThen(
+    (finalAmount) => `Transactional Final amount to charge: ${finalAmount}`
+  )
+);
+Effect.runPromise(transactionProgram).then(console.log);
