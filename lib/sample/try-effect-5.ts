@@ -105,3 +105,56 @@ const iterableOfEffects: Iterable<Effect.Effect<number>> = [1, 2, 3].map((n) =>
 const resultsAsArray = Effect.all(iterableOfEffects);
 
 Effect.runPromise(resultsAsArray).then(console.log);
+
+// case struct
+const structOfEffects = {
+  a: Effect.succeed(1).pipe(
+    Effect.tap((e) => Console.log(`struct of item a: ${e}`))
+  ),
+  b: Effect.succeed("A").pipe(
+    Effect.tap((e) => Console.log(`struct of item b: ${e}`))
+  ),
+};
+
+const resultAsStruct = Effect.all(structOfEffects);
+Effect.runPromise(resultAsStruct).then(console.log);
+
+// case record
+const recordOfEffects: Record<string, Effect.Effect<number | string>> = {
+  key1: Effect.succeed(1).pipe(
+    Effect.tap((e) => Console.log(`record of key1: ${e}`))
+  ),
+  key2: Effect.succeed("A").pipe(
+    Effect.tap((e) => Console.log(`record of key2: ${e}`))
+  ),
+};
+const resultsAsRecord = Effect.all(recordOfEffects);
+Effect.runPromise(resultsAsRecord).then(console.log);
+
+// mode: either
+const recordOfEffects2: Record<
+  string,
+  Effect.Effect<number | string, string>
+> = {
+  key1: Effect.succeed(1).pipe(
+    Effect.tap((e) => Console.log(`record of key1 1: ${e}`))
+  ),
+  key2: Effect.succeed("A").pipe(
+    Effect.tap((e) => Console.log(`record of key2 2: ${e}`))
+  ),
+  key3: Effect.fail("oh!").pipe(
+    Effect.tap((e) => Console.log(`this is failure: ${e}`))
+  ),
+};
+const programAsRecordModeEither = Effect.all(recordOfEffects2, {
+  mode: "either",
+});
+Effect.runPromiseExit(programAsRecordModeEither).then(console.log);
+
+// mode: validate
+const programAsRecordModeValidate = Effect.all(recordOfEffects2, {
+  mode: "validate",
+});
+Effect.runPromiseExit(programAsRecordModeValidate).then((result) =>
+  console.log("%o", result)
+);
