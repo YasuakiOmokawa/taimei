@@ -1,4 +1,4 @@
-import { Effect, Option, Console, Random, pipe } from "effect";
+import { Effect, Option, Console, Random, pipe, Iterable } from "effect";
 
 // use when
 const validateWeightOption = (
@@ -84,9 +84,10 @@ Effect.runPromise(result2).then(console.log);
 // use iterate
 const result3 = Effect.iterate(1, {
   while: (result) => result <= 6,
-  body: (result) => {
-    return Effect.succeed(result + 1);
-  },
+  body: (result) =>
+    Effect.succeed(result + 1).pipe(
+      Effect.tap((r) => Console.log(`result3 temp data: ${r}`))
+    ),
 });
 Effect.runPromise(result3).then(console.log);
 
@@ -95,3 +96,12 @@ const result4 = Effect.forEach([1, 2, 3], (n, index) =>
   Console.log(`index: ${index}`).pipe(Effect.as(n * 2))
 );
 Effect.runPromise(result4).then(console.log);
+
+// all iterable
+const iterableOfEffects: Iterable<Effect.Effect<number>> = [1, 2, 3].map((n) =>
+  Effect.succeed(n).pipe(Effect.tap(Console.log))
+);
+
+const resultsAsArray = Effect.all(iterableOfEffects);
+
+Effect.runPromise(resultsAsArray).then(console.log);
