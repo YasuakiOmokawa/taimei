@@ -52,3 +52,14 @@ const zipProgramConcurrency = Effect.zip(task1, task2, { concurrent: true });
 Effect.runPromise(
   Effect.all([zipProgram, zipProgramConcurrency], { concurrency: 2 })
 ).then(console.log);
+
+// use zipWith
+const task3 = Effect.zipWith(
+  task1,
+  task2,
+  (number, string) => number + string.length
+);
+
+Effect.runPromise(
+  Effect.all([zipProgram, zipProgramConcurrency, task3], { concurrency: 3 })
+).then(console.log);
