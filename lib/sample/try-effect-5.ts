@@ -89,3 +89,9 @@ const result3 = Effect.iterate(1, {
   },
 });
 Effect.runPromise(result3).then(console.log);
+
+// use forEach
+const result4 = Effect.forEach([1, 2, 3], (n, index) =>
+  Console.log(`index: ${index}`).pipe(Effect.as(n * 2))
+);
+Effect.runPromise(result4).then(console.log);
