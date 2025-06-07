@@ -6,8 +6,9 @@ const validateWeightOption = (
 ): Effect.Effect<Option.Option<number>> =>
   Effect.succeed(weight).pipe(Effect.when(() => weight >= 0));
 
-Effect.runPromise(validateWeightOption(5)).then(console.log);
-Effect.runPromise(validateWeightOption(-1)).then(console.log);
+Effect.runPromise(Effect.forEach([-5, 1], (n) => validateWeightOption(n))).then(
+  console.log
+);
 
 const validateWeightOrFail = (
   weight: number
@@ -29,3 +30,8 @@ const flipTheCoin = Effect.if(Random.nextBoolean, {
   onFalse: () => Console.log("tail"),
 });
 Effect.runFork(flipTheCoin);
+
+const randomIntOption = Random.nextInt.pipe(
+  Effect.whenEffect(Random.nextBoolean)
+);
+console.log(Effect.runSync(randomIntOption));
