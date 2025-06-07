@@ -75,8 +75,8 @@ Effect.runPromise(result).then(console.log);
 // use loop with discard
 const result2 = Effect.loop(1, {
   while: (state) => state <= 5,
-  step: (state) => state + 1,
-  body: (state) => Effect.log(`Currently at state: ${state}`),
+  step: (state) => state + 2,
+  body: (state) => pipe(Effect.succeed(state), (result) => Console.log(result)),
   discard: true,
 });
 Effect.runPromise(result2).then(console.log);
