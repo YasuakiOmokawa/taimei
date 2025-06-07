@@ -35,3 +35,20 @@ const randomIntOption = Random.nextInt.pipe(
   Effect.whenEffect(Random.nextBoolean)
 );
 console.log(Effect.runSync(randomIntOption));
+
+// use zip
+const task1 = Effect.succeed(1).pipe(
+  Effect.delay("200 millis"),
+  Effect.tap(Effect.log("task1 done"))
+);
+
+const task2 = Effect.succeed("hello").pipe(
+  Effect.delay("100 millis"),
+  Effect.tap(Effect.log("task2 done"))
+);
+
+const zipProgram = Effect.zip(task1, task2);
+const zipProgramConcurrency = Effect.zip(task1, task2, { concurrent: true });
+Effect.runPromise(
+  Effect.all([zipProgram, zipProgramConcurrency], { concurrency: 2 })
+).then(console.log);
