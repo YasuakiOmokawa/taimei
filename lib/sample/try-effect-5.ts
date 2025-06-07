@@ -1,4 +1,4 @@
-import { Effect, Option, Console, Random } from "effect";
+import { Effect, Option, Console, Random, pipe } from "effect";
 
 // use when
 const validateWeightOption = (
@@ -80,3 +80,12 @@ const result2 = Effect.loop(1, {
   discard: true,
 });
 Effect.runPromise(result2).then(console.log);
+
+// use iterate
+const result3 = Effect.iterate(1, {
+  while: (result) => result <= 6,
+  body: (result) => {
+    return Effect.succeed(result + 1);
+  },
+});
+Effect.runPromise(result3).then(console.log);
