@@ -105,3 +105,16 @@ const iterableOfEffects: Iterable<Effect.Effect<number>> = [1, 2, 3].map((n) =>
 const resultsAsArray = Effect.all(iterableOfEffects);
 
 Effect.runPromise(resultsAsArray).then(console.log);
+
+// case struct
+const structOfEffects = {
+  a: Effect.succeed(1).pipe(
+    Effect.tap((e) => Console.log(`struct of item a: ${e}`))
+  ),
+  b: Effect.succeed("A").pipe(
+    Effect.tap((e) => Console.log(`struct of item b: ${e}`))
+  ),
+};
+
+const resultAsStruct = Effect.all(structOfEffects);
+Effect.runPromise(resultAsStruct).then(console.log);
