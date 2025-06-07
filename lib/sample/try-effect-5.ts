@@ -63,3 +63,11 @@ const task3 = Effect.zipWith(
 Effect.runPromise(
   Effect.all([zipProgram, zipProgramConcurrency, task3], { concurrency: 3 })
 ).then(console.log);
+
+//use loop
+const result = Effect.loop(1, {
+  while: (state) => state <= 5,
+  step: (state) => state + 1,
+  body: (state) => Effect.succeed(state),
+});
+Effect.runPromise(result).then(console.log);
