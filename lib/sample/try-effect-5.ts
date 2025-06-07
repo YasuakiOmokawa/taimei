@@ -130,3 +130,21 @@ const recordOfEffects: Record<string, Effect.Effect<number | string>> = {
 };
 const resultsAsRecord = Effect.all(recordOfEffects);
 Effect.runPromise(resultsAsRecord).then(console.log);
+
+// mode: either
+const recordOfEffects2: Record<
+  string,
+  Effect.Effect<number | string, string>
+> = {
+  key1: Effect.succeed(1).pipe(
+    Effect.tap((e) => Console.log(`record of key1 1: ${e}`))
+  ),
+  key2: Effect.succeed("A").pipe(
+    Effect.tap((e) => Console.log(`record of key2 2: ${e}`))
+  ),
+  key3: Effect.fail("oh!").pipe(
+    Effect.tap((e) => Console.log(`this is failure: ${e}`))
+  ),
+};
+const programAsRecord = Effect.all(recordOfEffects2, { mode: "either" });
+Effect.runPromiseExit(programAsRecord).then(console.log);
