@@ -146,5 +146,15 @@ const recordOfEffects2: Record<
     Effect.tap((e) => Console.log(`this is failure: ${e}`))
   ),
 };
-const programAsRecord = Effect.all(recordOfEffects2, { mode: "either" });
-Effect.runPromiseExit(programAsRecord).then(console.log);
+const programAsRecordModeEither = Effect.all(recordOfEffects2, {
+  mode: "either",
+});
+Effect.runPromiseExit(programAsRecordModeEither).then(console.log);
+
+// mode: validate
+const programAsRecordModeValidate = Effect.all(recordOfEffects2, {
+  mode: "validate",
+});
+Effect.runPromiseExit(programAsRecordModeValidate).then((result) =>
+  console.log("%o", result)
+);
