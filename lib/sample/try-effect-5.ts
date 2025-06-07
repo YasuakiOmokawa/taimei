@@ -118,3 +118,15 @@ const structOfEffects = {
 
 const resultAsStruct = Effect.all(structOfEffects);
 Effect.runPromise(resultAsStruct).then(console.log);
+
+// case record
+const recordOfEffects: Record<string, Effect.Effect<number | string>> = {
+  key1: Effect.succeed(1).pipe(
+    Effect.tap((e) => Console.log(`record of key1: ${e}`))
+  ),
+  key2: Effect.succeed("A").pipe(
+    Effect.tap((e) => Console.log(`record of key2: ${e}`))
+  ),
+};
+const resultsAsRecord = Effect.all(recordOfEffects);
+Effect.runPromise(resultsAsRecord).then(console.log);
