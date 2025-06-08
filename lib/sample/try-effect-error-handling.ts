@@ -33,11 +33,9 @@ Effect.runPromiseExit(taskEffects).then(console.log);
 // use either
 const recoveredEffect = Effect.gen(function* () {
   const failureOrSuccess = yield* Effect.either(program);
-  if (Either.isLeft(failureOrSuccess)) {
-    const error = failureOrSuccess.left;
-    return `recover from ${error._tag}`;
-  } else {
-    return `this is right thing: ${failureOrSuccess.right}`;
-  }
+  return Either.match(failureOrSuccess, {
+    onLeft: (error) => `recover from ${error._tag}`,
+    onRight: (value) => `this is right result: ${value}`,
+  });
 });
 Effect.runPromise(recoveredEffect).then(console.log);
