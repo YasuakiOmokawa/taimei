@@ -1,4 +1,4 @@
-import { Effect, Random, Data, Console } from "effect";
+import { Effect, Random, Data, Console, Either } from "effect";
 
 class HttpError extends Data.TaggedError("HttpError")<{}> {}
 class ValidationError extends Data.TaggedError("ValidationError")<{}> {}
@@ -29,3 +29,15 @@ const taskEffects = Effect.gen(function* () {
   yield* task3;
 });
 Effect.runPromiseExit(taskEffects).then(console.log);
+
+// use either
+const recoveredEffect = Effect.gen(function* () {
+  const failureOrSuccess = yield* Effect.either(program);
+  if (Either.isLeft(failureOrSuccess)) {
+    const error = failureOrSuccess.left;
+    return `recover from ${error._tag}`;
+  } else {
+    return `this is right thing: ${failureOrSuccess.right}`;
+  }
+});
+Effect.runPromise(recoveredEffect).then(console.log);
