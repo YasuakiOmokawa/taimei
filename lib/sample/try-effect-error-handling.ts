@@ -1,4 +1,4 @@
-import { Effect, Random, Data } from "effect";
+import { Effect, Random, Data, Console } from "effect";
 
 class HttpError extends Data.TaggedError("HttpError")<{}> {}
 class ValidationError extends Data.TaggedError("ValidationError")<{}> {}
@@ -18,3 +18,14 @@ const program = Effect.gen(function* () {
 });
 
 Effect.runPromise(program).then(console.log).catch(console.error);
+
+const task1 = Console.log("task1");
+const task2 = Effect.fail("this is fail");
+const task3 = Console.log("task3");
+
+const taskEffects = Effect.gen(function* () {
+  yield* task1;
+  yield* task2;
+  yield* task3;
+});
+Effect.runPromiseExit(taskEffects).then(console.log);
