@@ -25,7 +25,7 @@ const task3 = Console.log("task3");
 
 const taskEffects = Effect.gen(function* () {
   yield* task1;
-  yield* task2;
+  return yield* task2;
   yield* task3;
 });
 Effect.runPromiseExit(taskEffects).then(console.log);
