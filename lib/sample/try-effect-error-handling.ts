@@ -46,3 +46,9 @@ const maybe2 = Effect.option(Effect.fail("this is fail."));
 const maybe3 = Effect.option(Effect.die("Boom"));
 Effect.runPromiseExit(Effect.all([maybe1, maybe2])).then(console.log);
 Effect.runPromiseExit(Effect.all([maybe1, maybe2, maybe3])).then(console.log);
+
+// use catchall
+const recovered = program.pipe(
+  Effect.catchAll((error) => Effect.succeed(`catchall from ${error._tag}`))
+);
+Effect.runPromise(recovered).then(console.log);
