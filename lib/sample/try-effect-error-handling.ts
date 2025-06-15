@@ -141,6 +141,9 @@ Effect.runPromiseExit(recoverByIf).then(console.log);
 const recoverWithCatchTag = program.pipe(
   Effect.catchTag("HttpError", (_httpError) =>
     Effect.succeed("recover http error with catch tag")
+  ),
+  Effect.catchTag("ValidationError", (_validationError) =>
+    Effect.succeed("catch validation error with catch tag")
   )
 );
 Effect.runPromiseExit(recoverWithCatchTag).then(console.log);
