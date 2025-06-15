@@ -1,4 +1,5 @@
 import { Effect, Random, Data, Console, Either, Cause } from "effect";
+import { cause } from "effect/Effect";
 
 class HttpError extends Data.TaggedError("HttpError")<{}> {}
 class ValidationError extends Data.TaggedError("ValidationError")<{}> {}
@@ -49,7 +50,7 @@ Effect.runPromiseExit(Effect.all([maybe1, maybe2, maybe3])).then(console.log);
 
 // use catchall
 const recovered = program.pipe(
-  Effect.catchAll((error) => Effect.succeed(`catchall from ${error._tag}`))
+  Effect.catchAll((error) => Effect.succeed(`catchall from ${error}`))
 );
 Effect.runPromise(recovered).then(console.log);
 
@@ -57,8 +58,27 @@ Effect.runPromise(recovered).then(console.log);
 const recoveredByCause = program.pipe(
   Effect.catchAllCause((cause) =>
     Cause.isFailType(cause)
-      ? Effect.succeed("catchall cause by fail type")
+      ? Effect.succeed(`catchall cause by fail type ${cause.error._tag}`)
       : Effect.succeed("catch all cause by another fail")
   )
 );
 Effect.runPromise(recoveredByCause).then(console.log);
+
+// use cause and catchall
+const recoveredInCaseofCause = program.pipe(
+  Effect.catchAllCause((cause) => {
+    if (Cause.isFailType(cause)) {
+      switch (cause.error._tag) {
+        case "HttpError":
+          return Effect.succeed("catch http error");
+        case "ValidationError":
+          return Effect.succeed("catch validation error");
+        default:
+          return Effect.succeed("catch another error");
+      }
+    } else {
+      return Effect.succeed("this is not fail");
+    }
+  })
+);
+Effect.runPromise(recoveredInCaseofCause).then(console.log);
