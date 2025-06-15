@@ -1,5 +1,4 @@
-import { Effect, Random, Data, Console, Either, Cause } from "effect";
-import { cause } from "effect/Effect";
+import { Effect, Random, Data, Console, Either, Cause, Option } from "effect";
 
 class HttpError extends Data.TaggedError("HttpError")<{}> {}
 class ValidationError extends Data.TaggedError("ValidationError")<{}> {}
@@ -114,3 +113,17 @@ const recoverAllWithEither = Effect.gen(function* () {
   }
 });
 Effect.runPromise(recoverAllWithEither).then(console.log);
+
+// handle error with catch some
+const recoverBySome = program.pipe(
+  Effect.catchSome((error) => {
+    if (error._tag === "HttpError") {
+      return Option.some(
+        Effect.succeed("recover from http error wrapped with option")
+      );
+    } else {
+      return Option.none();
+    }
+  })
+);
+Effect.runPromiseExit(recoverBySome).then(console.log);
