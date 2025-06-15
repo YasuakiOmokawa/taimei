@@ -127,3 +127,12 @@ const recoverBySome = program.pipe(
   })
 );
 Effect.runPromiseExit(recoverBySome).then(console.log);
+
+// handle error with catch if
+const recoverByIf = program.pipe(
+  Effect.catchIf(
+    (error) => error._tag === "HttpError",
+    () => Effect.succeed("recover http error by catch if")
+  )
+);
+Effect.runPromiseExit(recoverByIf).then(console.log);
