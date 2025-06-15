@@ -82,3 +82,19 @@ const recoveredInCaseofCause = program.pipe(
   })
 );
 Effect.runPromise(recoveredInCaseofCause).then(console.log);
+
+// handle error with either
+const recoverWithEither = Effect.gen(function* () {
+  const failureOrSuccess = yield* Effect.either(program);
+  if (Either.isLeft(failureOrSuccess)) {
+    const error = failureOrSuccess.left;
+    if (error._tag === "HttpError") {
+      return "recover httperror with either";
+    } else {
+      return yield* Effect.fail(error);
+    }
+  } else {
+    return failureOrSuccess.right;
+  }
+});
+Effect.runPromiseExit(recoverWithEither).then(console.log);
