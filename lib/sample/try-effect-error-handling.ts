@@ -1,5 +1,4 @@
-import { Effect, Random, Data, Console, Either, Cause } from "effect";
-import { cause } from "effect/Effect";
+import { Effect, Random, Data, Console, Either, Cause, Option } from "effect";
 
 class HttpError extends Data.TaggedError("HttpError")<{}> {}
 class ValidationError extends Data.TaggedError("ValidationError")<{}> {}
@@ -82,3 +81,69 @@ const recoveredInCaseofCause = program.pipe(
   })
 );
 Effect.runPromise(recoveredInCaseofCause).then(console.log);
+
+// handle error with either
+const recoverWithEither = Effect.gen(function* () {
+  const failureOrSuccess = yield* Effect.either(program);
+  if (Either.isLeft(failureOrSuccess)) {
+    const error = failureOrSuccess.left;
+    if (error._tag === "HttpError") {
+      return "recover httperror with either";
+    } else {
+      return yield* Effect.fail(error);
+    }
+  } else {
+    return failureOrSuccess.right;
+  }
+});
+Effect.runPromiseExit(recoverWithEither).then(console.log);
+
+// handle all error with either
+const recoverAllWithEither = Effect.gen(function* () {
+  const failureOrSuccess = yield* Effect.either(program);
+  if (Either.isLeft(failureOrSuccess)) {
+    const error = failureOrSuccess.left;
+    if (error._tag === "HttpError") {
+      return "recover httperror with either ver.2";
+    } else {
+      return "recover validation error with either ver.2";
+    }
+  } else {
+    return `this is ${failureOrSuccess.right} ver.2`;
+  }
+});
+Effect.runPromise(recoverAllWithEither).then(console.log);
+
+// handle error with catch some
+const recoverBySome = program.pipe(
+  Effect.catchSome((error) => {
+    if (error._tag === "HttpError") {
+      return Option.some(
+        Effect.succeed("recover from http error wrapped with option")
+      );
+    } else {
+      return Option.none();
+    }
+  })
+);
+Effect.runPromiseExit(recoverBySome).then(console.log);
+
+// handle error with catch if
+const recoverByIf = program.pipe(
+  Effect.catchIf(
+    (error) => error._tag === "HttpError",
+    () => Effect.succeed("recover http error by catch if")
+  )
+);
+Effect.runPromiseExit(recoverByIf).then(console.log);
+
+// handle error with catch tag
+const recoverWithCatchTag = program.pipe(
+  Effect.catchTags({
+    HttpError: (_HttpError) =>
+      Effect.succeed("recover http error with catchtags"),
+    ValidationError: (_ValidationError) =>
+      Effect.succeed("catch validation error with catchtags"),
+  })
+);
+Effect.runPromise(recoverWithCatchTag).then(console.log);
