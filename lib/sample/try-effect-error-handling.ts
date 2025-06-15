@@ -98,3 +98,19 @@ const recoverWithEither = Effect.gen(function* () {
   }
 });
 Effect.runPromiseExit(recoverWithEither).then(console.log);
+
+// handle all error with either
+const recoverAllWithEither = Effect.gen(function* () {
+  const failureOrSuccess = yield* Effect.either(program);
+  if (Either.isLeft(failureOrSuccess)) {
+    const error = failureOrSuccess.left;
+    if (error._tag === "HttpError") {
+      return "recover httperror with either ver.2";
+    } else {
+      return "recover validation error with either ver.2";
+    }
+  } else {
+    return `this is ${failureOrSuccess.right} ver.2`;
+  }
+});
+Effect.runPromise(recoverAllWithEither).then(console.log);
