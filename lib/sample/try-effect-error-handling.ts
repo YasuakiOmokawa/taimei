@@ -1,4 +1,4 @@
-import { Effect, Random, Data, Console, Either } from "effect";
+import { Effect, Random, Data, Console, Either, Cause } from "effect";
 
 class HttpError extends Data.TaggedError("HttpError")<{}> {}
 class ValidationError extends Data.TaggedError("ValidationError")<{}> {}
@@ -52,3 +52,13 @@ const recovered = program.pipe(
   Effect.catchAll((error) => Effect.succeed(`catchall from ${error._tag}`))
 );
 Effect.runPromise(recovered).then(console.log);
+
+// use cause
+const recoveredByCause = program.pipe(
+  Effect.catchAllCause((cause) =>
+    Cause.isFailType(cause)
+      ? Effect.succeed("catchall cause by fail type")
+      : Effect.succeed("catch all cause by another fail")
+  )
+);
+Effect.runPromise(recoveredByCause).then(console.log);
