@@ -147,3 +147,12 @@ const recoverWithCatchTag = program.pipe(
   })
 );
 Effect.runPromise(recoverWithCatchTag).then(console.log);
+
+// use trace function
+const myFunc = Effect.fn("myspan")(function* <N extends number>(n: N) {
+  yield* Effect.annotateCurrentSpan("n", n);
+  console.log(`got: ${n}`);
+  return yield* Effect.fail(new Error("Boom!"));
+});
+
+Effect.runFork(myFunc(100).pipe(Effect.catchAllCause(Effect.logError)));
