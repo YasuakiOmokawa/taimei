@@ -27,3 +27,14 @@ const program = Effect.gen(function* () {
   }
 });
 Effect.runPromiseExit(program).then(console.log);
+
+// use catchall
+const catchAllDefectProgram = Effect.catchAllDefect(task, (defect) => {
+  if (Cause.isRuntimeException(defect)) {
+    return Console.log(
+      `catch all runtimeexception defect caught: ${defect.message}`
+    );
+  }
+  return Console.log(`catch all unknown defect caught`);
+});
+Effect.runPromiseExit(catchAllDefectProgram).then(console.log);
