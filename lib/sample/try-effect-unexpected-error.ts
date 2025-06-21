@@ -5,5 +5,8 @@ const divide = (a: number, b: number) =>
     ? Effect.fail(new Error("cannot divide by zero"))
     : Effect.succeed(a / b);
 
-const program = Effect.orDie(divide(1, 0));
+const program = Effect.orDieWith(
+  divide(1, 0),
+  (error) => new Error(`detect: ${error.message}`)
+);
 Effect.runPromise(program).catch(console.error);
