@@ -39,3 +39,6 @@ const matchEffectProgram2 = Effect.matchEffect(failure, {
 Effect.runPromise(Effect.all([matchEffectProgram1, matchEffectProgram2])).then(
   console.log
 );
+
+// conflict this
+const _hoge = "fuga";
