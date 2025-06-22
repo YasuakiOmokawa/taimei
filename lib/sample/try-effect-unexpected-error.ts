@@ -1,4 +1,4 @@
-import { Effect, Cause, Console, Exit } from "effect";
+import { Effect, Cause, Console, Option, Exit } from "effect";
 
 const divide = (a: number, b: number) =>
   b === 0
@@ -38,3 +38,16 @@ const catchAllDefectProgram = Effect.catchAllDefect(task, (defect) => {
   return Console.log(`catch all unknown defect caught`);
 });
 Effect.runPromiseExit(catchAllDefectProgram).then(console.log);
+
+// use catchsome
+const catchSomeProgram = Effect.catchSomeDefect(task, (defect) => {
+  if (Cause.isIllegalArgumentException(defect)) {
+    return Option.some(
+      Console.log(
+        `caught an IllegalArgumentException defect: ${defect.message}`
+      )
+    );
+  }
+  return Option.none();
+});
+Effect.runPromiseExit(catchSomeProgram).then(console.log);
