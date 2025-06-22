@@ -41,4 +41,4 @@ Effect.runPromise(Effect.all([matchEffectProgram1, matchEffectProgram2])).then(
 );
 
 // conflict this
-const _hoge = "fuga";
+const _hoge2 = "fuga2";
