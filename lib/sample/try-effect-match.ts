@@ -15,3 +15,8 @@ const program2 = Effect.match(failure, {
   onSuccess: (value) => `success: ${value}`,
 });
 Effect.runPromise(program2).then(console.log);
+
+// use ignore
+const task = Effect.fail("oh no").pipe(Effect.as(5));
+const voidProgram = Effect.ignore(task);
+Effect.runPromise(voidProgram).then(console.log);
