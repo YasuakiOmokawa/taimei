@@ -10,3 +10,16 @@ const fallbackProgram = Effect.orElse(failure, () => fallback);
 Effect.runPromise(Effect.all([successProgram, fallbackProgram])).then(
   console.log
 );
+
+// use or else fail
+const validate = (age: number): Effect.Effect<number, string> => {
+  if (age < 0) {
+    return Effect.fail("negative age error");
+  } else if (age < 18) {
+    return Effect.fail("illegal age error");
+  } else {
+    return Effect.succeed(age);
+  }
+};
+const orElseFailProgram = Effect.orElseFail(validate(-1), () => "invalid age");
+Effect.runPromiseExit(orElseFailProgram).then(console.log);
