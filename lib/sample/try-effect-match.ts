@@ -43,3 +43,4 @@ Effect.runPromise(Effect.all([matchEffectProgram1, matchEffectProgram2])).then(
 // conflict this
 const _hoge2 = "fuga2";
 const _A = "hoge";
+const _B = "fuga";
