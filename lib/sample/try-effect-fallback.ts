@@ -23,3 +23,7 @@ const validate = (age: number): Effect.Effect<number, string> => {
 };
 const orElseFailProgram = Effect.orElseFail(validate(-1), () => "invalid age");
 Effect.runPromiseExit(orElseFailProgram).then(console.log);
+
+// use or else succeed
+const orElseSuccessProgram = Effect.orElseSucceed(validate(-1), () => 18);
+Effect.runPromiseExit(orElseSuccessProgram).then(console.log);
