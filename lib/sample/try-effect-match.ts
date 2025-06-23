@@ -40,7 +40,21 @@ Effect.runPromise(Effect.all([matchEffectProgram1, matchEffectProgram2])).then(
   console.log
 );
 
-// conflict this
-const _hoge2 = "fuga2";
-const _A = "hoge";
-const _B = "fuga";
+// use match cause
+const die: Effect.Effect<number, Error> = Effect.die("un die!");
+
+const matchCauseProgram = Effect.matchCause(die, {
+  onFailure: (cause) => {
+    switch (cause._tag) {
+      case "Fail":
+        return `Fail: ${cause.error.message}`;
+      case "Die":
+        return `Die: ${cause.defect}`;
+      case "Interrupt":
+        return `${cause.fiberId} interrupted`;
+    }
+    return "failed due to other causes";
+  },
+  onSuccess: (value) => `succeeded with ${value} value`,
+});
+Effect.runPromise(matchCauseProgram).then(console.log);
