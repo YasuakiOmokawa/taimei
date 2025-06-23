@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Console, Effect } from "effect";
 
 const success: Effect.Effect<number, Error> = Effect.succeed(42);
 
@@ -58,3 +58,20 @@ const matchCauseProgram = Effect.matchCause(die, {
   onSuccess: (value) => `succeeded with ${value} value`,
 });
 Effect.runPromise(matchCauseProgram).then(console.log);
+
+// use match cause effect
+const matchCauseEffectProgram = Effect.matchCauseEffect(die, {
+  onFailure: (cause) => {
+    switch (cause._tag) {
+      case "Fail":
+        return Console.log(`Effect Fail: ${cause.error.message}`);
+      case "Die":
+        return Console.log(`Effect Die: ${cause.defect}`);
+      case "Interrupt":
+        return Console.log(`Effect ${cause.fiberId} interrupted!`);
+    }
+    return Console.log("Effect failed due to other causes");
+  },
+  onSuccess: (value) => Console.log(`Effect succeeded with ${value} value`),
+});
+Effect.runPromise(matchCauseEffectProgram);
