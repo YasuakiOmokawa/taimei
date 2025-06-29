@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { TimeoutException } from "effect/Cause";
+import { Option } from "effect/Option";
 
 const task = Effect.gen(function* () {
   console.log("start processing...");
@@ -16,3 +17,10 @@ const allEffects = Effect.all(iterableEffects, {
   mode: "validate",
 });
 Effect.runPromiseExit(allEffects).then((result) => console.log("%o", result));
+
+// use timeout option
+const iterableEffects2: Iterable<Effect.Effect<Option<string>>> = [
+  1, 0.5, 2,
+].map((n) => task.pipe(Effect.timeoutOption(`${n} seconds`)));
+const allEffects2 = Effect.all(iterableEffects2);
+Effect.runPromise(allEffects2).then(console.log);
