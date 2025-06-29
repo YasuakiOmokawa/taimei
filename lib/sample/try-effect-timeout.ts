@@ -1,4 +1,4 @@
-import { Effect, Data } from "effect";
+import { Effect, Data, Cause } from "effect";
 import { TimeoutException } from "effect/Cause";
 import { Option } from "effect/Option";
 
@@ -50,3 +50,12 @@ const timeoutFailProgram = task.pipe(
   })
 );
 Effect.runPromiseExit(timeoutFailProgram).then(console.log);
+
+// use timeout cause
+const timeoutCauseProgram = task.pipe(
+  Effect.timeoutFailCause({
+    duration: "0.5 seconds",
+    onTimeout: () => Cause.die("caused by timed out"),
+  })
+);
+Effect.runPromiseExit(timeoutCauseProgram).then(console.log);
