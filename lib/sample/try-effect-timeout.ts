@@ -1,6 +1,8 @@
-import { Effect } from "effect";
+import { Effect, Data, Cause, Either } from "effect";
 import { TimeoutException } from "effect/Cause";
 import { Option } from "effect/Option";
+import { either } from "effect/RuntimeFlagsPatch";
+import { string } from "zod/v4";
 
 const task = Effect.gen(function* () {
   console.log("start processing...");
@@ -39,3 +41,34 @@ const uninterruptTask = longRunningTask.pipe(
   Effect.timeout("1 seconds")
 );
 Effect.runPromiseExit(uninterruptTask).then(console.log);
+
+// use custom timeout fail
+class MyTimeoutError extends Data.TaggedError("MyTimeoutError")<{}> {}
+
+const timeoutFailProgram = task.pipe(
+  Effect.timeoutFail({
+    duration: "0.5 seconds",
+    onTimeout: () => new MyTimeoutError(),
+  })
+);
+Effect.runPromiseExit(timeoutFailProgram).then(console.log);
+
+// use timeout cause
+const timeoutCauseProgram = task.pipe(
+  Effect.timeoutFailCause({
+    duration: "0.5 seconds",
+    onTimeout: () => Cause.die("caused by timed out"),
+  })
+);
+Effect.runPromiseExit(timeoutCauseProgram).then(console.log);
+
+// use timeout to
+const timeoutToProgram = task.pipe(
+  Effect.timeoutTo({
+    duration: "0.5 seconds",
+    onSuccess: (result): Either.Either<string, string> =>
+      Either.right(`this is either result of ${result}`),
+    onTimeout: (): Either.Either<string, string> => Either.left("to timed out"),
+  })
+);
+Effect.runPromise(timeoutToProgram).then(console.log);
