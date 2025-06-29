@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Data } from "effect";
 import { TimeoutException } from "effect/Cause";
 import { Option } from "effect/Option";
 
@@ -39,3 +39,14 @@ const uninterruptTask = longRunningTask.pipe(
   Effect.timeout("1 seconds")
 );
 Effect.runPromiseExit(uninterruptTask).then(console.log);
+
+// use custom timeout fail
+class MyTimeoutError extends Data.TaggedError("MyTimeoutError")<{}> {}
+
+const timeoutFailProgram = task.pipe(
+  Effect.timeoutFail({
+    duration: "0.5 seconds",
+    onTimeout: () => new MyTimeoutError(),
+  })
+);
+Effect.runPromiseExit(timeoutFailProgram).then(console.log);
