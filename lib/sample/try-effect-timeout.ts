@@ -24,3 +24,18 @@ const iterableEffects2: Iterable<Effect.Effect<Option<string>>> = [
 ].map((n) => task.pipe(Effect.timeoutOption(`${n} seconds`)));
 const allEffects2 = Effect.all(iterableEffects2);
 Effect.runPromise(allEffects2).then(console.log);
+
+// use disconnect
+const longRunningTask = Effect.gen(function* () {
+  console.log("start heavy processing...");
+  yield* Effect.sleep("5 seconds");
+  console.log("heavy processing done");
+  return "Data processed";
+});
+//// non blocking, run at background
+const uninterruptTask = longRunningTask.pipe(
+  Effect.uninterruptible,
+  Effect.disconnect,
+  Effect.timeout("1 seconds")
+);
+Effect.runPromiseExit(uninterruptTask).then(console.log);
