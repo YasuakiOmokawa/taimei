@@ -1,8 +1,6 @@
 import { Effect, Data, Cause, Either } from "effect";
 import { TimeoutException } from "effect/Cause";
 import { Option } from "effect/Option";
-import { either } from "effect/RuntimeFlagsPatch";
-import { string } from "zod/v4";
 
 const task = Effect.gen(function* () {
   console.log("start processing...");
