@@ -50,3 +50,13 @@ const validateFirstProgram = Effect.validateFirst([1, 2, 3, 4, 5], (n) => {
   }
 });
 Effect.runPromise(validateFirstProgram).then(console.log, console.error);
+
+// use partition
+const partitionProgram = Effect.partition([0, 1, 2, 3, 4], (n) => {
+  if (n % 2 === 0) {
+    return Effect.succeed(`partiton success: ${n}`);
+  } else {
+    return Effect.fail(`${n} is not even`);
+  }
+});
+Effect.runPromise(partitionProgram).then(console.log, console.error);
