@@ -40,3 +40,13 @@ const validateAllProgram = Effect.validateAll([1, 2, 3, 4, 5], (n) => {
   }
 });
 Effect.runPromiseExit(validateAllProgram).then(console.log);
+
+// use validateFirst
+const validateFirstProgram = Effect.validateFirst([1, 2, 3, 4, 5], (n) => {
+  if (n < 4) {
+    return Console.log(`first validate item: ${n}`).pipe(Effect.as(n));
+  } else {
+    return Effect.fail(`first validate ${n} is not less than 4`);
+  }
+});
+Effect.runPromise(validateFirstProgram).then(console.log, console.error);
