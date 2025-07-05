@@ -11,3 +11,12 @@ const program = task1.pipe(
   Effect.zip(task4)
 );
 Effect.runPromise(program).then(console.log, console.error);
+
+const forEachProgram = Effect.forEach([1, 2, 3, 4, 5], (n) => {
+  if (n < 4) {
+    return Console.log(`item: ${n}`).pipe(Effect.as(n));
+  } else {
+    return Effect.fail(`${n} is not less than 4`);
+  }
+});
+Effect.runPromise(forEachProgram).then(console.log, console.error);
