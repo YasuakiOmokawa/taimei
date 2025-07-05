@@ -8,3 +8,10 @@ const mapped = Effect.mapError(
   (message) => new Error(`this is mapped: ${message}`)
 );
 Effect.runPromise(mapped).catch(console.error);
+
+// use mapBoth
+const mapBoth = Effect.mapBoth(simulateTask, {
+  onSuccess: (value) => value > 0,
+  onFailure: (message) => new Error(`this is both mapped: ${message}`),
+});
+Effect.runPromise(mapBoth).catch(console.error);
