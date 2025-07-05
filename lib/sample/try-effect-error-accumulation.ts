@@ -30,3 +30,13 @@ const validateProgram = task1.pipe(
   Effect.validate(task5)
 );
 Effect.runPromiseExit(validateProgram).then(console.log);
+
+// use validateAll
+const validateAllProgram = Effect.validateAll([1, 2, 3, 4, 5], (n) => {
+  if (n < 4) {
+    return Console.log(`validate item: ${n}`).pipe(Effect.as(n));
+  } else {
+    return Effect.fail(`validate ${n} is not less than 4`);
+  }
+});
+Effect.runPromiseExit(validateAllProgram).then(console.log);
