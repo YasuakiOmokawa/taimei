@@ -134,3 +134,9 @@ const recoverByMerge = Effect.merge(failTask).pipe(
   Effect.map((result) => `this is merged error message: ${result}`)
 );
 Effect.runPromise(recoverByMerge).then(console.log);
+
+// use flip
+const flipped = Effect.flip(failTask).pipe(
+  Effect.map((result) => `this is flipped error as success: ${result}`)
+);
+Effect.runPromise(flipped).then(console.log);
