@@ -21,7 +21,8 @@ interface User {
   readonly name: string;
 }
 
-type AuthFunc = () => Promise<User | null>;
+type NullableUser = Promise<User | null>;
+type AuthFunc = () => NullableUser;
 const auth1: AuthFunc = () => Promise.resolve({ name: "taro1" });
 const auth2: AuthFunc = () => Promise.resolve({ name: "taro2" });
 const notAuth: AuthFunc = () => Promise.resolve(null);
@@ -34,14 +35,25 @@ const fetchAuthUserName = (authFunc: AuthFunc) =>
     ),
     Effect.andThen((user) => user.name)
   );
-const partitionAuth = Effect.partition([auth1, auth2, notAuth], (n) =>
-  fetchAuthUserName(n)
+const partitionAuth = Effect.partition([auth1, auth2, notAuth], (auth) =>
+  fetchAuthUserName(auth)
 );
 Effect.runPromise(partitionAuth).then((res) =>
   console.log(`
     exclude    : ${res[0]}
     satisfying : ${res[1]}`)
 );
+
+// iife
+await (async () => {
+  const results = await Effect.runPromise(partitionAuth);
+  console.log(`
+    ############################################
+    error results from effect  : ${results[0]}
+    success result from effect : ${results[1]}
+    ############################################
+    `);
+})();
 
 // use tapError
 const task: Effect.Effect<number, string> = Effect.fail("network error");
