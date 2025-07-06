@@ -1,4 +1,4 @@
-import { Effect, pipe } from "effect";
+import { Effect, pipe, Console } from "effect";
 
 const simulateTask = Effect.fail("omg").pipe(Effect.as(1));
 
@@ -42,3 +42,10 @@ Effect.runPromise(partitionAuth).then((res) =>
     exclude    : ${res[0]}
     satisfying : ${res[1]}`)
 );
+
+// use tapError
+const task: Effect.Effect<number, string> = Effect.fail("network error");
+const tapping = Effect.tapError(task, (error) =>
+  Console.log(`tapped error: ${error}`)
+);
+Effect.runFork(tapping);
