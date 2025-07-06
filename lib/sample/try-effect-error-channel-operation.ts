@@ -30,7 +30,7 @@ const fetchAuthUserName = (authFunc: AuthFunc) =>
     Effect.promise(() => authFunc()),
     Effect.filterOrFail(
       (user): user is User => user != null,
-      () => "unauthorized"
+      () => new Error("unauthorized")
     ),
     Effect.andThen((user) => user.name)
   );
