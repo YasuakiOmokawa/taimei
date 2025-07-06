@@ -50,7 +50,7 @@ const tapping = Effect.tapError(task, (error) =>
 );
 Effect.runFork(tapping);
 
-// use mapped error tag
+// use tap by error tag
 class NetworkError extends Data.TaggedError("NetworkError")<{
   readonly statusCode: number;
 }> {}
@@ -67,3 +67,10 @@ const taggedTapping = Effect.tapErrorTag(
   (error) => Console.log(`tapped tagged error code: ${error.statusCode}`)
 );
 Effect.runFork(taggedTapping);
+
+// use tap error by cause
+const task1: Effect.Effect<number, string> = Effect.fail("network error");
+const tappingByCause = Effect.tapErrorCause(task1, (cause) =>
+  Console.log(`tapped by cause: ${cause}, tag: ${cause._tag}`)
+);
+Effect.runFork(tappingByCause);
