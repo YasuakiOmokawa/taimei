@@ -1,4 +1,4 @@
-import { Effect, pipe, Console, Data, Random } from "effect";
+import { Effect, pipe, Console, Data, Random, Either } from "effect";
 
 const simulateTask = Effect.fail("omg").pipe(Effect.as(1));
 
@@ -104,3 +104,20 @@ const tappingBoth = Effect.tapBoth(mightBeFailTask, {
   onSuccess: (randomNumber) => Console.log(`success of both: ${randomNumber}`),
 });
 Effect.runFork(tappingBoth);
+
+// use either
+const failTask = Effect.fail("omg").pipe(Effect.as(2));
+const recovered = Effect.gen(function* () {
+  const failureOrSuccess = yield* Effect.either(failTask);
+
+  if (Either.isLeft(failureOrSuccess)) {
+    const error = failureOrSuccess.left;
+    yield* Console.log(`left faulure: ${error}`);
+    return 0;
+  } else {
+    const value = failureOrSuccess.right;
+    yield* Console.log(`right success: ${value}`);
+    return value;
+  }
+});
+Effect.runPromise(recovered).then(console.log);
