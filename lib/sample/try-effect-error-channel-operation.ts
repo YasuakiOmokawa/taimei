@@ -1,4 +1,4 @@
-import { Effect, pipe, Console, Data } from "effect";
+import { Effect, pipe, Console, Data, Random } from "effect";
 
 const simulateTask = Effect.fail("omg").pipe(Effect.as(1));
 
@@ -91,3 +91,16 @@ const tappingDefect2 = Effect.tapDefect(task2, (cause) =>
   Console.log(`tapped defect2: ${cause}`)
 );
 Effect.runFork(tappingDefect2);
+
+// use tap both
+const mightBeFailTask = Effect.filterOrFail(
+  Random.nextRange(-1, 1),
+  (n) => n >= 0,
+  () => "random number is negative"
+);
+
+const tappingBoth = Effect.tapBoth(mightBeFailTask, {
+  onFailure: (error) => Console.log(`error of both: ${error}`),
+  onSuccess: (randomNumber) => Console.log(`success of both: ${randomNumber}`),
+});
+Effect.runFork(tappingBoth);
