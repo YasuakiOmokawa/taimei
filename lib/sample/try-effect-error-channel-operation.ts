@@ -80,3 +80,14 @@ const tappingByCause2 = Effect.tapErrorCause(task2, (cause) =>
   Console.log(`tapped by cause: ${cause}, tag: ${cause._tag}`)
 );
 Effect.runFork(tappingByCause2);
+
+// use tap defect error
+const tappingDefect1 = Effect.tapDefect(task1, (cause) =>
+  Console.log(`tapped defect1: ${cause}`)
+);
+Effect.runFork(tappingDefect1);
+
+const tappingDefect2 = Effect.tapDefect(task2, (cause) =>
+  Console.log(`tapped defect2: ${cause}`)
+);
+Effect.runFork(tappingDefect2);
