@@ -1,4 +1,4 @@
-import { Effect, pipe } from "effect";
+import { Effect, pipe, Console, Data } from "effect";
 
 const simulateTask = Effect.fail("omg").pipe(Effect.as(1));
 
@@ -30,7 +30,7 @@ const fetchAuthUserName = (authFunc: AuthFunc) =>
     Effect.promise(() => authFunc()),
     Effect.filterOrFail(
       (user): user is User => user != null,
-      () => "unauthorized"
+      () => new Error("unauthorized")
     ),
     Effect.andThen((user) => user.name)
   );
@@ -42,3 +42,52 @@ Effect.runPromise(partitionAuth).then((res) =>
     exclude    : ${res[0]}
     satisfying : ${res[1]}`)
 );
+
+// use tapError
+const task: Effect.Effect<number, string> = Effect.fail("network error");
+const tapping = Effect.tapError(task, (error) =>
+  Console.log(`tapped error: ${error}`)
+);
+Effect.runFork(tapping);
+
+// use tap by error tag
+class NetworkError extends Data.TaggedError("NetworkError")<{
+  readonly statusCode: number;
+}> {}
+class ValidationError extends Data.TaggedError("ValidationError")<{
+  readonly field: string;
+}> {}
+
+const networkErrorTask: Effect.Effect<number, NetworkError | ValidationError> =
+  Effect.fail(new NetworkError({ statusCode: 504 }));
+
+const taggedTapping = Effect.tapErrorTag(
+  networkErrorTask,
+  "NetworkError",
+  (error) => Console.log(`tapped tagged error code: ${error.statusCode}`)
+);
+Effect.runFork(taggedTapping);
+
+// use tap error by cause
+const task1: Effect.Effect<number, string> = Effect.fail("network error");
+const tappingByCause = Effect.tapErrorCause(task1, (cause) =>
+  Console.log(`tapped by cause: ${cause}, tag: ${cause._tag}`)
+);
+Effect.runFork(tappingByCause);
+
+const task2: Effect.Effect<number, string> = Effect.dieMessage("system error");
+const tappingByCause2 = Effect.tapErrorCause(task2, (cause) =>
+  Console.log(`tapped by cause: ${cause}, tag: ${cause._tag}`)
+);
+Effect.runFork(tappingByCause2);
+
+// use tap defect error
+const tappingDefect1 = Effect.tapDefect(task1, (cause) =>
+  Console.log(`tapped defect1: ${cause}`)
+);
+Effect.runFork(tappingDefect1);
+
+const tappingDefect2 = Effect.tapDefect(task2, (cause) =>
+  Console.log(`tapped defect2: ${cause}`)
+);
+Effect.runFork(tappingDefect2);
