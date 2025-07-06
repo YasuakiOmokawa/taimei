@@ -74,3 +74,9 @@ const tappingByCause = Effect.tapErrorCause(task1, (cause) =>
   Console.log(`tapped by cause: ${cause}, tag: ${cause._tag}`)
 );
 Effect.runFork(tappingByCause);
+
+const task2: Effect.Effect<number, string> = Effect.dieMessage("system error");
+const tappingByCause2 = Effect.tapErrorCause(task2, (cause) =>
+  Console.log(`tapped by cause: ${cause}, tag: ${cause._tag}`)
+);
+Effect.runFork(tappingByCause2);
