@@ -1,4 +1,4 @@
-import { Effect, pipe, Console } from "effect";
+import { Effect, pipe, Console, Data } from "effect";
 
 const simulateTask = Effect.fail("omg").pipe(Effect.as(1));
 
@@ -49,3 +49,21 @@ const tapping = Effect.tapError(task, (error) =>
   Console.log(`tapped error: ${error}`)
 );
 Effect.runFork(tapping);
+
+// use mapped error tag
+class NetworkError extends Data.TaggedError("NetworkError")<{
+  readonly statusCode: number;
+}> {}
+class ValidationError extends Data.TaggedError("ValidationError")<{
+  readonly field: string;
+}> {}
+
+const networkErrorTask: Effect.Effect<number, NetworkError | ValidationError> =
+  Effect.fail(new NetworkError({ statusCode: 504 }));
+
+const taggedTapping = Effect.tapErrorTag(
+  networkErrorTask,
+  "NetworkError",
+  (error) => Console.log(`tapped tagged error code: ${error.statusCode}`)
+);
+Effect.runFork(taggedTapping);
