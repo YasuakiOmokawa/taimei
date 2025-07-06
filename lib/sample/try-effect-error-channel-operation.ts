@@ -121,3 +121,10 @@ const recovered = Effect.gen(function* () {
   }
 });
 Effect.runPromise(recovered).then(console.log);
+
+// use cause
+const recoverByCause = Effect.gen(function* () {
+  const cause = yield* Effect.cause(failTask);
+  yield* Console.log(`recovered by cause: ${cause}, tag: ${cause._tag}`);
+});
+Effect.runPromise(recoverByCause).then(console.log);
