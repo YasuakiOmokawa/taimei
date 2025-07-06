@@ -128,3 +128,9 @@ const recoverByCause = Effect.gen(function* () {
   yield* Console.log(`recovered by cause: ${cause}, tag: ${cause._tag}`);
 });
 Effect.runPromise(recoverByCause).then(console.log);
+
+// merge error into success
+const recoverByMerge = Effect.merge(failTask).pipe(
+  Effect.map((result) => `this is merged error message: ${result}`)
+);
+Effect.runPromise(recoverByMerge).then(console.log);
