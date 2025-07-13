@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Context, Effect } from "effect";
 import { MyRandomService } from "@/app/services/my_random_service";
 
 const program = Effect.gen(function* () {
@@ -12,3 +12,6 @@ const runnable = Effect.provideService(program, MyRandomService, {
 });
 
 Effect.runPromise(runnable);
+
+// use tag service
+type _MyRandomType = Context.Tag.Service<MyRandomService>;
