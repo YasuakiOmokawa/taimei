@@ -3,7 +3,12 @@ import { MyRandomService } from "@/app/services/my_random_service";
 
 const program = Effect.gen(function* () {
   const random = yield* MyRandomService;
-  const randomNumber = random.next;
+  const randomNumber = yield* random.next;
   console.log(`random number: ${randomNumber}`);
 });
-Effect.runPromise(program).then(console.log);
+
+const runnable = Effect.provideService(program, MyRandomService, {
+  next: Effect.sync(() => Math.random()),
+});
+
+Effect.runPromise(runnable);
