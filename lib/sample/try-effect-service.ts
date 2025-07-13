@@ -23,3 +23,13 @@ Effect.runPromise(runnable);
 
 // use tag service
 type _MyRandomType = Context.Tag.Service<MyRandomService>;
+
+// use context
+const context = Context.empty().pipe(
+  Context.add(MyRandomService, { next: Effect.sync(() => Math.random()) }),
+  Context.add(MyLoggerService, {
+    log: (message) => Effect.sync(() => console.log(message)),
+  })
+);
+const runnableWithContext = Effect.provide(program, context);
+Effect.runPromise(runnableWithContext);
