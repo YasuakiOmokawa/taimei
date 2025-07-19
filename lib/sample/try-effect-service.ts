@@ -1,6 +1,7 @@
-import { Context, Effect } from "effect";
+import { Context, Effect, Option } from "effect";
 import { MyRandomService } from "@/app/services/my_random_service";
 import { MyLoggerService } from "@/app/services/my_logger_service";
+import { random } from "effect/Hash";
 
 const program = Effect.gen(function* () {
   const random = yield* MyRandomService;
@@ -33,3 +34,21 @@ const context = Context.empty().pipe(
 );
 const runnableWithContext = Effect.provide(program, context);
 Effect.runPromise(runnableWithContext);
+
+// optional service
+const optionalProgram = Effect.gen(function* () {
+  const maybeRandom = yield* Effect.serviceOption(MyRandomService);
+  const randomNumber = Option.isNone(maybeRandom)
+    ? -1
+    : yield* maybeRandom.value.next;
+  const valueDescriptionMessage = Option.isNone(maybeRandom)
+    ? `this is not provided version: ${randomNumber}`
+    : `this is provided version: ${randomNumber}`;
+  console.log(valueDescriptionMessage);
+});
+Effect.runPromise(optionalProgram);
+Effect.runPromise(
+  Effect.provideService(optionalProgram, MyRandomService, {
+    next: Effect.sync(() => Math.random()),
+  })
+);
