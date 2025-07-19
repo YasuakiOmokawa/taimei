@@ -1,6 +1,7 @@
 import { Context, Effect, Option, Clock, Console } from "effect";
 import { MyRandomService } from "@/app/services/my_random_service";
 import { MyLoggerService } from "@/app/services/my_logger_service";
+import { MyDatabaseService } from "@/app/services/my_database_service";
 
 const program = Effect.gen(function* () {
   const random = yield* MyRandomService;
@@ -58,3 +59,17 @@ const programWithDefaultService = Effect.gen(function* () {
   yield* Console.log(`application started at ${new Date(now)}}`);
 });
 Effect.runFork(programWithDefaultService);
+
+// use test instance
+const DatabaseTest = MyDatabaseService.of({
+  query: (_sql: string) => Effect.succeed([]),
+});
+import * as assert from "node:assert";
+const test = Effect.gen(function* () {
+  const database = yield* MyDatabaseService;
+  const result = yield* database.query("select * from users");
+  assert.deepStrictEqual(result, []);
+});
+const _incompleteTestSetup = test.pipe(
+  Effect.provideService(MyDatabaseService, DatabaseTest)
+);
