@@ -1,4 +1,4 @@
-import { Context, Effect, Option } from "effect";
+import { Context, Effect, Option, Clock, Console } from "effect";
 import { MyRandomService } from "@/app/services/my_random_service";
 import { MyLoggerService } from "@/app/services/my_logger_service";
 
@@ -52,4 +52,9 @@ Effect.runPromise(
   })
 );
 
-// dependency
+// use default service
+const programWithDefaultService = Effect.gen(function* () {
+  const now = yield* Clock.currentTimeMillis;
+  yield* Console.log(`application started at ${new Date(now)}}`);
+});
+Effect.runFork(programWithDefaultService);
