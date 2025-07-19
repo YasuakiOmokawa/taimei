@@ -1,7 +1,6 @@
 import { Context, Effect, Option } from "effect";
 import { MyRandomService } from "@/app/services/my_random_service";
 import { MyLoggerService } from "@/app/services/my_logger_service";
-import { random } from "effect/Hash";
 
 const program = Effect.gen(function* () {
   const random = yield* MyRandomService;
@@ -52,3 +51,5 @@ Effect.runPromise(
     next: Effect.sync(() => Math.random()),
   })
 );
+
+// dependency
