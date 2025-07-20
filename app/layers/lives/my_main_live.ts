@@ -7,3 +7,8 @@ export const MyMainLive = MyDatabaseLive.pipe(
   Layer.provide(AppConfigLive),
   Layer.provide(ConfigLive)
 );
+
+export const MyMainLiveDebuggable = MyDatabaseLive.pipe(
+  Layer.provide(AppConfigLive),
+  Layer.provideMerge(ConfigLive)
+);
