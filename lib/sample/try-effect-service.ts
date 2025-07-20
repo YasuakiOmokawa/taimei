@@ -1,4 +1,4 @@
-import { Context, Effect, Option, Clock, Console } from "effect";
+import { Context, Effect, Option, Clock, Console, Layer } from "effect";
 import { MyRandomService } from "@/app/services/my_random_service";
 import { MyLoggerService } from "@/app/services/my_logger_service";
 import { MyDatabaseService } from "@/app/services/my_database_service";
@@ -73,3 +73,9 @@ const test = Effect.gen(function* () {
 const _incompleteTestSetup = test.pipe(
   Effect.provideService(MyDatabaseService, DatabaseTest)
 );
+
+// merge layer
+declare const layer1: Layer.Layer<"out1", never, "in1">;
+declare const layer2: Layer.Layer<"out2", never, "in2">;
+
+const _merging = Layer.merge(layer1, layer2);
