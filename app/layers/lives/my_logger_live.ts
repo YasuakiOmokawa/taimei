@@ -5,7 +5,9 @@ import { Effect, Layer } from "effect";
 export const MyLoggerLive = Layer.effect(
   MyLoggerService,
   Effect.gen(function* () {
+    // 依存サービス。構築対象エフェクトの外側に定義することで依存関係を表す。
     const config = yield* ConfigService;
+
     return {
       log: (message) =>
         Effect.gen(function* () {
