@@ -2,6 +2,7 @@ import { Context, Effect, Option, Clock, Console, Layer } from "effect";
 import { MyRandomService } from "@/app/services/my_random_service";
 import { MyLoggerService } from "@/app/services/my_logger_service";
 import { MyDatabaseService } from "@/app/services/my_database_service";
+import { MyMainLive } from "@/app/layers/lives/my_main_live";
 
 const program = Effect.gen(function* () {
   const random = yield* MyRandomService;
@@ -75,7 +76,17 @@ const _incompleteTestSetup = test.pipe(
 );
 
 // merge layer
-declare const layer1: Layer.Layer<"out1", never, "in1">;
-declare const layer2: Layer.Layer<"out2", never, "in2">;
+// declare const layer1: Layer.Layer<"out1", never, "in1">;
+// declare const layer2: Layer.Layer<"out2", never, "in2">;
 
-const _merging = Layer.merge(layer1, layer2);
+// const _merging = Layer.merge(layer1, layer2);
+
+// use layer
+const databaseProgram = Effect.gen(function* () {
+  const database = yield* MyDatabaseService;
+  const result = yield* database.query("select * from users");
+  return result;
+});
+
+const runnableDatabaseProgram = Effect.provide(databaseProgram, MyMainLive);
+Effect.runPromise(runnableDatabaseProgram).then(console.log);
