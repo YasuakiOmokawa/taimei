@@ -1,4 +1,4 @@
-import { Context, Effect, Option, Clock, Console } from "effect";
+import { Context, Effect, Option, Clock, Console, Layer, Config } from "effect";
 import { MyRandomService } from "@/app/services/my_random_service";
 import { MyLoggerService } from "@/app/services/my_logger_service";
 import { MyDatabaseService } from "@/app/services/my_database_service";
@@ -66,6 +66,7 @@ const DatabaseTest = MyDatabaseService.of({
   query: (_sql: string) => Effect.succeed([]),
 });
 import * as assert from "node:assert";
+import { HttpServerService } from "@/app/services/http_server_service";
 const test = Effect.gen(function* () {
   const database = yield* MyDatabaseService;
   const result = yield* database.query("select * from users");
@@ -84,3 +85,16 @@ const databaseProgram = Effect.gen(function* () {
 
 const runnableDatabaseProgram = Effect.provide(databaseProgram, MyMainLive);
 Effect.runPromise(runnableDatabaseProgram).then(console.log);
+
+// convert to effect from layer
+const server = Layer.effect(
+  HttpServerService,
+  Effect.gen(function* () {
+    const host = yield* Config.string("HOST");
+    console.log(`host is : ${host}`);
+  })
+).pipe(
+  Layer.tap((ctx) => Console.log(`layer succeed with ctx:\n${ctx}`)),
+  Layer.tapError((err) => Console.log(`layer failed with err:\n${err}`))
+);
+Effect.runFork(Layer.launch(server));
