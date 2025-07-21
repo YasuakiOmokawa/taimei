@@ -12,9 +12,9 @@ export const MyDatabaseLive = Layer.effect(
     return {
       query: (sql: string) =>
         Effect.gen(function* () {
-          yield* logger.log(`query is: ${sql}`);
+          yield* logger.log(`db query: ${sql}`);
           const { connection } = yield* config.getConfig;
-          return { result: `results from ${connection}` };
+          return { useConnection: `${connection}` };
         }),
     };
   })
