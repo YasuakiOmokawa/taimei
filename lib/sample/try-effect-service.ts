@@ -75,12 +75,6 @@ const _incompleteTestSetup = test.pipe(
   Effect.provideService(MyDatabaseService, DatabaseTest)
 );
 
-// merge layer
-// declare const layer1: Layer.Layer<"out1", never, "in1">;
-// declare const layer2: Layer.Layer<"out2", never, "in2">;
-
-// const _merging = Layer.merge(layer1, layer2);
-
 // use layer
 const databaseProgram = Effect.gen(function* () {
   const database = yield* MyDatabaseService;
