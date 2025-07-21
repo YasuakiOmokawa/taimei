@@ -3,6 +3,8 @@ import { MyRandomService } from "@/app/services/my_random_service";
 import { MyLoggerService } from "@/app/services/my_logger_service";
 import { MyDatabaseService } from "@/app/services/my_database_service";
 import { MyMainLive } from "@/app/layers/lives/my_main_live";
+import * as assert from "node:assert";
+import { HttpServerService } from "@/app/services/http_server_service";
 
 const program = Effect.gen(function* () {
   const random = yield* MyRandomService;
@@ -65,9 +67,6 @@ Effect.runFork(programWithDefaultService);
 const DatabaseTest = MyDatabaseService.of({
   query: (_sql: string) => Effect.succeed([]),
 });
-import * as assert from "node:assert";
-import { HttpServerService } from "@/app/services/http_server_service";
-import { exitIsDie } from "effect/Micro";
 const test = Effect.gen(function* () {
   const database = yield* MyDatabaseService;
   const result = yield* database.query("select * from users");
