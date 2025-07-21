@@ -1,4 +1,4 @@
-import { Context, Effect, Option, Clock, Console, Layer } from "effect";
+import { Context, Effect, Option, Clock, Console, Layer, Config } from "effect";
 import { MyRandomService } from "@/app/services/my_random_service";
 import { MyLoggerService } from "@/app/services/my_logger_service";
 import { MyDatabaseService } from "@/app/services/my_database_service";
@@ -89,7 +89,12 @@ Effect.runPromise(runnableDatabaseProgram).then(console.log);
 // convert to effect from layer
 const server = Layer.effect(
   HttpServerService,
-  Console.log("this is http server simulate")
+  Effect.gen(function* () {
+    const host = yield* Config.string("HOST");
+    console.log(`host is : ${host}`);
+  })
+).pipe(
+  Layer.tap((ctx) => Console.log(`layer succeed with ctx:\n${ctx}`)),
+  Layer.tapError((err) => Console.log(`layer failed with err:\n${err}`))
 );
 Effect.runFork(Layer.launch(server));
-// sigkill
