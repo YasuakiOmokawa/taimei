@@ -67,6 +67,7 @@ const DatabaseTest = MyDatabaseService.of({
 });
 import * as assert from "node:assert";
 import { HttpServerService } from "@/app/services/http_server_service";
+import { exitIsDie } from "effect/Micro";
 const test = Effect.gen(function* () {
   const database = yield* MyDatabaseService;
   const result = yield* database.query("select * from users");
@@ -94,7 +95,15 @@ const server = Layer.effect(
     console.log(`host is : ${host}`);
   })
 ).pipe(
-  Layer.tap((ctx) => Console.log(`layer succeed with ctx:\n${ctx}`)),
-  Layer.tapError((err) => Console.log(`layer failed with err:\n${err}`))
+  Layer.catchAll((configError) =>
+    Layer.effect(
+      HttpServerService,
+      Effect.gen(function* () {
+        console.log(`recover from ${configError}`);
+        console.log(`listen localhost:3000`);
+        return yield* Effect.dieMessage("bye");
+      })
+    )
+  )
 );
 Effect.runFork(Layer.launch(server));
