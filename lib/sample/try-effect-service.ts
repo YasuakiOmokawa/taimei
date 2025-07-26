@@ -100,9 +100,34 @@ const server = Layer.effect(
       Effect.gen(function* () {
         console.log(`recover from ${configError}`);
         console.log(`listen localhost:3000`);
+
+        // do not use in production
         return yield* Effect.dieMessage("bye");
       })
     )
   )
 );
 Effect.runFork(Layer.launch(server));
+
+// use orelse
+class Database extends Context.Tag("Database")<Database, void>() {}
+const postgresDatabaseLayer = Layer.effect(
+  Database,
+  Effect.gen(function* () {
+    const dbConnectString = yield* Config.string("CONNECTION_STRING");
+    console.log(`connect to db with: ${dbConnectString}`);
+  })
+);
+const inMemoryDatabaseLayer = Layer.effect(
+  Database,
+  Effect.gen(function* () {
+    console.log(`connect to in-memory db`);
+
+    // do not use in production
+    return yield* Effect.dieMessage("bye");
+  })
+);
+const database = postgresDatabaseLayer.pipe(
+  Layer.orElse(() => inMemoryDatabaseLayer)
+);
+Effect.runFork(Layer.launch(database));
