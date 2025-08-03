@@ -1,6 +1,7 @@
 import { CacheService } from "@/app/services/cache_service";
 import { Effect, Console } from "effect";
 import { FileSystem } from "@effect/platform";
+import { SyncService } from "@/app/services/sync_service";
 
 const _layer = CacheService.Default;
 const _layerNoDeps = CacheService.DefaultWithoutDependencies;
@@ -31,3 +32,10 @@ const runnableByMock = program.pipe(
   Effect.provideService(CacheService, mockedCache)
 );
 Effect.runFork(runnableByMock);
+
+// use direct method access
+const programWithSync = Effect.gen(function* () {
+  const n = yield* SyncService.next;
+  console.log(`the number is: ${n}`);
+});
+Effect.runPromise(programWithSync.pipe(Effect.provide(SyncService.Default)));
