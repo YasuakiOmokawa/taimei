@@ -24,3 +24,16 @@ const CLive = Layer.effect(
     return { c: a > 0 };
   })
 );
+
+const program = Effect.gen(function* () {
+  const target = yield* B;
+  const source = yield* C;
+  return Object.assign(target, source);
+});
+
+const runnable = Effect.provide(
+  program,
+  Layer.merge(Layer.provide(BLive, ALive), Layer.provide(CLive, ALive))
+);
+
+Effect.runPromise(runnable).then(console.log);
