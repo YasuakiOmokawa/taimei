@@ -1,5 +1,6 @@
 import { CacheService } from "@/app/services/cache_service";
 import { Effect, Console } from "effect";
+import { FileSystem } from "@effect/platform";
 
 const _layer = CacheService.Default;
 const _layerNoDeps = CacheService.DefaultWithoutDependencies;
@@ -11,3 +12,22 @@ const program = Effect.gen(function* () {
 }).pipe(Effect.catchAllCause((cause) => Console.log(cause)));
 const runnable = program.pipe(Effect.provide(CacheService.Default));
 Effect.runFork(runnable);
+
+const FileSystemTest = FileSystem.layerNoop({
+  readFileString: () => Effect.succeed("this is mocked file content."),
+});
+
+const runnableByTest = program.pipe(
+  Effect.provide(CacheService.DefaultWithoutDependencies),
+  Effect.provide(FileSystemTest)
+);
+Effect.runFork(runnableByTest);
+
+// mocked cache service
+const mockedCache = new CacheService({
+  lookup: () => Effect.succeed("this is mocked cache content."),
+});
+const runnableByMock = program.pipe(
+  Effect.provideService(CacheService, mockedCache)
+);
+Effect.runFork(runnableByMock);
