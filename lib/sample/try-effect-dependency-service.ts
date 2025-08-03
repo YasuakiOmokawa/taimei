@@ -17,8 +17,17 @@ const FileSystemTest = FileSystem.layerNoop({
   readFileString: () => Effect.succeed("this is mocked file content."),
 });
 
-const runnableAsTest = program.pipe(
+const runnableByTest = program.pipe(
   Effect.provide(CacheService.DefaultWithoutDependencies),
   Effect.provide(FileSystemTest)
 );
-Effect.runFork(runnableAsTest);
+Effect.runFork(runnableByTest);
+
+// mocked cache service
+const mockedCache = new CacheService({
+  lookup: () => Effect.succeed("this is mocked cache content."),
+});
+const runnableByMock = program.pipe(
+  Effect.provideService(CacheService, mockedCache)
+);
+Effect.runFork(runnableByMock);
