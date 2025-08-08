@@ -36,4 +36,18 @@ const runnable = Effect.provide(
   Layer.merge(Layer.provide(BLive, ALive), Layer.provide(CLive, ALive))
 );
 
-Effect.runPromise(runnable).then(console.log);
+Effect.runPromise(runnable).then((res) =>
+  console.log(`${JSON.stringify(res)}\n===============`)
+);
+
+// use layer fresh
+const runnableFresh = Effect.provide(
+  program,
+  Layer.merge(
+    Layer.provide(BLive, Layer.fresh(ALive)),
+    Layer.provide(CLive, Layer.fresh(ALive))
+  )
+);
+Effect.runPromise(runnableFresh).then((res) =>
+  console.log(`${JSON.stringify(res)}\n===============`)
+);
