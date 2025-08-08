@@ -15,3 +15,10 @@ const failure = Console.log("task failed").pipe(
   handler
 );
 Effect.runPromise(failure).catch(console.error);
+
+// handle on interrupt
+const interruption = Console.log("task interrupted").pipe(
+  Effect.andThen(Effect.interrupt),
+  handler
+);
+Effect.runFork(interruption);
