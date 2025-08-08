@@ -51,3 +51,27 @@ const runnableFresh = Effect.provide(
 Effect.runPromise(runnableFresh).then((res) =>
   console.log(`${JSON.stringify(res)}\n===============`)
 );
+
+// double program
+const doubleProgram = Effect.gen(function* () {
+  yield* Effect.provide(A, ALive);
+  yield* Effect.provide(A, ALive);
+});
+Effect.runPromise(doubleProgram).then((res) =>
+  console.log(`${JSON.stringify(res)}\n===============`)
+);
+
+// manual memoization
+const memoizedProgram = Effect.scoped(
+  Layer.memoize(ALive).pipe(
+    Effect.andThen((memoized) =>
+      Effect.gen(function* () {
+        yield* Effect.provide(A, memoized);
+        yield* Effect.provide(A, memoized);
+      })
+    )
+  )
+);
+Effect.runPromise(memoizedProgram).then((res) =>
+  console.log(`${JSON.stringify(res)}\n===============`)
+);
