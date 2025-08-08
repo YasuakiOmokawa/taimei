@@ -51,3 +51,12 @@ const runnableFresh = Effect.provide(
 Effect.runPromise(runnableFresh).then((res) =>
   console.log(`${JSON.stringify(res)}\n===============`)
 );
+
+// double program
+const doubleProgram = Effect.gen(function* () {
+  yield* Effect.provide(A, ALive);
+  yield* Effect.provide(A, ALive);
+});
+Effect.runPromise(doubleProgram).then((res) =>
+  console.log(`${JSON.stringify(res)}\n===============`)
+);
