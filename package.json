@@ -42,6 +42,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv-expand": "^12.0.1",
+    "drizzle-orm": "^0.44.4",
     "effect": "^3.17.2",
     "framer-motion": "^12.7.4",
     "jotai": "^2.11.0",
