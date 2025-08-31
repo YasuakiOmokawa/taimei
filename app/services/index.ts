@@ -4,7 +4,7 @@ import { Effect, Either, Layer, ManagedRuntime } from "effect";
 
 // provide all services as layer
 export const Live = Layer.mergeAll(
-  Tag2Service.Default.pipe(Layer.provide(PgDrizzleLive))
+  Tag2Service.Live.pipe(Layer.provide(PgDrizzleLive))
 );
 
 // provide runtime for Next.js
