@@ -5,7 +5,7 @@ import { tags2 } from "@/db/drizzle/schema";
 const makeTag2Service = Effect.gen(function* () {
   const db = yield* PgDrizzle.PgDrizzle;
   return {
-    getAll: () =>
+    findAll: () =>
       Effect.gen(function* () {
         const tags = yield* db.select().from(tags2);
         return tags;
