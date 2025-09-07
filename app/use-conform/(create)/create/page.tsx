@@ -4,7 +4,7 @@ import { Tag2Service } from "@/app/services/tag2_service";
 import { Either } from "effect";
 
 export default async function Page() {
-  const tag2sEither = await runService(() => Tag2Service.getAll());
+  const tag2sEither = await runService(() => Tag2Service.findAll());
 
   if (Either.isLeft(tag2sEither)) {
     return <div>{tag2sEither.left.toString()}</div>;
@@ -12,14 +12,26 @@ export default async function Page() {
 
   return (
     <main>
-      {tag2sEither.right.map((tag2) => (
-        <li key={tag2.id}>
-          <div>{tag2.id}</div>
-          <div>{tag2.name}</div>
-          <div>{tag2.createdAt}</div>
-          <div>{tag2.updatedAt}</div>
-        </li>
-      ))}
+      <table className="border-separate border border-gray-400">
+        <thead>
+          <tr>
+            <th className="border">id</th>
+            <th className="border">name</th>
+            <th className="border">created at</th>
+            <th className="border">updated at</th>
+          </tr>
+        </thead>
+        <tbody>
+          {tag2sEither.right.map((tag2) => (
+            <tr key={tag2.id}>
+              <td className="border">{tag2.id}</td>
+              <td className="border">{tag2.name}</td>
+              <td className="border">{tag2.createdAt.toString()}</td>
+              <td className="border">{tag2.updatedAt.toString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       <Form />
     </main>
   );
