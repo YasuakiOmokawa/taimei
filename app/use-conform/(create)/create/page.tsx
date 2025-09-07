@@ -12,7 +12,7 @@ export default async function Page() {
 
   return (
     <main>
-      <table className="border-separate border border-gray-400">
+      <table className="mb-4 border-separate border border-gray-400">
         <thead>
           <tr>
             <th className="border">id</th>
