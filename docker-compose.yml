@@ -34,6 +34,7 @@ services:
     environment:
       - POSTGRES_PRISMA_URL=postgres://postgres:password@postgres:5432/postgres?pgbouncer=true&connect_timeout=15
       - POSTGRES_URL_NON_POOLING=postgres://postgres:password@postgres:5432/postgres
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/postgres
     develop:
       watch:
         - action: sync
