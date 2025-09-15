@@ -1,13 +1,12 @@
-import * as PgDrizzle from "@effect/sql-drizzle/Pg";
 import { Effect, Layer } from "effect";
-import { tags2 } from "@/db/drizzle/schema";
+import { Tag2Repository } from "./tag2_repository";
 
 const makeTag2Service = Effect.gen(function* () {
-  const db = yield* PgDrizzle.PgDrizzle;
+  const tag2Repository = yield* Tag2Repository;
   return {
     findAll: () =>
       Effect.gen(function* () {
-        const tags = yield* db.select().from(tags2);
+        const tags = yield* tag2Repository.findAll();
         return tags;
       }),
   };

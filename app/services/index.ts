@@ -1,10 +1,14 @@
 import { Tag2Service } from "./tag2_service";
 import { PgDrizzleLive } from "../layers/lives/pg_drizzle_live";
 import { Effect, Either, Layer, ManagedRuntime } from "effect";
+import { Tag2Repository } from "./tag2_repository";
 
 // provide all services as layer
 export const Live = Layer.mergeAll(
-  Tag2Service.Live.pipe(Layer.provide(PgDrizzleLive))
+  Tag2Service.Live.pipe(
+    Layer.provide(Tag2Repository.Live),
+    Layer.provide(PgDrizzleLive)
+  )
 );
 
 // provide runtime for Next.js
