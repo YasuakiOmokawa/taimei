@@ -11,6 +11,12 @@ const makeTag2Repository = Effect.andThen(PgDrizzle.PgDrizzle, (pgdrizzle) => {
         catch: (e) => new Tag2RepositoryError({ message: String(e) }),
       });
     },
+    findAll: () => {
+      return Effect.tryPromise({
+        try: () => pgdrizzle.select().from(tags2),
+        catch: (e) => new Tag2RepositoryError({ message: String(e) }),
+      });
+    },
   };
 });
 
