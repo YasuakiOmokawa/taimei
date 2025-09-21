@@ -9,6 +9,11 @@ const makeTag2Service = Effect.gen(function* () {
         const tags = yield* tag2Repository.findAll();
         return tags;
       }),
+    findById: (id: string) =>
+      Effect.gen(function* () {
+        const tag = yield* tag2Repository.findById(id);
+        return tag;
+      }),
   };
 });
 
