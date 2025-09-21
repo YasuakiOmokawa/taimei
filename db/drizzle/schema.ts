@@ -40,10 +40,10 @@ export const customers = pgTable("customers", {
 export const tags2 = pgTable("tags2", {
   id: uuid().defaultRandom().primaryKey().notNull(),
   name: varchar({ length: 255 }).notNull(),
-  createdAt: timestamp("created_at", { precision: 6, mode: "string" })
+  createdAt: timestamp("created_at", { precision: 6, mode: "date" })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
-  updatedAt: timestamp("updated_at", { precision: 6, mode: "string" })
+  updatedAt: timestamp("updated_at", { precision: 6, mode: "date" })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
 });
