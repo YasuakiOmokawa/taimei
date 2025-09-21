@@ -4,6 +4,15 @@ import { Tag2Service } from "@/app/services/tag2_service";
 import { Either } from "effect";
 
 export default async function Page() {
+  const timeOptions = {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  } as const;
+  const formatter = new Intl.DateTimeFormat("ja-JP", timeOptions);
   const tag2sEither = await runService(() => Tag2Service.findAll());
 
   if (Either.isLeft(tag2sEither)) {
@@ -37,8 +46,8 @@ export default async function Page() {
             <tr key={tag2.id}>
               <td className="border">{tag2.id}</td>
               <td className="border">{tag2.name}</td>
-              <td className="border">{tag2.createdAt.toString()}</td>
-              <td className="border">{tag2.updatedAt.toString()}</td>
+              <td className="border">{formatter.format(tag2.createdAt)}</td>
+              <td className="border">{formatter.format(tag2.updatedAt)}</td>
             </tr>
           ))}
         </tbody>
@@ -47,8 +56,8 @@ export default async function Page() {
         <ul className="list-disc">
           <li>{tag2One.id}</li>
           <li>{tag2One.name}</li>
-          <li>{tag2One.createdAt.toString()}</li>
-          <li>{tag2One.updatedAt.toString()}</li>
+          <li>{formatter.format(tag2One.createdAt)}</li>
+          <li>{formatter.format(tag2One.updatedAt)}</li>
         </ul>
       </div>
       <Form />
