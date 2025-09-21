@@ -10,6 +10,17 @@ export default async function Page() {
     return <div>{tag2sEither.left.toString()}</div>;
   }
 
+  const tag2One = tag2sEither.right.at(0);
+  if (!tag2One) {
+    return <div>no exists tag2</div>;
+  }
+
+  const tag2Either = await runService(() => Tag2Service.findById(tag2One.id));
+
+  if (Either.isLeft(tag2Either)) {
+    return <div>{tag2Either.left.toString()}</div>;
+  }
+
   return (
     <main>
       <table className="mb-4 border-separate border border-gray-400">
@@ -32,6 +43,14 @@ export default async function Page() {
           ))}
         </tbody>
       </table>
+      <div className="mt-8 ml-8">
+        <ul className="list-disc">
+          <li>{tag2One.id}</li>
+          <li>{tag2One.name}</li>
+          <li>{tag2One.createdAt.toString()}</li>
+          <li>{tag2One.updatedAt.toString()}</li>
+        </ul>
+      </div>
       <Form />
     </main>
   );
