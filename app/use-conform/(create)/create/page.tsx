@@ -24,6 +24,8 @@ export default async function Page() {
       switch (err._tag) {
         case "Tag2RepositoryError":
           return <div>{`repo::: ${err.message}`}</div>;
+        case "Tag2NotFound":
+          return <div>{`tag2::: ${err.message}`}</div>;
         default:
           return <div>another error</div>;
       }
