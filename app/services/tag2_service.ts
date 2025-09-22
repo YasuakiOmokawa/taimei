@@ -1,5 +1,9 @@
-import { Effect, Layer } from "effect";
+import { Data, Effect, Layer } from "effect";
 import { Tag2Repository } from "./tag2_repository";
+
+class Tag2NotFound extends Data.TaggedError("Tag2NotFound")<{
+  message: string;
+}> {}
 
 const makeTag2Service = Effect.gen(function* () {
   const tag2Repository = yield* Tag2Repository;
@@ -12,6 +16,11 @@ const makeTag2Service = Effect.gen(function* () {
     findById: (id: string) =>
       Effect.gen(function* () {
         const tag = yield* tag2Repository.findById(id);
+        if (!tag) {
+          return yield* new Tag2NotFound({
+            message: `Tag2NotFound: ${id}`,
+          });
+        }
         return tag;
       }),
   };
