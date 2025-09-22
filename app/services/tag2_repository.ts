@@ -8,13 +8,15 @@ const makeTag2Repository = Effect.andThen(PgDrizzle.PgDrizzle, (pgdrizzle) => {
     findById: (id: string) => {
       return Effect.tryPromise({
         try: () => pgdrizzle.select().from(tags2).where(eq(tags2.id, id)),
-        catch: (e) => new Tag2RepositoryError({ message: String(e) }),
+        catch: (e) =>
+          new Tag2RepositoryError({ message: `Tag2RepositoryError: ${e}` }),
       });
     },
     findAll: () => {
       return Effect.tryPromise({
         try: () => pgdrizzle.select().from(tags2),
-        catch: (e) => new Tag2RepositoryError({ message: String(e) }),
+        catch: (e) =>
+          new Tag2RepositoryError({ message: `Tag2RepositoryError: ${e}` }),
       });
     },
   };
