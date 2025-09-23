@@ -1,5 +1,10 @@
 import { Data, Effect, Layer } from "effect";
 import { Tag2Repository } from "./tag2_repository";
+import { Schema } from "effect";
+
+const _Tag2Id = Schema.Struct({
+  id: Schema.UUID,
+});
 
 class Tag2NotFound extends Data.TaggedError("Tag2NotFound")<{
   message: string;
