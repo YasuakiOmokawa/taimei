@@ -16,18 +16,21 @@ export default async function Page() {
     return <div>no exists tag2</div>;
   }
 
-  const tag2Exit = await runService(() => Tag2Service.findById(tag2One.id));
+  const tag2Exit = await runService(() => Tag2Service.find(tag2One.id));
+  // const tag2Exit = await runService(() =>
+  //   Tag2Service.find(self.crypto.randomUUID())
+  // );
 
   if (Exit.isFailure(tag2Exit)) {
     if (Cause.isFailType(tag2Exit.cause)) {
       const err = tag2Exit.cause.error;
       switch (err._tag) {
         case "Tag2RepositoryError":
-          return <div>{`repo::: ${err.message}`}</div>;
+          return <div>{err.message}</div>;
         case "Tag2NotFound":
-          return <div>{`tag2::: ${err.message}`}</div>;
+          return <div>{err.message}</div>;
         default:
-          return <div>another error</div>;
+          return <div>unexpected tag2service error</div>;
       }
     }
     return;
@@ -56,14 +59,12 @@ export default async function Page() {
         </tbody>
       </table>
       <div className="mt-8 ml-8">
-        {tag2Exit.value.map((tag2) => (
-          <ul className="list-disc" key={tag2.id}>
-            <li>{tag2.id}</li>
-            <li>{tag2.name}</li>
-            <li>{dateFormatter.format(tag2.createdAt)}</li>
-            <li>{dateFormatter.format(tag2.updatedAt)}</li>
-          </ul>
-        ))}
+        <ul className="list-disc" key={tag2Exit.value.id}>
+          <li>{tag2Exit.value.id}</li>
+          <li>{tag2Exit.value.name}</li>
+          <li>{dateFormatter.format(tag2Exit.value.createdAt)}</li>
+          <li>{dateFormatter.format(tag2Exit.value.updatedAt)}</li>
+        </ul>
       </div>
       <Form />
     </main>
