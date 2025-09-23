@@ -2,7 +2,7 @@ import { Data, Effect, Layer } from "effect";
 import { Tag2Repository } from "./tag2_repository";
 import { Schema } from "effect";
 
-const Tag2Id = Schema.Struct({
+const _Tag2Id = Schema.Struct({
   id: Schema.UUID,
 });
 
