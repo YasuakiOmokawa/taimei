@@ -13,9 +13,9 @@ const makeTag2Service = Effect.gen(function* () {
         const tags = yield* tag2Repository.findAll();
         return tags;
       }),
-    findById: (id: string) =>
+    find: (id: string) =>
       Effect.gen(function* () {
-        const tag = yield* tag2Repository.findById(id);
+        const tag = yield* tag2Repository.find(id);
         if (!tag) {
           return yield* new Tag2NotFound({
             message: `Tag2NotFound: ${id}`,
