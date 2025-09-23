@@ -10,8 +10,8 @@ import { userSchema } from "./schema";
 async function updateAvatar(
   id: string,
   parsedValue: {
-    avatarUrl?: string;
-    avatar?: File;
+    avatarUrl?: string | undefined;
+    avatar?: File | undefined;
   }
 ) {
   if (
