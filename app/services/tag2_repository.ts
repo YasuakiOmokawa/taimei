@@ -5,9 +5,14 @@ import { eq } from "drizzle-orm";
 
 const makeTag2Repository = Effect.andThen(PgDrizzle.PgDrizzle, (pgdrizzle) => {
   return {
-    findById: (id: string) => {
+    find: (id: string) => {
       return Effect.tryPromise({
-        try: () => pgdrizzle.select().from(tags2).where(eq(tags2.id, id)),
+        try: () =>
+          pgdrizzle
+            .select()
+            .from(tags2)
+            .where(eq(tags2.id, id))
+            .then((res) => res.at(0)),
         catch: (e) =>
           new Tag2RepositoryError({ message: `Tag2RepositoryError: ${e}` }),
       });
