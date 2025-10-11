@@ -16,8 +16,8 @@ export default async function Page() {
     return <div>no exists tag2</div>;
   }
 
-  // const tag2Exit = await runService(() => Tag2Service.find(tag2One.id));
-  const tag2Exit = await runService(() => Tag2Service.find("a"));
+  const tag2Exit = await runService(() => Tag2Service.find(tag2One.id));
+  // const tag2Exit = await runService(() => Tag2Service.find("a"));
   // const tag2Exit = await runService(() =>
   //   Tag2Service.find(self.crypto.randomUUID())
   // );
