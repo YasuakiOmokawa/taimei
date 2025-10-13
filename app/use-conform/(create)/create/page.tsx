@@ -30,6 +30,8 @@ export default async function Page() {
           return <div>{err.message}</div>;
         case "Tag2NotFound":
           return <div>{err.message}</div>;
+        case "Tag2ParseError":
+          return <div>{err.message}</div>;
         default:
           return <div>unexpected tag2service error</div>;
       }
