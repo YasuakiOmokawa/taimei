@@ -1,4 +1,4 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 
 export const FILE_SIZE_PREFIX = 1;
 const MAX_FILE_SIZE = FILE_SIZE_PREFIX * 1024 * 1024;
