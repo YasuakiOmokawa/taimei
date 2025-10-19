@@ -15,7 +15,7 @@ export const Live = Layer.mergeAll(
 export const makeNextRuntime = <R, E>(layer: Layer.Layer<R, E, never>) => {
   const runtime = ManagedRuntime.make(layer);
   const run = <A, E>(body: () => Effect.Effect<A, E, R>) =>
-    runtime.runPromiseExit(body());
+    runtime.runPromise(Effect.either(body()));
   return { run };
 };
 
