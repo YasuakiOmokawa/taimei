@@ -3,6 +3,7 @@
 import { parseWithZod } from "@conform-to/zod/v4";
 import { schema } from "./schema";
 import { redirect } from "next/navigation";
+// import { runService } from "@/app/services";
 
 export async function createData(_prevState: unknown, formData: FormData) {
   const submission = parseWithZod(formData, {
@@ -13,8 +14,8 @@ export async function createData(_prevState: unknown, formData: FormData) {
     return submission.reply();
   }
 
-  // simulate database query
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  // TODO: あとで具体の実装をしよう
+  // const accountOrError = await runService(() => ConformAccountService.create());
 
   redirect("/thanks");
 }
