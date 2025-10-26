@@ -18,8 +18,8 @@ export default function FormProvider({ children }: { children: ReactNode }) {
     withCallbacks(createData, {
       onError(result) {
         if (result.error) {
-          const msg = result.error[""];
-          toast.error(msg?.at(0));
+          const formErrors = result.error[""];
+          toast.error(formErrors?.at(0));
         }
       },
     }),
