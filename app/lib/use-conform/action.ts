@@ -29,6 +29,12 @@ export async function createData(_prevState: unknown, formData: FormData) {
             email: [err.message],
           },
         });
+      default:
+        return submission.reply({
+          formErrors: [
+            "システムエラーが発生しました。しばらくしてから再度お試しください。",
+          ],
+        });
     }
   }
 
