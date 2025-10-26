@@ -8,7 +8,7 @@ const makeConformAccountResistrationService = Effect.gen(function* () {
   const validateAccount = (email: string) =>
     Effect.gen(function* () {
       if (email === "hoge@example.com") {
-        new AccountAlreadyExists({
+        return yield* new AccountAlreadyExists({
           message:
             "入力したemailは既に登録されています。別のemailを入力してください。",
         });
