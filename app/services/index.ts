@@ -1,3 +1,4 @@
+import { ConformAccountResistrationService } from "./conform-account-registration-service";
 import { Tag2Service } from "./tag2_service";
 import { PgDrizzleLive } from "../layers/lives/pg_drizzle_live";
 import { Effect, Layer, ManagedRuntime } from "effect";
@@ -8,7 +9,8 @@ export const Live = Layer.mergeAll(
   Tag2Service.Live.pipe(
     Layer.provide(Tag2Repository.Live),
     Layer.provide(PgDrizzleLive)
-  )
+  ),
+  ConformAccountResistrationService.Live
 );
 
 // provide runtime for Next.js
