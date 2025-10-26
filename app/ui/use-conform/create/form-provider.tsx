@@ -10,9 +10,21 @@ import { schema } from "@/app/lib/use-conform/schema";
 import { getZodConstraint } from "@conform-to/zod/v4";
 import { useRouter } from "next/navigation";
 import { createData } from "@/app/lib/use-conform/action";
+import { withCallbacks } from "@/lib/with-callbacks";
+import { toast } from "sonner";
 
 export default function FormProvider({ children }: { children: ReactNode }) {
-  const [lastResult, formAction] = useActionState(createData, undefined);
+  const [lastResult, formAction] = useActionState(
+    withCallbacks(createData, {
+      onError(result) {
+        if (result.error) {
+          const formErrors = result.error[""];
+          toast.error(formErrors?.at(0));
+        }
+      },
+    }),
+    undefined
+  );
   const router = useRouter();
   const [form] = useForm({
     lastResult,

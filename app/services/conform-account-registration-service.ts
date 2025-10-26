@@ -4,7 +4,7 @@ class AccountAlreadyExists extends Data.TaggedError("AccountAlreadyExists")<{
   message: string;
 }> {}
 
-const makeConformAccountResistrationService = Effect.gen(function* () {
+const makeConformAccountRegistrationService = Effect.gen(function* () {
   const validateAccount = (email: string) =>
     Effect.gen(function* () {
       if (email === "hoge@example.com") {
@@ -28,11 +28,11 @@ const makeConformAccountResistrationService = Effect.gen(function* () {
   };
 });
 
-export class ConformAccountResistrationService extends Effect.Tag(
-  "services/ConformAccountResistrationService"
+export class ConformAccountRegistrationService extends Effect.Tag(
+  "services/ConformAccountRegistrationService"
 )<
-  ConformAccountResistrationService,
-  Effect.Effect.Success<typeof makeConformAccountResistrationService>
+  ConformAccountRegistrationService,
+  Effect.Effect.Success<typeof makeConformAccountRegistrationService>
 >() {
-  static Live = Layer.effect(this, makeConformAccountResistrationService);
+  static Live = Layer.effect(this, makeConformAccountRegistrationService);
 }
