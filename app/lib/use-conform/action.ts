@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { runService } from "@/app/services";
 import { ConformAccountResistrationService } from "@/app/services/conform-account-registration-service";
 import { Either } from "effect";
+import { setFlash } from "@/lib/flash-toaster";
 
 export async function createData(_prevState: unknown, formData: FormData) {
   const submission = parseWithZod(formData, {
@@ -28,6 +29,7 @@ export async function createData(_prevState: unknown, formData: FormData) {
           fieldErrors: {
             email: [err.message],
           },
+          formErrors: ["データの作成に失敗しました"],
         });
       default:
         return submission.reply({
@@ -38,5 +40,6 @@ export async function createData(_prevState: unknown, formData: FormData) {
     }
   }
 
+  await setFlash({ type: "success", message: "データの作成に成功しました。" });
   redirect("/thanks");
 }
