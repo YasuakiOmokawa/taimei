@@ -4,7 +4,7 @@ import { parseWithZod } from "@conform-to/zod/v4";
 import { schema } from "./schema";
 import { redirect } from "next/navigation";
 import { runService } from "@/app/services";
-import { ConformAccountResistrationService } from "@/app/services/conform-account-registration-service";
+import { ConformAccountRegistrationService } from "@/app/services/conform-account-registration-service";
 import { Either } from "effect";
 import { setFlash } from "@/lib/flash-toaster";
 
@@ -18,7 +18,7 @@ export async function createData(_prevState: unknown, formData: FormData) {
   }
 
   const accountOrError = await runService(() =>
-    ConformAccountResistrationService.execute(submission.value)
+    ConformAccountRegistrationService.execute(submission.value)
   );
 
   if (Either.isLeft(accountOrError)) {
