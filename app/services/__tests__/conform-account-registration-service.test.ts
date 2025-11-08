@@ -5,6 +5,7 @@ import {
   type CreateAccountInput,
   AccountAlreadyExists,
 } from "../conform-account-registration-service";
+import { runWithLayer } from "./test-helpers";
 
 describe("ConformAccountRegistrationService", () => {
   describe("Test Layer - Fixed UUID", () => {
@@ -14,15 +15,12 @@ describe("ConformAccountRegistrationService", () => {
         name: "Test User",
       };
 
-      const program = Effect.gen(function* () {
-        const service = yield* ConformAccountRegistrationService;
-        return yield* service.execute(input);
-      });
-
-      const result = await Effect.runPromise(
-        Effect.either(
-          program.pipe(Effect.provide(ConformAccountRegistrationService.Test))
-        )
+      const result = await runWithLayer(
+        Effect.gen(function* () {
+          const service = yield* ConformAccountRegistrationService;
+          return yield* service.execute(input);
+        }),
+        ConformAccountRegistrationService.Test
       );
 
       expect(Either.isRight(result)).toBe(true);
@@ -38,15 +36,12 @@ describe("ConformAccountRegistrationService", () => {
         name: "Duplicate User",
       };
 
-      const program = Effect.gen(function* () {
-        const service = yield* ConformAccountRegistrationService;
-        return yield* service.execute(input);
-      });
-
-      const result = await Effect.runPromise(
-        Effect.either(
-          program.pipe(Effect.provide(ConformAccountRegistrationService.Test))
-        )
+      const result = await runWithLayer(
+        Effect.gen(function* () {
+          const service = yield* ConformAccountRegistrationService;
+          return yield* service.execute(input);
+        }),
+        ConformAccountRegistrationService.Test
       );
 
       expect(Either.isLeft(result)).toBe(true);
@@ -70,19 +65,14 @@ describe("ConformAccountRegistrationService", () => {
         name: "User 2",
       };
 
-      const program = Effect.gen(function* () {
-        const service = yield* ConformAccountRegistrationService;
-        const account1 = yield* service.execute(input1);
-        const account2 = yield* service.execute(input2);
-        return [account1, account2];
-      });
-
-      const result = await Effect.runPromise(
-        Effect.either(
-          program.pipe(
-            Effect.provide(ConformAccountRegistrationService.TestSequence)
-          )
-        )
+      const result = await runWithLayer(
+        Effect.gen(function* () {
+          const service = yield* ConformAccountRegistrationService;
+          const account1 = yield* service.execute(input1);
+          const account2 = yield* service.execute(input2);
+          return [account1, account2];
+        }),
+        ConformAccountRegistrationService.TestSequence
       );
 
       expect(Either.isRight(result)).toBe(true);
@@ -102,15 +92,12 @@ describe("ConformAccountRegistrationService", () => {
         name: "Live User",
       };
 
-      const program = Effect.gen(function* () {
-        const service = yield* ConformAccountRegistrationService;
-        return yield* service.execute(input);
-      });
-
-      const result = await Effect.runPromise(
-        Effect.either(
-          program.pipe(Effect.provide(ConformAccountRegistrationService.Live))
-        )
+      const result = await runWithLayer(
+        Effect.gen(function* () {
+          const service = yield* ConformAccountRegistrationService;
+          return yield* service.execute(input);
+        }),
+        ConformAccountRegistrationService.Live
       );
 
       expect(Either.isRight(result)).toBe(true);
@@ -134,17 +121,14 @@ describe("ConformAccountRegistrationService", () => {
         name: "User 2",
       };
 
-      const program = Effect.gen(function* () {
-        const service = yield* ConformAccountRegistrationService;
-        const account1 = yield* service.execute(input1);
-        const account2 = yield* service.execute(input2);
-        return [account1, account2];
-      });
-
-      const result = await Effect.runPromise(
-        Effect.either(
-          program.pipe(Effect.provide(ConformAccountRegistrationService.Live))
-        )
+      const result = await runWithLayer(
+        Effect.gen(function* () {
+          const service = yield* ConformAccountRegistrationService;
+          const account1 = yield* service.execute(input1);
+          const account2 = yield* service.execute(input2);
+          return [account1, account2];
+        }),
+        ConformAccountRegistrationService.Live
       );
 
       expect(Either.isRight(result)).toBe(true);

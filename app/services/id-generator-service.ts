@@ -8,30 +8,28 @@ export interface IdGeneratorService {
   readonly generate: Effect.Effect<string>;
 }
 
-export class IdGenerator extends Context.Tag("IdGenerator")<
+export class IdGenerator extends Context.Tag("services/IdGenerator")<
   IdGenerator,
   IdGeneratorService
 >() {
   /**
-   * globalThis.crypto を使用する理由：
-   * - ブラウザと Node.js の両環境で動作する統一的な API
-   * - self.crypto は Node.js で未定義のため使用不可
+   * self.crypto は Node.js で未定義のため globalThis.crypto を使用
+   * ブラウザと Node.js の両環境で統一的に動作させる必要がある
    */
   static Live = Layer.succeed(IdGenerator, {
     generate: Effect.sync(() => globalThis.crypto.randomUUID()),
   });
 
   /**
-   * スナップショットテストで毎回同じ結果を保証するため固定値を返す
-   * 可読性のため UUID 形式ではなく識別しやすい形式を採用
+   * UUID 形式ではなく識別しやすい形式を採用（スナップショットテストの差分確認を容易にするため）
    */
   static Test = Layer.succeed(IdGenerator, {
     generate: Effect.succeed("0000****-000000000000"),
   });
 
   /**
-   * 複数アカウント作成など、異なる ID が必要なテストシナリオのため連番を生成
    * Layer.sync でカウンターを Layer インスタンスごとに独立させ、テスト間の干渉を防ぐ
+   * （複数のテストファイルで同時実行しても影響を受けない）
    */
   static TestSequence = Layer.sync(IdGenerator, () => {
     let counter = 0;
@@ -45,8 +43,7 @@ export class IdGenerator extends Context.Tag("IdGenerator")<
   });
 
   /**
-   * 特殊なテストシナリオ（タイムスタンプベース等）のため、
-   * カスタムロジックを注入可能にする
+   * カスタムロジックを注入可能にする（特殊なテストケースで独自の ID 生成戦略が必要になる場合がある）
    */
   static Custom = (generator: () => string) =>
     Layer.succeed(IdGenerator, {

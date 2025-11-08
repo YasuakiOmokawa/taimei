@@ -27,7 +27,7 @@ const makeTag2Repository = Effect.andThen(PgDrizzle.PgDrizzle, (pgdrizzle) => {
   };
 });
 
-export class Tag2Repository extends Effect.Tag("Tag2Repository")<
+export class Tag2Repository extends Effect.Tag("services/Tag2Repository")<
   Tag2Repository,
   Effect.Effect.Success<typeof makeTag2Repository>
 >() {

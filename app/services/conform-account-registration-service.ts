@@ -22,8 +22,9 @@ const makeConformAccountRegistrationService = Effect.gen(function* () {
 
   const validateAccount = (email: string) =>
     Effect.gen(function* () {
-      // サンプルコードのため、DB 接続せずハードコードで重複チェックを模倣
-      // 実装時は DB から既存アカウントを検索する
+      // FIXME: 現在はサンプル実装のため hoge@example.com を重複とみなす
+      // 理想: DB から既存アカウントを検索して実際の重複チェックを行う
+      // 妥協理由: Effect-TS のサービスパターンの実装例を示すことを優先
       if (email === "hoge@example.com") {
         return yield* new AccountAlreadyExists({
           message:
@@ -52,27 +53,12 @@ export class ConformAccountRegistrationService extends Effect.Tag(
   ConformAccountRegistrationService,
   Effect.Effect.Success<typeof makeConformAccountRegistrationService>
 >() {
-  /**
-   * 本番環境では実際のランダム UUID を生成する必要があるため IdGenerator.Live を使用
-   */
-  static Live = Layer.effect(
-    this,
-    makeConformAccountRegistrationService
-  ).pipe(Layer.provide(IdGenerator.Live));
+  private static makeLayer = (idGeneratorLayer: Layer.Layer<IdGenerator>) =>
+    Layer.effect(this, makeConformAccountRegistrationService).pipe(
+      Layer.provide(idGeneratorLayer)
+    );
 
-  /**
-   * スナップショットテストで毎回同じ ID を保証するため IdGenerator.Test を使用
-   */
-  static Test = Layer.effect(
-    this,
-    makeConformAccountRegistrationService
-  ).pipe(Layer.provide(IdGenerator.Test));
-
-  /**
-   * 複数アカウント作成テストで異なる ID が必要なため IdGenerator.TestSequence を使用
-   */
-  static TestSequence = Layer.effect(
-    this,
-    makeConformAccountRegistrationService
-  ).pipe(Layer.provide(IdGenerator.TestSequence));
+  static Live = this.makeLayer(IdGenerator.Live);
+  static Test = this.makeLayer(IdGenerator.Test);
+  static TestSequence = this.makeLayer(IdGenerator.TestSequence);
 }
