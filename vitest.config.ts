@@ -8,6 +8,15 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./__tests__/utils/setup-tests.ts"],
+    // root所有のディレクトリや、テストに不要なディレクトリをスキャン対象から除外
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/.next/**",
+      "**/coverage/**",
+      "**/dump/**",
+      "**/.{git,cache,output,temp}/**",
+    ],
   },
   resolve: {
     alias: [

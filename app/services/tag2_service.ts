@@ -50,7 +50,7 @@ const makeTag2Service = Effect.gen(function* () {
   };
 });
 
-export class Tag2Service extends Effect.Tag("Tag2Service")<
+export class Tag2Service extends Effect.Tag("services/Tag2Service")<
   Tag2Service,
   Effect.Effect.Success<typeof makeTag2Service>
 >() {

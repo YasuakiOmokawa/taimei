@@ -5,6 +5,7 @@
     "dev": "next dev --turbopack",
     "start": "next start",
     "test": "vitest",
+    "test:services": "vitest run app/services/__tests__/",
     "lint": "next lint",
     "deployable-test": "next build --turbopack",
     "storybook": "storybook dev -p 6006",
