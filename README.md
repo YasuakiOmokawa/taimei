@@ -19,7 +19,7 @@ npm --prefix ./e2e install ./e2e
 
 # データベース作成
 
-```cnosole
+```console
 docker compose exec application node_modules/.bin/prisma migrate deploy
 ```
 
