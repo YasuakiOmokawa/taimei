@@ -1,18 +1,26 @@
 # Taimei
 
 心安らかなソリューション。
-それがTaimei
+それが Taimei
 
 # パッケージインストール
 
 ## アプリケーション用
+
 ```console
 bun install
 ```
 
-## e2e用
+## e2e 用
+
 ```console
 npm --prefix ./e2e install ./e2e
+```
+
+# データベース作成
+
+```cnosole
+docker compose exec application node_modules/.bin/prisma migrate deploy
 ```
 
 # 開発環境起動
@@ -23,7 +31,7 @@ npm --prefix ./e2e install ./e2e
 docker compose up --build --watch
 ```
 
-開発環境で環境立ち上げの速度を5~60秒くらい上げたい場合、以下コマンドを実行して立ち上げます。
+上記コマンド実行後、以下コマンドを実行して立ち上げると起動時間が早くなります。
 （ただし、ローカルアプリケーションの速度は上記と比べて遅くなります）
 
 ```console
@@ -32,18 +40,20 @@ docker compose build --build-arg APP_BUILD_CMD='' && docker compose up --watch
 
 # テストコマンド
 
-## e2eテスト
+## e2e テスト
+
 ```console
 E2E_SERVICE_COMMAND='npm test' docker compose -f docker-compose.e2e.yml up --build
 ```
 
-## e2eテスト（UIモード）
+## e2e テスト（UI モード）
 
 ```console
 E2E_SERVICE_COMMAND='npm run test-ui' docker compose -f docker-compose.e2e.yml up --build --watch
 ```
 
 # TODO
+
 - [ ] パンくずリストの整備
 - [ ] 画像がうまく調整できない。調整幅が低すぎる
-- [ ] StoryBookの適用
+- [ ] StoryBook の適用
