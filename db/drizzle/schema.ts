@@ -12,7 +12,7 @@ import {
   primaryKey,
   boolean,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
+import { sql, relations } from "drizzle-orm";
 
 export const prismaMigrations = pgTable("_prisma_migrations", {
   id: varchar({ length: 36 }).primaryKey().notNull(),
@@ -101,21 +101,23 @@ export const revenue = pgTable(
   ]
 );
 
+// Better Auth 用テーブル（小文字テーブル名）
 export const user = pgTable(
-  "User",
+  "user",
   {
-    id: text().primaryKey().notNull(),
-    name: text(),
-    email: text().notNull(),
-    emailVerified: timestamp({ precision: 3, mode: "string" }),
-    image: text(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
-      .default(sql`CURRENT_TIMESTAMP`)
+    id: text("id").primaryKey().notNull(),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: boolean("email_verified").default(false).notNull(),
+    image: text("image"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
   },
   (table) => [
-    uniqueIndex("User_email_key").using(
+    uniqueIndex("user_email_key").using(
       "btree",
       table.email.asc().nullsLast().op("text_ops")
     ),
@@ -123,54 +125,86 @@ export const user = pgTable(
 );
 
 export const session = pgTable(
-  "Session",
+  "session",
   {
-    sessionToken: text().notNull(),
-    userId: text().notNull(),
-    expires: timestamp({ precision: 3, mode: "string" }).notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
-      .default(sql`CURRENT_TIMESTAMP`)
+    id: text("id").primaryKey().notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    token: text("token").notNull().unique(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
   },
-  (table) => [
-    uniqueIndex("Session_sessionToken_key").using(
-      "btree",
-      table.sessionToken.asc().nullsLast().op("text_ops")
-    ),
-    foreignKey({
-      columns: [table.userId],
-      foreignColumns: [user.id],
-      name: "Session_userId_fkey",
-    })
-      .onUpdate("cascade")
-      .onDelete("cascade"),
-  ]
+  (table) => [index("session_userId_idx").on(table.userId)]
 );
 
-export const userProfile = pgTable(
-  "UserProfile",
+export const account = pgTable(
+  "account",
   {
-    id: text().primaryKey().notNull(),
-    bio: text().notNull(),
-    userId: text().notNull(),
-    createdAt: timestamp({ precision: 3, mode: "string" })
-      .default(sql`CURRENT_TIMESTAMP`)
+    id: text("id").primaryKey().notNull(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at"),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
       .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
+  },
+  (table) => [index("account_userId_idx").on(table.userId)]
+);
+
+export const verification = pgTable(
+  "verification",
+  {
+    id: text("id").primaryKey().notNull(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [index("verification_identifier_idx").on(table.identifier)]
+);
+
+// UserProfile（Better Auth とは独立したビジネスデータ）
+export const userProfile = pgTable(
+  "user_profile",
+  {
+    id: text("id").primaryKey().notNull(),
+    bio: text("bio").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (table) => [
-    uniqueIndex("UserProfile_userId_key").using(
+    uniqueIndex("user_profile_userId_key").using(
       "btree",
       table.userId.asc().nullsLast().op("text_ops")
     ),
-    foreignKey({
-      columns: [table.userId],
-      foreignColumns: [user.id],
-      name: "UserProfile_userId_fkey",
-    })
-      .onUpdate("cascade")
-      .onDelete("cascade"),
   ]
 );
 
@@ -203,82 +237,30 @@ export const invoicesTotags = pgTable(
   ]
 );
 
-export const verificationToken = pgTable(
-  "VerificationToken",
-  {
-    identifier: text().notNull(),
-    token: text().notNull(),
-    expires: timestamp({ precision: 3, mode: "string" }).notNull(),
-  },
-  (table) => [
-    primaryKey({
-      columns: [table.identifier, table.token],
-      name: "VerificationToken_pkey",
-    }),
-  ]
-);
+// Better Auth Relations
+export const userRelations = relations(user, ({ many, one }) => ({
+  sessions: many(session),
+  accounts: many(account),
+  profile: one(userProfile),
+}));
 
-export const authenticator = pgTable(
-  "Authenticator",
-  {
-    credentialId: text().notNull(),
-    userId: text().notNull(),
-    providerAccountId: text().notNull(),
-    credentialPublicKey: text().notNull(),
-    counter: integer().notNull(),
-    credentialDeviceType: text().notNull(),
-    credentialBackedUp: boolean().notNull(),
-    transports: text(),
-  },
-  (table) => [
-    uniqueIndex("Authenticator_credentialID_key").using(
-      "btree",
-      table.credentialId.asc().nullsLast().op("text_ops")
-    ),
-    foreignKey({
-      columns: [table.userId],
-      foreignColumns: [user.id],
-      name: "Authenticator_userId_fkey",
-    })
-      .onUpdate("cascade")
-      .onDelete("cascade"),
-    primaryKey({
-      columns: [table.credentialId, table.userId],
-      name: "Authenticator_pkey",
-    }),
-  ]
-);
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, {
+    fields: [session.userId],
+    references: [user.id],
+  }),
+}));
 
-export const account = pgTable(
-  "Account",
-  {
-    userId: text().notNull(),
-    type: text().notNull(),
-    provider: text().notNull(),
-    providerAccountId: text().notNull(),
-    refreshToken: text("refresh_token"),
-    accessToken: text("access_token"),
-    expiresAt: integer("expires_at"),
-    tokenType: text("token_type"),
-    scope: text(),
-    idToken: text("id_token"),
-    sessionState: text("session_state"),
-    createdAt: timestamp({ precision: 3, mode: "string" })
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
-    updatedAt: timestamp({ precision: 3, mode: "string" }).notNull(),
-  },
-  (table) => [
-    foreignKey({
-      columns: [table.userId],
-      foreignColumns: [user.id],
-      name: "Account_userId_fkey",
-    })
-      .onUpdate("cascade")
-      .onDelete("cascade"),
-    primaryKey({
-      columns: [table.provider, table.providerAccountId],
-      name: "Account_pkey",
-    }),
-  ]
-);
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, {
+    fields: [account.userId],
+    references: [user.id],
+  }),
+}));
+
+export const userProfileRelations = relations(userProfile, ({ one }) => ({
+  user: one(user, {
+    fields: [userProfile.userId],
+    references: [user.id],
+  }),
+}));
