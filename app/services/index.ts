@@ -10,6 +10,10 @@ import { UserProfileRepository } from "./user-profile-repository";
 import { IdGenerator } from "./id-generator-service";
 import { DashboardService } from "./dashboard-service";
 import { DashboardRepository } from "./dashboard-repository";
+import { InvoiceService } from "./invoice-service";
+import { InvoiceRepository } from "./invoice-repository";
+import { CustomerService } from "./customer-service";
+import { CustomerRepository } from "./customer-repository";
 
 // 外部から直接 import できるようにエクスポート（パス簡略化のため）
 export { IdGenerator } from "./id-generator-service";
@@ -19,12 +23,16 @@ export {
   type Account,
   type CreateAccountInput,
 } from "./conform-account-registration-service";
-export { UserService } from "./user-service";
+export { UserService, UserNotFound } from "./user-service";
 export { UserProfileService, UserProfileNotFound } from "./user-profile-service";
 export { UserRepositoryError } from "./user-repository";
 export { UserProfileRepositoryError } from "./user-profile-repository";
 export { DashboardService, type Revenue, type LatestInvoice, type CardData } from "./dashboard-service";
 export { DashboardRepositoryError } from "./dashboard-repository";
+export { InvoiceService, InvoiceNotFound } from "./invoice-service";
+export { InvoiceRepositoryError, type CreateInvoiceInput, type UpdateInvoiceInput } from "./invoice-repository";
+export { CustomerService } from "./customer-service";
+export { CustomerRepositoryError } from "./customer-repository";
 
 // すべてのサービスの依存関係を一箇所で解決するため Layer.mergeAll で統合
 export const Live = Layer.mergeAll(
@@ -43,6 +51,14 @@ export const Live = Layer.mergeAll(
   ),
   DashboardService.Live.pipe(
     Layer.provide(DashboardRepository.Live),
+    Layer.provide(PgDrizzleLive)
+  ),
+  InvoiceService.Live.pipe(
+    Layer.provide(InvoiceRepository.Live),
+    Layer.provide(PgDrizzleLive)
+  ),
+  CustomerService.Live.pipe(
+    Layer.provide(CustomerRepository.Live),
     Layer.provide(PgDrizzleLive)
   ),
   ConformAccountRegistrationService.Live

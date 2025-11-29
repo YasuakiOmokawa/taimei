@@ -250,6 +250,51 @@ export async function updateUser(id: string, formData: FormData) {
 }
 ```
 
+### Conform との統合
+
+Server Action で Conform のフォームバリデーションと Effect-TS のエラーハンドリングを組み合わせる：
+
+```typescript
+// app/lib/use-conform/action.ts
+export async function createData(_prevState: unknown, formData: FormData) {
+  // 1. Conform でフォームバリデーション
+  const submission = parseWithZod(formData, { schema });
+
+  if (submission.status !== "success") {
+    return submission.reply();
+  }
+
+  // 2. Effect-TS サービス実行
+  const result = await runService(() =>
+    ConformAccountRegistrationService.execute(submission.value)
+  );
+
+  // 3. Either + TaggedError._tag でエラー分岐
+  if (Either.isLeft(result)) {
+    switch (result.left._tag) {
+      case "AccountAlreadyExists":
+        return submission.reply({
+          fieldErrors: { email: [result.left.message] },
+          formErrors: ["データの作成に失敗しました"],
+        });
+      default:
+        return submission.reply({
+          formErrors: ["システムエラーが発生しました"],
+        });
+    }
+  }
+
+  // 4. 成功時の処理
+  await setFlash({ type: "success", message: "データの作成に成功しました。" });
+  redirect("/thanks");
+}
+```
+
+**ポイント**:
+- `submission.reply()` でフォームにエラーを返却
+- `fieldErrors` で特定フィールドにエラー表示
+- `formErrors` でフォーム全体にエラー表示
+
 ### Yieldable Errors
 
 **推奨**: `yield* new TaggedError()` を直接使用

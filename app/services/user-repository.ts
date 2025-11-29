@@ -40,6 +40,27 @@ const makeUserRepository = Effect.andThen(PgDrizzle.PgDrizzle, (pgdrizzle) => ({
       catch: (e) =>
         new UserRepositoryError({ message: `UserRepositoryError: ${e}` }),
     }),
+
+  update: (id: string, data: { name?: string; image?: string | null }) =>
+    Effect.tryPromise({
+      try: () =>
+        pgdrizzle
+          .update(user)
+          .set(data)
+          .where(eq(user.id, id))
+          .returning()
+          .then((res) => res.at(0)),
+      catch: (e) =>
+        new UserRepositoryError({ message: `Failed to update user: ${e}` }),
+    }),
+
+  delete: (id: string) =>
+    Effect.tryPromise({
+      try: () =>
+        pgdrizzle.delete(user).where(eq(user.id, id)).returning(),
+      catch: (e) =>
+        new UserRepositoryError({ message: `Failed to delete user: ${e}` }),
+    }),
 }));
 
 export class UserRepository extends Effect.Tag("services/UserRepository")<

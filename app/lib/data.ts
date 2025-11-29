@@ -5,6 +5,8 @@ import {
   runService,
   DashboardService,
   UserProfileService,
+  InvoiceService,
+  CustomerService,
   type Revenue,
   type LatestInvoice,
   type CardData,
@@ -105,7 +107,6 @@ export async function fetchCardData(): Promise<CardData> {
   return result.right;
 }
 
-// TODO: Effect-TS + Drizzle に移行予定
 export type InvoiceSelectionById = {
   id: string;
   customer_id: string;
@@ -138,34 +139,120 @@ export type FilteredCustomer = {
   total_paid: string;
 };
 
+const formatCurrency = (amount: number) => {
+  return (amount / 100).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+};
+
 export async function fetchFilteredInvoices(
-  _query: string,
-  _currentPage: number
+  query: string,
+  currentPage: number
 ): Promise<FilteredInvoice[]> {
-  console.warn("fetchFilteredInvoices: Not implemented yet");
-  return [];
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* InvoiceService;
+      return yield* service.fetchFiltered(query, currentPage);
+    })
+  );
+
+  if (Either.isLeft(result)) {
+    console.error("Database Error:", result.left);
+    throw new Error("Failed to fetch filtered invoices.");
+  }
+
+  return result.right.map((invoice) => ({
+    id: invoice.id,
+    amount: invoice.amount,
+    date: invoice.date,
+    status: invoice.status as "pending" | "paid",
+    name: invoice.name,
+    email: invoice.email,
+    image_url: invoice.imageUrl,
+  }));
 }
 
-export async function fetchInvoicesPages(_query: string): Promise<number> {
-  console.warn("fetchInvoicesPages: Not implemented yet");
-  return 0;
+export async function fetchInvoicesPages(query: string): Promise<number> {
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* InvoiceService;
+      return yield* service.fetchPages(query);
+    })
+  );
+
+  if (Either.isLeft(result)) {
+    console.error("Database Error:", result.left);
+    throw new Error("Failed to fetch invoice pages.");
+  }
+
+  return result.right;
 }
 
 export async function fetchInvoiceById(
-  _id: string
+  id: string
 ): Promise<InvoiceSelectionById | null> {
-  console.warn("fetchInvoiceById: Not implemented yet");
-  return null;
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* InvoiceService;
+      return yield* service.findById(id);
+    })
+  );
+
+  if (Either.isLeft(result)) {
+    if (result.left._tag === "InvoiceNotFound") {
+      return null;
+    }
+    console.error("Database Error:", result.left);
+    throw new Error("Failed to fetch invoice.");
+  }
+
+  return {
+    id: result.right.id,
+    customer_id: result.right.customerId,
+    amount: result.right.amount / 100,
+    status: result.right.status as "pending" | "paid",
+  };
 }
 
 export async function fetchCustomers(): Promise<CustomerField[]> {
-  console.warn("fetchCustomers: Not implemented yet");
-  return [];
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* CustomerService;
+      return yield* service.findAll();
+    })
+  );
+
+  if (Either.isLeft(result)) {
+    console.error("Database Error:", result.left);
+    throw new Error("Failed to fetch customers.");
+  }
+
+  return result.right;
 }
 
 export async function fetchFilteredCustomers(
-  _query: string
+  query: string
 ): Promise<FilteredCustomer[]> {
-  console.warn("fetchFilteredCustomers: Not implemented yet");
-  return [];
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* CustomerService;
+      return yield* service.fetchFiltered(query);
+    })
+  );
+
+  if (Either.isLeft(result)) {
+    console.error("Database Error:", result.left);
+    throw new Error("Failed to fetch filtered customers.");
+  }
+
+  return result.right.map((customer) => ({
+    id: customer.id,
+    name: customer.name,
+    email: customer.email,
+    image_url: customer.imageUrl,
+    total_invoices: customer.totalInvoices,
+    total_pending: formatCurrency(customer.totalPending),
+    total_paid: formatCurrency(customer.totalPaid),
+  }));
 }

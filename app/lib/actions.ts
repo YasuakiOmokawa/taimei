@@ -12,7 +12,7 @@ import { auth } from "@/lib/auth";
 import { authClient } from "@/lib/auth-client";
 import { headers } from "next/headers";
 import { Effect, Either } from "effect";
-import { runService, UserService } from "@/app/services";
+import { runService, UserService, InvoiceService } from "@/app/services";
 
 // for create/update
 export type State = {
@@ -147,7 +147,6 @@ export async function createInvoice(_prevState: State, formData: FormData) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
       message: "Invalid. Failed to Create Invoice.",
-      // return inputed value to form
       formData: {
         customerId: rawFormData?.customerId
           ? String(rawFormData.customerId)
@@ -161,10 +160,29 @@ export async function createInvoice(_prevState: State, formData: FormData) {
   const { amount, status, customerId } = validatedFields.data;
   const amountInCents = amount * 100;
 
-  // TODO: Invoice機能のEffect-TS移行
-  console.warn("createInvoice: Not implemented yet");
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* InvoiceService;
+      return yield* service.create({
+        customerId,
+        amount: amountInCents,
+        status,
+      });
+    })
+  );
 
-  revalidatePath("/dashboard/invoices"); // update page cache
+  if (Either.isLeft(result)) {
+    return {
+      message: `Failed to create invoice: ${result.left._tag}`,
+      formData: {
+        customerId,
+        amount,
+        status,
+      },
+    };
+  }
+
+  revalidatePath("/dashboard/invoices");
   redirect("/dashboard/invoices");
 }
 
@@ -180,7 +198,6 @@ export async function updateInvoice(
     return {
       errors: validatedFields.error.flatten().fieldErrors,
       message: "Invalid. Failed to Update Invoice.",
-      // return inputed value to form
       formData: {
         customerId: rawFormData?.customerId
           ? String(rawFormData.customerId)
@@ -194,17 +211,61 @@ export async function updateInvoice(
   const { amount, status, customerId } = validatedFields.data;
   const amountInCents = amount * 100;
 
-  // TODO: Invoice機能のEffect-TS移行
-  console.warn("updateInvoice: Not implemented yet");
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* InvoiceService;
+      return yield* service.update({
+        id,
+        customerId,
+        amount: amountInCents,
+        status,
+      });
+    })
+  );
+
+  if (Either.isLeft(result)) {
+    switch (result.left._tag) {
+      case "InvoiceNotFound":
+        return {
+          message: "Invoice not found.",
+          formData: { customerId, amount, status },
+        };
+      default:
+        return {
+          message: `Failed to update invoice: ${result.left._tag}`,
+          formData: { customerId, amount, status },
+        };
+    }
+  }
 
   revalidatePath("/dashboard/invoices");
   redirect("/dashboard/invoices");
 }
 
 export async function deleteInvoice(id: string, _prevState: unknown) {
-  // TODO: Invoice機能のEffect-TS移行
-  console.warn("deleteInvoice: Not implemented yet", id);
-  await setFlash({ type: "success", message: "delete invoice successful." });
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* InvoiceService;
+      return yield* service.delete(id);
+    })
+  );
+
+  if (Either.isLeft(result)) {
+    switch (result.left._tag) {
+      case "InvoiceNotFound":
+        await setFlash({ type: "error", message: "Invoice not found." });
+        break;
+      default:
+        await setFlash({
+          type: "error",
+          message: `Failed to delete invoice: ${result.left._tag}`,
+        });
+    }
+    revalidatePath("/dashboard/invoices");
+    return;
+  }
+
+  await setFlash({ type: "success", message: "Invoice deleted successfully." });
   revalidatePath("/dashboard/invoices");
 }
 
@@ -219,8 +280,25 @@ export async function deleteUser(_prevState: unknown, formData: FormData) {
     });
   }
 
-  // TODO: User削除機能のEffect-TS移行
-  console.warn("deleteUser: Not implemented yet", submission.value.id);
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* UserService;
+      return yield* service.delete(submission.value.id);
+    })
+  );
+
+  if (Either.isLeft(result)) {
+    switch (result.left._tag) {
+      case "UserNotFound":
+        return submission.reply({
+          formErrors: ["User not found."],
+        });
+      default:
+        return submission.reply({
+          formErrors: [`Failed to delete user: ${result.left._tag}`],
+        });
+    }
+  }
 
   await setFlash({ type: "success", message: "user deleted." });
   await signOut();
