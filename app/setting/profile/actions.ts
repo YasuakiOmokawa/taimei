@@ -6,7 +6,7 @@ import { fetchCurrentUser } from "@/app/lib/data";
 import { del, put } from "@vercel/blob";
 import { userSchema } from "./schema";
 import { Effect, Either } from "effect";
-import { runService, UserProfileService } from "@/app/services";
+import { runService, UserProfileService, UserService } from "@/app/services";
 
 async function updateAvatar(
   id: string,
@@ -35,23 +35,20 @@ async function updateAvatar(
   }
 }
 
-async function buildUpdateUserQuery(
-  id: string,
+function buildUserUpdateData(
   blobUrl: string | undefined,
   parsedValue: Record<string, unknown>
-) {
-  const updateColumn: Record<string, unknown> = {
-    name: parsedValue.name,
-  };
+): { name?: string; image?: string } {
+  const data: { name?: string; image?: string } = {};
 
-  if (blobUrl) updateColumn.image = blobUrl;
+  if (parsedValue.name) {
+    data.name = parsedValue.name as string;
+  }
+  if (blobUrl) {
+    data.image = blobUrl;
+  }
 
-  return {
-    data: updateColumn,
-    where: {
-      id: id,
-    },
-  };
+  return data;
 }
 
 export async function updateUser(
@@ -66,14 +63,9 @@ export async function updateUser(
   }
 
   const blobUrl = await updateAvatar(id, { ...submission.value });
-  const updateUserQuery = await buildUpdateUserQuery(
-    id,
-    blobUrl,
-    submission.value
-  );
+  const userData = buildUserUpdateData(blobUrl, submission.value);
 
   if (submission.value.bio) {
-    // Effect-TSサービス経由でUserProfile更新
     const result = await runService(() =>
       Effect.gen(function* () {
         const service = yield* UserProfileService;
@@ -85,8 +77,19 @@ export async function updateUser(
       console.error("Failed to update user profile:", result.left._tag);
     }
   }
-  // TODO: User.name/image更新機能のEffect-TS移行
-  console.warn("updateUser: User table update not implemented yet", updateUserQuery);
+
+  if (Object.keys(userData).length > 0) {
+    const result = await runService(() =>
+      Effect.gen(function* () {
+        const service = yield* UserService;
+        return yield* service.update(id, userData);
+      })
+    );
+
+    if (Either.isLeft(result)) {
+      console.error("Failed to update user:", result.left._tag);
+    }
+  }
 
   revalidatePath("/setting/profile");
   return submission.reply();
@@ -99,9 +102,17 @@ export async function deleteAvatar(url: string) {
 
   if (url.includes("vercel-storage.com")) await del(url);
 
-  // TODO: User.image削除機能のEffect-TS移行
   const currentUser = await fetchCurrentUser();
-  console.warn("deleteAvatar: User table update not implemented yet", currentUser.id);
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* UserService;
+      return yield* service.clearImage(currentUser.id);
+    })
+  );
+
+  if (Either.isLeft(result)) {
+    return { status: "error", message: `Failed to clear avatar: ${result.left._tag}` };
+  }
 
   revalidatePath("/setting/profile");
   return { status: "success" };
