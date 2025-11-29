@@ -208,6 +208,48 @@ WebSearch("Effect-TS service pattern testability");
 
 ## Effect-TS Best Practices
 
+### データアクセスとエラーハンドリングの原則
+
+1. **全データアクセスを Effect-TS サービス経由に統一**
+2. **エラーハンドリングは `Either` + `TaggedError._tag` で分岐**
+3. **try-catch 禁止**
+
+```typescript
+// ✅ 推奨: Server Action でのエラーハンドリング
+export async function updateUser(id: string, formData: FormData) {
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* UserProfileService;
+      return yield* service.upsert(id, formData.get("bio") as string);
+    })
+  );
+
+  // Either + TaggedError._tag で分岐
+  if (Either.isLeft(result)) {
+    switch (result.left._tag) {
+      case "UserProfileNotFound":
+        return { error: "プロフィールが見つかりません" };
+      case "UserProfileRepositoryError":
+        return { error: "データベースエラーが発生しました" };
+      default:
+        return { error: "予期しないエラーが発生しました" };
+    }
+  }
+
+  return { data: result.right };
+}
+
+// ❌ 禁止: try-catch によるエラーハンドリング
+export async function updateUser(id: string, formData: FormData) {
+  try {
+    const result = await someOperation();
+    return { data: result };
+  } catch (e) {
+    return { error: "エラーが発生しました" };
+  }
+}
+```
+
 ### Yieldable Errors
 
 **推奨**: `yield* new TaggedError()` を直接使用
