@@ -1,4 +1,89 @@
-# Project Guidelines for Claude
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Development Commands
+
+```bash
+# パッケージインストール
+bun install
+
+# 開発環境起動（ホットリロード有効）
+docker compose up --build --watch
+
+# テスト実行
+yarn test                          # 全テスト
+yarn test:services                 # サービス層のテストのみ
+npx vitest run <file_path>         # 特定ファイル
+
+# リント・型チェック
+yarn lint                          # ESLint
+yarn lint --fix                    # ESLint自動修正
+npx tsc --noEmit                   # TypeScript型チェック
+
+# データベース
+docker compose exec application node_modules/.bin/prisma migrate deploy  # マイグレーション適用
+bunx prisma generate               # Prismaクライアント生成
+
+# e2eテスト
+E2E_SERVICE_COMMAND='npm test' docker compose -f docker-compose.e2e.yml up --build
+
+# Storybook
+yarn storybook                     # Storybook起動
+```
+
+## Architecture Overview
+
+### Tech Stack
+- **Framework**: Next.js 16 (beta) with App Router
+- **Language**: TypeScript (strict mode)
+- **State Management**: Jotai（クライアント状態）, Effect-TS（サーバーサイドロジック）
+- **ORM**: Prisma + Drizzle（両方併用）
+- **Database**: PostgreSQL
+- **Auth**: NextAuth.js v5 (beta) with Prisma Adapter
+- **UI**: Radix UI + shadcn/ui + Tailwind CSS
+- **Testing**: Vitest + Testing Library
+- **Form**: Conform + Zod
+
+### Directory Structure
+```
+app/
+├── services/           # Effect-TS ビジネスロジック（サービスパターン）
+│   ├── __tests__/      # サービス層のユニットテスト
+│   └── index.ts        # サービスのエクスポート
+├── layers/lives/       # Effect-TS Layer 実装（DI 設定）
+├── lib/                # ユーティリティ、Server Actions
+├── ui/                 # ページ固有のUIコンポーネント
+├── schema/             # Zod スキーマ定義
+└── [page]/             # Next.js App Router ページ
+
+components/
+├── ui/                 # shadcn/ui 共通コンポーネント
+└── *.tsx               # アプリ固有の共通コンポーネント
+
+db/drizzle/             # Drizzle スキーマ
+prisma/                 # Prisma スキーマ・マイグレーション
+__tests__/              # 統合テスト
+```
+
+### Service Pattern (Effect-TS)
+
+サービスは `Context.Tag` で定義し、Live/Test/TestSequence Layer を提供：
+
+```typescript
+export class MyService extends Context.Tag("services/MyService")<
+  MyService,
+  MyServiceInterface
+>() {
+  static Live = Layer.succeed(this, liveImplementation);
+  static Test = Layer.succeed(this, testImplementation);
+  static TestSequence = Layer.sync(this, () => { /* ... */ });
+}
+```
+
+テスト時は `runWithLayer` ヘルパーを使用（`app/services/__tests__/test-helpers.ts`）
+
+---
 
 ## Language and Communication Rules
 
@@ -122,6 +207,48 @@ WebSearch("Effect-TS service pattern testability");
 ---
 
 ## Effect-TS Best Practices
+
+### データアクセスとエラーハンドリングの原則
+
+1. **全データアクセスを Effect-TS サービス経由に統一**
+2. **エラーハンドリングは `Either` + `TaggedError._tag` で分岐**
+3. **try-catch 禁止**
+
+```typescript
+// ✅ 推奨: Server Action でのエラーハンドリング
+export async function updateUser(id: string, formData: FormData) {
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* UserProfileService;
+      return yield* service.upsert(id, formData.get("bio") as string);
+    })
+  );
+
+  // Either + TaggedError._tag で分岐
+  if (Either.isLeft(result)) {
+    switch (result.left._tag) {
+      case "UserProfileNotFound":
+        return { error: "プロフィールが見つかりません" };
+      case "UserProfileRepositoryError":
+        return { error: "データベースエラーが発生しました" };
+      default:
+        return { error: "予期しないエラーが発生しました" };
+    }
+  }
+
+  return { data: result.right };
+}
+
+// ❌ 禁止: try-catch によるエラーハンドリング
+export async function updateUser(id: string, formData: FormData) {
+  try {
+    const result = await someOperation();
+    return { data: result };
+  } catch (e) {
+    return { error: "エラーが発生しました" };
+  }
+}
+```
 
 ### Yieldable Errors
 

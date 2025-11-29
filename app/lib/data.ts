@@ -1,10 +1,14 @@
-import { sql } from "@vercel/postgres";
-import { CustomersTableType } from "./definitions";
-import { formatCurrency } from "./utils";
-import { Prisma } from "@prisma/client";
-import { Invoices } from "@/app/models/invoices";
-import { prisma } from "@/prisma";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { Effect, Either } from "effect";
+import {
+  runService,
+  DashboardService,
+  UserProfileService,
+  type Revenue,
+  type LatestInvoice,
+  type CardData,
+} from "@/app/services";
 
 export interface CurrentUser {
   id: string;
@@ -13,8 +17,14 @@ export interface CurrentUser {
   image: string;
 }
 
+export type { Revenue, LatestInvoice, CardData };
+
 export async function fetchCurrentUser(): Promise<CurrentUser> {
-  const { id, name, email, image } = (await auth())?.user ?? {};
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const { id, name, email, image } = session?.user ?? {};
   return {
     id: id ?? "",
     name: name ?? "",
@@ -23,251 +33,139 @@ export async function fetchCurrentUser(): Promise<CurrentUser> {
   };
 }
 
-export async function fetchRevenue() {
-  try {
-    // Artificially delay a response for demo purposes.
-    // Don't do this in productions
+export async function fetchRevenue(): Promise<Revenue[]> {
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* DashboardService;
+      return yield* service.fetchRevenue();
+    })
+  );
 
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    const data = await prisma.revenue.findMany({
-      select: {
-        month: true,
-        revenue: true,
-      },
-    });
-
-    // console.log('Data fetch completed after 3 seconds.');
-
-    return data;
-  } catch (error) {
-    console.error("Database Error:", error);
+  if (Either.isLeft(result)) {
+    console.error("Database Error:", result.left);
     throw new Error("Failed to fetch revenue data.");
   }
+
+  return result.right;
 }
 
-const fetchLatestInvoicesQuery =
-  Prisma.validator<Prisma.invoicesFindManyArgs>()({
-    select: {
-      amount: true,
-      id: true,
-      customer: {
-        select: {
-          name: true,
-          image_url: true,
-          email: true,
-        },
-      },
-    },
-    orderBy: {
-      date: "asc",
-    },
-    take: 5,
-  });
+export async function fetchLatestInvoices(): Promise<LatestInvoice[]> {
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* DashboardService;
+      return yield* service.fetchLatestInvoices();
+    })
+  );
 
-export type LatestInvoice = Omit<
-  Prisma.invoicesGetPayload<typeof fetchLatestInvoicesQuery>,
-  "amount"
-> & { amount: string };
-
-export async function fetchLatestInvoices() {
-  try {
-    const data = await prisma.invoices.findMany(fetchLatestInvoicesQuery);
-
-    const latestInvoices = data.map((invoice) => ({
-      ...invoice,
-      amount: formatCurrency(invoice.amount),
-    }));
-    return latestInvoices;
-  } catch (error) {
-    console.error("Database Error:", error);
+  if (Either.isLeft(result)) {
+    console.error("Database Error:", result.left);
     throw new Error("Failed to fetch the latest invoices.");
   }
+
+  return result.right;
 }
 
-const userProfileSelectionById = {
-  bio: true,
-} satisfies Prisma.UserProfileSelect;
+export type UserProfileSelectionById = {
+  bio: string;
+};
 
-export type UserProfileSelectionById = Prisma.UserProfileGetPayload<{
-  select: typeof userProfileSelectionById;
-}>;
+export async function fetchUserProfile(
+  userId: string
+): Promise<UserProfileSelectionById | null> {
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* UserProfileService;
+      return yield* service.findByUserId(userId);
+    })
+  );
 
-export async function fetchUserProfile(userId: string) {
-  try {
-    const data = await prisma.userProfile.findUnique({
-      select: userProfileSelectionById,
-      where: {
-        userId: userId,
-      },
-    });
-    return data;
-  } catch (e) {
-    throw new Error("failed to fetch UserProfile.", { cause: e });
+  if (Either.isLeft(result)) {
+    if (result.left._tag === "UserProfileNotFound") {
+      return null;
+    }
+    throw new Error("failed to fetch UserProfile.", { cause: result.left });
   }
+
+  return { bio: result.right.bio };
 }
 
-export async function fetchCardData() {
-  try {
-    // You can probably combine these into a single SQL query
-    // However, we are intentionally splitting them to demonstrate
-    // how to initialize multiple queries in parallel with JS.
-    const invoiceCountPromise = prisma.invoices.count();
-    const customerCountPromise = prisma.customers.count();
-    const invoiceStatusPromise = prisma.$queryRaw<
-      {
-        paid: number;
-        pending: number;
-      }[]
-    >`SELECT
-         SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
-         SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
-         FROM invoices`;
+export async function fetchCardData(): Promise<CardData> {
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* DashboardService;
+      return yield* service.fetchCardData();
+    })
+  );
 
-    const data = await Promise.all([
-      invoiceCountPromise,
-      customerCountPromise,
-      invoiceStatusPromise,
-    ]);
-
-    const numberOfInvoices = data[0];
-    const numberOfCustomers = data[1];
-    const totalPaidInvoices = formatCurrency(Number(data[2][0].paid));
-    const totalPendingInvoices = formatCurrency(Number(data[2][0].pending));
-
-    return {
-      numberOfCustomers,
-      numberOfInvoices,
-      totalPaidInvoices,
-      totalPendingInvoices,
-    };
-  } catch (error) {
-    console.error("Database Error:", error);
+  if (Either.isLeft(result)) {
+    console.error("Database Error:", result.left);
     throw new Error("Failed to fetch card data.");
   }
+
+  return result.right;
 }
+
+// TODO: Effect-TS + Drizzle に移行予定
+export type InvoiceSelectionById = {
+  id: string;
+  customer_id: string;
+  amount: number;
+  status: "pending" | "paid";
+};
+
+export type CustomerField = {
+  id: string;
+  name: string;
+};
+
+export type FilteredInvoice = {
+  id: string;
+  amount: number;
+  date: string;
+  status: "pending" | "paid";
+  name: string;
+  email: string;
+  image_url: string;
+};
+
+export type FilteredCustomer = {
+  id: string;
+  name: string;
+  email: string;
+  image_url: string;
+  total_invoices: number;
+  total_pending: string;
+  total_paid: string;
+};
 
 export async function fetchFilteredInvoices(
-  query: string,
-  currentPage: number
-) {
-  try {
-    const invoices = await Invoices(prisma.invoices).filteredFetch({
-      query: query,
-      currentPage: currentPage,
-    });
-
-    return invoices;
-  } catch (error) {
-    console.error("Database Error:", error);
-    throw new Error("Failed to fetch invoices.");
-  }
+  _query: string,
+  _currentPage: number
+): Promise<FilteredInvoice[]> {
+  console.warn("fetchFilteredInvoices: Not implemented yet");
+  return [];
 }
 
-export async function fetchInvoicesPages(query: string) {
-  try {
-    const totalPages = await Invoices(prisma.invoices).fetchTotaltPages({
-      query: query,
-    });
-
-    return totalPages;
-  } catch (error) {
-    console.error("Database Error:", error);
-    throw new Error("Failed to fetch total number of invoices.");
-  }
+export async function fetchInvoicesPages(_query: string): Promise<number> {
+  console.warn("fetchInvoicesPages: Not implemented yet");
+  return 0;
 }
 
-const invoiceSelectionById = {
-  id: true,
-  customer_id: true,
-  amount: true,
-  status: true,
-} satisfies Prisma.invoicesSelect;
-
-export type InvoiceSelectionById = Omit<
-  Prisma.invoicesGetPayload<{
-    select: typeof invoiceSelectionById;
-  }>,
-  "status"
-> & { status: "pending" | "paid" };
-
-export async function fetchInvoiceById(id: string) {
-  try {
-    const invoice = await prisma.invoices.findUnique({
-      select: invoiceSelectionById,
-      where: {
-        id: id,
-      },
-    });
-
-    if (!invoice) return invoice;
-
-    return {
-      ...invoice,
-      // convert dollar from sent
-      amount: invoice.amount / 100,
-    } as InvoiceSelectionById;
-  } catch (error) {
-    console.error("Database Error:", error);
-    throw new Error("Failed to fetch invoice.");
-  }
+export async function fetchInvoiceById(
+  _id: string
+): Promise<InvoiceSelectionById | null> {
+  console.warn("fetchInvoiceById: Not implemented yet");
+  return null;
 }
 
-const fetchCustomersQuery = Prisma.validator<Prisma.customersFindManyArgs>()({
-  select: {
-    id: true,
-    name: true,
-  },
-  orderBy: {
-    name: "asc",
-  },
-});
-
-export type CustomerField = Prisma.customersGetPayload<
-  typeof fetchCustomersQuery
->;
-
-export async function fetchCustomers() {
-  try {
-    const customers = await prisma.customers.findMany(fetchCustomersQuery);
-
-    return customers;
-  } catch (err) {
-    console.error("Database Error:", err);
-    throw new Error("Failed to fetch all customers.");
-  }
+export async function fetchCustomers(): Promise<CustomerField[]> {
+  console.warn("fetchCustomers: Not implemented yet");
+  return [];
 }
 
-export async function fetchFilteredCustomers(query: string) {
-  try {
-    const data = await sql<CustomersTableType>`
-		SELECT
-		  customers.id,
-		  customers.name,
-		  customers.email,
-		  customers.image_url,
-		  COUNT(invoices.id) AS total_invoices,
-		  SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
-		  SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
-		FROM customers
-		LEFT JOIN invoices ON customers.id = invoices.customer_id
-		WHERE
-		  customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`}
-		GROUP BY customers.id, customers.name, customers.email, customers.image_url
-		ORDER BY customers.name ASC
-	  `;
-
-    const customers = data.rows.map((customer) => ({
-      ...customer,
-      total_pending: formatCurrency(customer.total_pending),
-      total_paid: formatCurrency(customer.total_paid),
-    }));
-
-    return customers;
-  } catch (err) {
-    console.error("Database Error:", err);
-    throw new Error("Failed to fetch customer table.");
-  }
+export async function fetchFilteredCustomers(
+  _query: string
+): Promise<FilteredCustomer[]> {
+  console.warn("fetchFilteredCustomers: Not implemented yet");
+  return [];
 }

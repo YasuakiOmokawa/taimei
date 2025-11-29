@@ -10,6 +10,10 @@ const nextConfig = {
         hostname: process.env.BLOB_HOSTNAME ?? 'example.com',
         port: '',
       },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
     ],
   },
   experimental: {
