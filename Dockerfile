@@ -7,15 +7,11 @@ ARG useruid=1001
 ARG usergid=${useruid}
 RUN groupadd --gid ${usergid} ${username} \
 && useradd -s /bin/bash --uid ${useruid} --gid ${usergid} -m ${username} \
-#
 # コンテナ上でsudoをパスワードなしで実行できるように対応
 && apt-get update \
 && apt-get install -y sudo \
 && echo ${username} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${username} \
-&& chmod 0440 /etc/sudoers.d/${username} \
-#
-# prismaに必要
-&& apt-get install -y openssl
+&& chmod 0440 /etc/sudoers.d/${username}
 
 USER ${username}
 WORKDIR /app
@@ -35,5 +31,4 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # 立ち上げること
 # $ docker compose build --build-arg APP_BUILD_CMD='' && docker compose up --watch
 ARG APP_BUILD_CMD='bun deployable-test'
-RUN bunx prisma generate \
-&& ${APP_BUILD_CMD}
+RUN ${APP_BUILD_CMD}
