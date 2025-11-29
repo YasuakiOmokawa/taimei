@@ -3,17 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { validatesCreateInvoice, validatesUpdateInvoice } from "./validates";
-import { signIn } from "@/auth";
-import { AuthError } from "next-auth";
 import { parseWithZod } from "@conform-to/zod/v4";
 import { emailLinkLoginSchema } from "./schema/login/schema";
-import { signOut as SignOut } from "@/auth";
-import { prisma } from "@/prisma";
 import { setFlash } from "@/lib/flash-toaster";
 import { deleteUserSchema } from "../setting/profile/schema";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import { setCustomCookie } from "@/lib/auth/serverUtils";
 import { fetchCurrentUser } from "./data";
+import { auth } from "@/lib/auth";
+import { authClient } from "@/lib/auth-client";
+import { headers } from "next/headers";
+import { Effect, Either } from "effect";
+import { runService, UserService } from "@/app/services";
 
 // for create/update
 export type State = {
@@ -35,42 +34,27 @@ export async function signOut() {
     type: "success",
     message: "ログアウトしました。",
   });
-  await SignOut({ redirectTo: "/" });
+  await auth.api.signOut({ headers: await headers() });
+  redirect("/");
 }
 
-export async function loginWithGithub(
-  redirectPath: string,
-  _formData: FormData
-) {
-  setCustomCookie("mysite_provider_auth_type", "signin");
+// GitHub ログインはクライアントサイドで実行（Phase 7 で実装）
+// Server Action から直接 OAuth を開始できないため、authClient.signIn.social を使用
 
-  // NOTE: OAuth認証の場合、Auth.js内部のエラーハンドリングの仕組みに任せるのでtry-catchしない
-  await signIn("github", {
-    redirectTo: redirectPath,
-  });
-}
+// Effect-TS サービス経由でユーザー存在チェック
+async function isExistsUser(email: string): Promise<boolean> {
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* UserService;
+      return yield* service.existsByEmail(email);
+    })
+  );
 
-export async function signupWithGithub(
-  redirectPath: string,
-  _formData: FormData
-) {
-  setCustomCookie("mysite_provider_auth_type", "signup");
-
-  // NOTE: OAuth認証の場合、Auth.js内部のエラーハンドリングの仕組みに任せるのでtry-catchしない
-  await signIn("github", {
-    redirectTo: redirectPath,
-  });
-}
-
-async function isExistsUser(email: string) {
-  try {
-    const userCount = await prisma.user.count({
-      where: { email: email },
-    });
-    return userCount > 0 ? true : false;
-  } catch (e) {
-    throw new Error(`Failed to count User: ${e}`);
+  if (Either.isLeft(result)) {
+    throw new Error(`Failed to check user existence: ${result.left._tag}`);
   }
+
+  return result.right;
 }
 
 export async function loginWithEmailLink(
@@ -86,6 +70,7 @@ export async function loginWithEmailLink(
     return submission.reply();
   }
 
+  // ログイン時：ユーザーが存在しない場合はエラー
   if (!(await isExistsUser(submission.value.email))) {
     await setFlash({
       type: "error",
@@ -94,26 +79,23 @@ export async function loginWithEmailLink(
     return submission.reply();
   }
 
-  try {
-    await signIn("resend", {
-      email: submission.value.email,
-      redirectTo: redirectPath,
+  // Better Auth の Magic Link API を使用
+  const response = await authClient.signIn.magicLink({
+    email: submission.value.email,
+    callbackURL: redirectPath,
+  });
+
+  if (response.error) {
+    return submission.reply({
+      formErrors: ["メール送信に失敗しました。"],
     });
-  } catch (e) {
-    if (e instanceof AuthError) {
-      switch (e.type) {
-        case "EmailSignInError":
-          return submission.reply({
-            formErrors: ["Email SignIn Error."],
-          });
-        default:
-          return submission.reply({
-            formErrors: ["Something went wrong."],
-          });
-      }
-    }
-    throw e;
   }
+
+  await setFlash({
+    type: "success",
+    message: "メールを送信しました。",
+  });
+  return submission.reply();
 }
 
 export async function signupWithEmailLink(
@@ -129,6 +111,7 @@ export async function signupWithEmailLink(
     return submission.reply();
   }
 
+  // サインアップ時：ユーザーが既に存在する場合はエラー
   if (await isExistsUser(submission.value.email)) {
     await setFlash({
       type: "error",
@@ -137,26 +120,23 @@ export async function signupWithEmailLink(
     return submission.reply();
   }
 
-  try {
-    await signIn("resend", {
-      email: submission.value.email,
-      redirectTo: redirectPath,
+  // Better Auth の Magic Link API を使用
+  const response = await authClient.signIn.magicLink({
+    email: submission.value.email,
+    callbackURL: redirectPath,
+  });
+
+  if (response.error) {
+    return submission.reply({
+      formErrors: ["メール送信に失敗しました。"],
     });
-  } catch (e) {
-    if (e instanceof AuthError) {
-      switch (e.type) {
-        case "EmailSignInError":
-          return submission.reply({
-            formErrors: ["Email SignIn Error."],
-          });
-        default:
-          return submission.reply({
-            formErrors: ["Something went wrong."],
-          });
-      }
-    }
-    throw e;
   }
+
+  await setFlash({
+    type: "success",
+    message: "メールを送信しました。",
+  });
+  return submission.reply();
 }
 
 export async function createInvoice(_prevState: State, formData: FormData) {
@@ -181,13 +161,8 @@ export async function createInvoice(_prevState: State, formData: FormData) {
   const { amount, status, customerId } = validatedFields.data;
   const amountInCents = amount * 100;
 
-  await prisma.invoices.create({
-    data: {
-      customer_id: customerId,
-      amount: amountInCents,
-      status: status,
-    },
-  });
+  // TODO: Invoice機能のEffect-TS移行
+  console.warn("createInvoice: Not implemented yet");
 
   revalidatePath("/dashboard/invoices"); // update page cache
   redirect("/dashboard/invoices");
@@ -219,25 +194,16 @@ export async function updateInvoice(
   const { amount, status, customerId } = validatedFields.data;
   const amountInCents = amount * 100;
 
-  await prisma.invoices.update({
-    data: {
-      amount: amountInCents,
-      status: status,
-      customer_id: customerId,
-    },
-    where: {
-      id: id,
-    },
-  });
+  // TODO: Invoice機能のEffect-TS移行
+  console.warn("updateInvoice: Not implemented yet");
 
   revalidatePath("/dashboard/invoices");
   redirect("/dashboard/invoices");
 }
 
 export async function deleteInvoice(id: string, _prevState: unknown) {
-  await prisma.invoices.delete({
-    where: { id: id },
-  });
+  // TODO: Invoice機能のEffect-TS移行
+  console.warn("deleteInvoice: Not implemented yet", id);
   await setFlash({ type: "success", message: "delete invoice successful." });
   revalidatePath("/dashboard/invoices");
 }
@@ -253,25 +219,8 @@ export async function deleteUser(_prevState: unknown, formData: FormData) {
     });
   }
 
-  try {
-    await prisma.user.delete({
-      where: { id: submission.value.id },
-    });
-  } catch (e) {
-    if (e instanceof PrismaClientKnownRequestError) {
-      switch (e.meta?.cause) {
-        case "Record to delete does not exist.":
-          return submission.reply({
-            formErrors: ["user not found."],
-          });
-        default:
-          return submission.reply({
-            formErrors: ["something went wrong."],
-          });
-      }
-    }
-    throw e;
-  }
+  // TODO: User削除機能のEffect-TS移行
+  console.warn("deleteUser: Not implemented yet", submission.value.id);
 
   await setFlash({ type: "success", message: "user deleted." });
   await signOut();

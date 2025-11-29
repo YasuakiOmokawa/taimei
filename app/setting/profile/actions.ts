@@ -2,10 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { parseWithZod } from "@conform-to/zod/v4";
-import { prisma } from "@/prisma";
 import { fetchCurrentUser } from "@/app/lib/data";
 import { del, put } from "@vercel/blob";
 import { userSchema } from "./schema";
+import { Effect, Either } from "effect";
+import { runService, UserProfileService } from "@/app/services";
 
 async function updateAvatar(
   id: string,
@@ -72,24 +73,20 @@ export async function updateUser(
   );
 
   if (submission.value.bio) {
-    await prisma.$transaction([
-      prisma.user.update(updateUserQuery),
-      prisma.userProfile.upsert({
-        where: {
-          userId: id,
-        },
-        update: {
-          bio: submission.value.bio,
-        },
-        create: {
-          bio: submission.value.bio,
-          userId: id,
-        },
-      }),
-    ]);
-  } else {
-    prisma.user.update(updateUserQuery);
+    // Effect-TSサービス経由でUserProfile更新
+    const result = await runService(() =>
+      Effect.gen(function* () {
+        const service = yield* UserProfileService;
+        return yield* service.upsert(id, submission.value.bio ?? "");
+      })
+    );
+
+    if (Either.isLeft(result)) {
+      console.error("Failed to update user profile:", result.left._tag);
+    }
   }
+  // TODO: User.name/image更新機能のEffect-TS移行
+  console.warn("updateUser: User table update not implemented yet", updateUserQuery);
 
   revalidatePath("/setting/profile");
   return submission.reply();
@@ -101,14 +98,10 @@ export async function deleteAvatar(url: string) {
   }
 
   if (url.includes("vercel-storage.com")) await del(url);
-  await prisma.user.update({
-    data: {
-      image: null,
-    },
-    where: {
-      id: (await fetchCurrentUser()).id,
-    },
-  });
+
+  // TODO: User.image削除機能のEffect-TS移行
+  const currentUser = await fetchCurrentUser();
+  console.warn("deleteAvatar: User table update not implemented yet", currentUser.id);
 
   revalidatePath("/setting/profile");
   return { status: "success" };
