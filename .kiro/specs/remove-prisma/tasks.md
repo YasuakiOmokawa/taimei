@@ -9,7 +9,7 @@
   - 環境変数 DATABASE_URL から接続情報を取得する設定
   - _Requirements: 1.1_
 
-- [ ] 1.2 signIn 関数を Drizzle ORM で書き換える
+- [x] 1.2 signIn 関数を Drizzle ORM で書き換える
   - Prisma Client の import を Drizzle クライアントに置換
   - user.count を db.select().from(user).where() に変更
   - user.create を db.insert(user).values() に変更
