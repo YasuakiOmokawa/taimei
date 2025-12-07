@@ -3,7 +3,7 @@
 ## Tasks
 
 - [ ] 1. E2E テスト環境の Drizzle 移行
-- [ ] 1.1 E2E 用 Drizzle クライアントとスキーマを設定する
+- [x] 1.1 E2E 用 Drizzle クライアントとスキーマを設定する
   - e2e/ ディレクトリに Drizzle ORM と pg ドライバの依存を追加
   - db/drizzle/schema.ts を e2e/ にコピーし、E2E 用クライアントを作成
   - 環境変数 DATABASE_URL から接続情報を取得する設定
