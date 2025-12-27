@@ -34,7 +34,7 @@ services:
       - APP_ENV=test
       - AUTH_TRUST_HOST=http://e2e-application:3001
       - PORT=3001
-      - AUTH_SECRET=test-dummy
+      - AUTH_SECRET=test-secret-for-e2e-testing-32chars
     develop:
       watch:
         - action: sync
