@@ -1,5 +1,6 @@
 -- Better Auth Migration: Auth.js → Better Auth
 -- このマイグレーションは既存のAuth.jsテーブルをBetter Auth形式に変換します
+-- E2E等の新規DBでは、Better Authテーブルのみを作成します
 
 -- 1. 新しいテーブルを作成（Better Auth 形式）
 
@@ -67,59 +68,79 @@ CREATE TABLE IF NOT EXISTS "user_profile" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "user_profile_userId_key" ON "user_profile" ("user_id");
 
--- 2. 既存データの移行
+-- 2. 既存データの移行（Auth.jsテーブルが存在する場合のみ実行）
 
 -- User → user
-INSERT INTO "user" ("id", "name", "email", "email_verified", "image", "created_at", "updated_at")
-SELECT
-  "id",
-  COALESCE("name", ''),
-  "email",
-  CASE WHEN "emailVerified" IS NOT NULL THEN true ELSE false END,
-  "image",
-  "createdAt",
-  "updatedAt"
-FROM "User"
-ON CONFLICT ("id") DO NOTHING;
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'User') THEN
+    INSERT INTO "user" ("id", "name", "email", "email_verified", "image", "created_at", "updated_at")
+    SELECT
+      "id",
+      COALESCE("name", ''),
+      "email",
+      CASE WHEN "emailVerified" IS NOT NULL THEN true ELSE false END,
+      "image",
+      "createdAt",
+      "updatedAt"
+    FROM "User"
+    ON CONFLICT ("id") DO NOTHING;
+  END IF;
+END $$;
 
 -- Account → account
-INSERT INTO "account" ("id", "account_id", "provider_id", "user_id", "access_token", "refresh_token", "id_token", "scope", "created_at", "updated_at")
-SELECT
-  gen_random_uuid()::text,
-  "providerAccountId",
-  "provider",
-  "userId",
-  "access_token",
-  "refresh_token",
-  "id_token",
-  "scope",
-  "createdAt",
-  "updatedAt"
-FROM "Account"
-ON CONFLICT DO NOTHING;
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'Account') THEN
+    INSERT INTO "account" ("id", "account_id", "provider_id", "user_id", "access_token", "refresh_token", "id_token", "scope", "created_at", "updated_at")
+    SELECT
+      gen_random_uuid()::text,
+      "providerAccountId",
+      "provider",
+      "userId",
+      "access_token",
+      "refresh_token",
+      "id_token",
+      "scope",
+      "createdAt",
+      "updatedAt"
+    FROM "Account"
+    ON CONFLICT DO NOTHING;
+  END IF;
+END $$;
 
 -- UserProfile → user_profile
-INSERT INTO "user_profile" ("id", "bio", "user_id", "created_at", "updated_at")
-SELECT
-  "id",
-  "bio",
-  "userId",
-  "createdAt",
-  "updatedAt"
-FROM "UserProfile"
-ON CONFLICT ("id") DO NOTHING;
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'UserProfile') THEN
+    INSERT INTO "user_profile" ("id", "bio", "user_id", "created_at", "updated_at")
+    SELECT
+      "id",
+      "bio",
+      "userId",
+      "createdAt",
+      "updatedAt"
+    FROM "UserProfile"
+    ON CONFLICT ("id") DO NOTHING;
+  END IF;
+END $$;
 
 -- VerificationToken → verification
-INSERT INTO "verification" ("id", "identifier", "value", "expires_at", "created_at", "updated_at")
-SELECT
-  gen_random_uuid()::text,
-  "identifier",
-  "token",
-  "expires",
-  NOW(),
-  NOW()
-FROM "VerificationToken"
-ON CONFLICT DO NOTHING;
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'VerificationToken') THEN
+    INSERT INTO "verification" ("id", "identifier", "value", "expires_at", "created_at", "updated_at")
+    SELECT
+      gen_random_uuid()::text,
+      "identifier",
+      "token",
+      "expires",
+      NOW(),
+      NOW()
+    FROM "VerificationToken"
+    ON CONFLICT DO NOTHING;
+  END IF;
+END $$;
 
 -- 3. 旧テーブルの削除（移行後に実行）
 -- 注意: データ移行が完了したことを確認してから実行すること
