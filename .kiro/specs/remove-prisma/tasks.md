@@ -16,11 +16,11 @@
   - テストユーザーの作成ロジックが正しく動作することを確認
   - _Requirements: 1.1_
 
-- [ ] 1.3 E2E Dockerfile から Prisma 関連を削除する
+- [x] 1.3 E2E Dockerfile から Prisma 関連を削除する
   - prisma ディレクトリのコピー処理を削除
   - prisma.ts ファイルのコピー処理を削除
   - npx prisma generate コマンドを削除
-  - db/drizzle ディレクトリのコピー処理を追加
+  - db/drizzle ディレクトリのコピー処理を追加（e2e/db/ が既存のため不要）
   - _Requirements: 1.3_
 
 - [ ] 2. Docker 構成と CI/CD の更新
