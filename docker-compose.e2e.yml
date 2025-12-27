@@ -56,7 +56,6 @@ services:
       - CI=${CI}
       - PLAYWRIGHT_BASE_URL=http://e2e-application:3001
       - DATABASE_URL=postgres://postgres:password@e2e-postgres:5433/postgres
-      - APPDOMAIN=e2e-application
     command: >
       sh -c "${E2E_SERVICE_COMMAND}"
     volumes:
