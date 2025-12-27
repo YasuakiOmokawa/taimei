@@ -22,8 +22,8 @@ yarn lint --fix                    # ESLint自動修正
 npx tsc --noEmit                   # TypeScript型チェック
 
 # データベース
-docker compose exec application node_modules/.bin/prisma migrate deploy  # マイグレーション適用
-bunx prisma generate               # Prismaクライアント生成
+bunx drizzle-kit migrate           # マイグレーション適用
+bunx drizzle-kit generate          # スキーマからマイグレーションSQL生成
 
 # e2eテスト
 E2E_SERVICE_COMMAND='npm test' docker compose -f docker-compose.e2e.yml up --build
@@ -62,7 +62,7 @@ components/
 └── *.tsx               # アプリ固有の共通コンポーネント
 
 db/drizzle/             # Drizzle スキーマ
-prisma/                 # Prisma スキーマ・マイグレーション
+drizzle/                # Drizzle マイグレーションSQL
 __tests__/              # 統合テスト
 ```
 

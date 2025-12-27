@@ -27,15 +27,14 @@ services:
     ports:
       - "3001:3001"
     command: >
-      sh -c "bunx prisma migrate deploy && bun start"
+      sh -c "bunx drizzle-kit migrate && bun start"
     user: vscode
     environment:
-      - POSTGRES_PRISMA_URL=postgres://postgres:password@e2e-postgres:5433/postgres?pgbouncer=true&connect_timeout=15
-      - POSTGRES_URL_NON_POOLING=postgres://postgres:password@e2e-postgres:5433/postgres
+      - DATABASE_URL=postgres://postgres:password@e2e-postgres:5433/postgres
       - APP_ENV=test
       - AUTH_TRUST_HOST=http://e2e-application:3001
       - PORT=3001
-      - AUTH_SECRET=test-dummy
+      - AUTH_SECRET=test-secret-for-e2e-testing-32chars
     develop:
       watch:
         - action: sync
@@ -56,9 +55,7 @@ services:
     environment:
       - CI=${CI}
       - PLAYWRIGHT_BASE_URL=http://e2e-application:3001
-      - POSTGRES_PRISMA_URL=postgres://postgres:password@e2e-postgres:5433/postgres?pgbouncer=true&connect_timeout=15
-      - POSTGRES_URL_NON_POOLING=postgres://postgres:password@e2e-postgres:5433/postgres
-      - APPDOMAIN=e2e-application
+      - DATABASE_URL=postgres://postgres:password@e2e-postgres:5433/postgres
     command: >
       sh -c "${E2E_SERVICE_COMMAND}"
     volumes:

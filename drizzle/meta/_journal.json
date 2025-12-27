@@ -8,6 +8,13 @@
       "when": 1754804308282,
       "tag": "0000_safe_songbird",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1754804400000,
+      "tag": "0001_better_auth_migration",
+      "breakpoints": true
     }
   ]
 }
