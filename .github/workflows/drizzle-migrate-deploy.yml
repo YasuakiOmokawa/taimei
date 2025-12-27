@@ -1,13 +1,13 @@
-name: Prisma Migrate Deploy
+name: Drizzle Migrate Deploy
 on:
   push:
     paths:
-      - prisma/migrations/** # Only run this workflow when migrations are updated
+      - drizzle/** # drizzle/配下の変更時のみ実行
     branches:
       - main
 
 jobs:
-  Prisma-Migrate-Deploy:
+  Drizzle-Migrate-Deploy:
     runs-on: ubuntu-latest
     environment:
       name: Production
@@ -16,10 +16,9 @@ jobs:
         uses: actions/checkout@v4
       - name: Install bun
         uses: oven-sh/setup-bun@v1
-      - name: Install dependences
+      - name: Install dependencies
         run: bun install
       - name: Apply all pending migrations to the database
-        run: npx prisma migrate deploy
+        run: bunx drizzle-kit migrate
         env:
-          POSTGRES_PRISMA_URL: ${{ secrets.POSTGRES_PRISMA_URL }}
-          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

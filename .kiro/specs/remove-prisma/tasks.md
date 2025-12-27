@@ -31,9 +31,11 @@
   - e2e サービスにも DATABASE_URL を設定
   - _Requirements: 3.1, 3.2_
 
-- [ ] 2.2 (P) Prisma マイグレーションワークフローを削除する
+- [x] 2.2 (P) Prisma マイグレーションワークフローを削除し、Drizzle版を作成する
   - .github/workflows/prisma-migrate-deploy.yml を削除
-  - Drizzle マイグレーションワークフローが必要な場合は別途作成（本タスクではスコープ外）
+  - .github/workflows/drizzle-migrate-deploy.yml を作成（drizzle/配下の変更時に実行）
+  - drizzle/meta/_journal.json に 0001_better_auth_migration を登録
+  - GitHub Secrets に DATABASE_URL の設定が必要（手動）
   - _Requirements: 2.1, 2.2_
 
 - [ ] 3. パッケージ依存関係の削除
