@@ -38,17 +38,18 @@
   - GitHub Secrets に DATABASE_URL の設定が必要（手動）
   - _Requirements: 2.1, 2.2_
 
-- [ ] 3. パッケージ依存関係の削除
-- [ ] 3.1 e2e/package.json から Prisma 依存を削除する
-  - @prisma/client を devDependencies から削除
+- [x] 3. パッケージ依存関係の削除
+- [x] 3.1 e2e/package.json から Prisma 依存を削除する
+  - @prisma/client を devDependencies から削除（既に削除済み）
   - npm --prefix ./e2e install ./e2e を実行して依存を更新
-  - e2e/package-lock.json から Prisma 関連エントリが消えていることを確認
+  - 注: drizzle-ormのoptional peer depとして@prisma/clientがnode_modulesに入るがpackage.jsonには記載なし
   - _Requirements: 4.3, 4.4_
 
-- [ ] 3.2 メインプロジェクトから Prisma パッケージを削除する
-  - package.json に prisma, @prisma/client がないことを確認（既に削除済みの想定）
-  - bun install を実行して yarn.lock を更新
-  - yarn.lock から @prisma/ プレフィックスのパッケージが消えていることを確認
+- [x] 3.2 メインプロジェクトから Prisma パッケージを削除する
+  - package.json に prisma, @prisma/client がないことを確認済み
+  - bun install を実行（yarn.lockは削除、bun.lockbを使用）
+  - bun.lockb から @prisma/ プレフィックスのパッケージが消えていることを確認
+  - 注: @prisma/instrumentationは@sentry/nextjsの依存として残存（Prisma ORMではない）
   - _Requirements: 4.1, 4.2_
 
 - [ ] 4. ドキュメントとクリーンアップ
