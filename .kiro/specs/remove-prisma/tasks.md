@@ -24,7 +24,7 @@
   - _Requirements: 1.3_
 
 - [ ] 2. Docker 構成と CI/CD の更新
-- [ ] 2.1 docker-compose.e2e.yml を Drizzle Kit に更新する
+- [x] 2.1 docker-compose.e2e.yml を Drizzle Kit に更新する
   - e2e-application の command を bunx drizzle-kit migrate に変更
   - DATABASE_URL 環境変数を追加
   - POSTGRES_PRISMA_URL の参照を削除
