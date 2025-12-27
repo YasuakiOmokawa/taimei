@@ -17,10 +17,10 @@ bun install
 npm --prefix ./e2e install ./e2e
 ```
 
-# データベース作成
+# データベースマイグレーション
 
 ```console
-docker compose exec application node_modules/.bin/prisma migrate deploy
+bunx drizzle-kit migrate
 ```
 
 # 開発環境起動

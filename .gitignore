@@ -43,8 +43,6 @@ next-env.d.ts
 # dump
 /dump
 
-# seed
-/prisma/seeds
 
 # Sentry Config File
 .env.sentry-build-plugin

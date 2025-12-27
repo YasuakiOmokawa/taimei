@@ -52,22 +52,22 @@
   - 注: @prisma/instrumentationは@sentry/nextjsの依存として残存（Prisma ORMではない）
   - _Requirements: 4.1, 4.2_
 
-- [ ] 4. ドキュメントとクリーンアップ
-- [ ] 4.1 (P) README.md を更新する
+- [x] 4. ドキュメントとクリーンアップ
+- [x] 4.1 (P) README.md を更新する
   - Prisma マイグレーションコマンドを Drizzle Kit コマンドに置換
   - データベース作成セクションのコマンドを更新
   - _Requirements: 5.1_
 
-- [ ] 4.2 (P) .claude/CLAUDE.md を更新する
+- [x] 4.2 (P) .claude/CLAUDE.md を更新する
   - Prisma 関連のコマンド記載を削除
   - Drizzle のみを参照するよう修正
-  - prisma/ ディレクトリ構造の記載を削除
+  - prisma/ ディレクトリ構造の記載を drizzle/ に変更
   - _Requirements: 5.2_
 
-- [ ] 4.3 (P) 不要なファイルと設定を削除する
+- [x] 4.3 (P) 不要なファイルと設定を削除する
   - .gitignore から /prisma/seeds エントリを削除
   - db/drizzle/schema.ts から prismaMigrations テーブル定義を削除
-  - prisma/ ディレクトリが存在する場合は削除
+  - prisma/ ディレクトリは存在しないため削除不要
   - _Requirements: 6.1, 6.2, 6.3, 7.1_
 
 - [ ] 5. 動作確認と検証
