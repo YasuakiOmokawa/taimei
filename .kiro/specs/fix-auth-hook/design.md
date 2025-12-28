@@ -239,6 +239,7 @@ export const getSession = cache(async () => {
 
 **Implementation Notes**
 - Integration: 保護ページの先頭で `await verifySession()` を呼び出し
+- Migration: 既存レイアウト（dashboard/setting）の `auth.api.getSession()` + `redirect()` を `verifySession()` に置換。`fetchCurrentUser()` 等のユーザー情報取得は維持
 - Validation: Better Auth session API による DB 検証（セキュアな検証）
 - Risks: なし（Next.js / Better Auth 推奨パターン）
 
