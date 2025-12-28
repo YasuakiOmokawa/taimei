@@ -33,6 +33,7 @@ export default function EmailLinkLoginForm() {
         <div className="grid gap-2">
           <Label htmlFor="email">Email</Label>
           <Input
+            id="email"
             key={fields.email.key}
             type="email"
             name={fields.email.name}
