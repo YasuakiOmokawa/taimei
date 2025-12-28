@@ -24,6 +24,10 @@ export default defineConfig({
         find: "@",
         replacement: resolve(__dirname, "./"),
       },
+      {
+        find: "server-only",
+        replacement: resolve(__dirname, "./__tests__/utils/server-only-mock.ts"),
+      },
     ],
   },
 });
