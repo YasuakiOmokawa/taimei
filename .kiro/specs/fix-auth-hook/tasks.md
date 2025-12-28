@@ -16,8 +16,8 @@
   - 未認証: /login へリダイレクト
   - _Requirements: 1.1, 1.2_
 
-- [ ] 2. Better Auth databaseHooks の実装
-- [ ] 2.1 GitHub OAuth ログイン時の未登録ユーザー検出フックを実装する
+- [x] 2. Better Auth databaseHooks の実装
+- [x] 2.1 GitHub OAuth ログイン時の未登録ユーザー検出フックを実装する
   - OAuth state から `mode` を取得する仕組みを追加
   - `mode: 'login'` 時にユーザーが存在しない場合の作成防止
   - フラッシュ Cookie 設定（maxAge: 1 で即時削除）
@@ -25,12 +25,12 @@
   - _Requirements: 5.1_
 
 - [ ] 3. UI コンポーネントの修正
-- [ ] 3.1 (P) ログイン画面の GitHub ボタンに mode パラメータを追加する
+- [x] 3.1 (P) ログイン画面の GitHub ボタンに mode パラメータを追加する
   - `additionalData: { mode: "login" }` を signIn.social に追加
   - hooks 側で login/signup を判別可能にする
   - _Requirements: 5.1_
 
-- [ ] 3.2 (P) 新規登録画面の GitHub ボタンのコールバック URL を変更する
+- [x] 3.2 (P) 新規登録画面の GitHub ボタンのコールバック URL を変更する
   - 既存ユーザー検出時のコールバック URL を `/login?from=signup` に設定
   - 新規ユーザー用のコールバック URL を設定
   - _Requirements: 3.1_
@@ -42,14 +42,14 @@
   - Suspense 境界での配置（`useSearchParams()` 対応）
   - _Requirements: 3.1_
 
-- [ ] 4. 既存レイアウトの Auth Guard 移行
-- [ ] 4.1 (P) dashboard レイアウトの認証チェックを Auth Guard に移行する
+- [x] 4. 既存レイアウトの Auth Guard 移行
+- [x] 4.1 (P) dashboard レイアウトの認証チェックを Auth Guard に移行する
   - 既存の `auth.api.getSession()` + `redirect()` を `verifySession()` に置換
   - 現在のパスを `returnTo` として渡す
   - `fetchCurrentUser()` 等のユーザー情報取得は維持
   - _Requirements: 6.1_
 
-- [ ] 4.2 (P) setting レイアウトの認証チェックを Auth Guard に移行する
+- [x] 4.2 (P) setting レイアウトの認証チェックを Auth Guard に移行する
   - 既存の `auth.api.getSession()` + `redirect()` を `verifySession()` に置換
   - 現在のパスを `returnTo` として渡す
   - _Requirements: 6.1_

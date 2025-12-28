@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { getOAuthState } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins";
 import { nextCookies } from "better-auth/next-js";
@@ -43,11 +44,37 @@ export const auth = betterAuth({
     },
   },
 
-
   // アカウントリンクは無効（明示的にログイン後に連携させる）
   account: {
     accountLinking: {
       enabled: false,
+    },
+  },
+
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user, ctx) => {
+          // ログイン画面からの OAuth で未登録ユーザーが来た場合、自動登録させず新規登録を促す
+          const state = await getOAuthState();
+          if (state?.mode === "login") {
+            if (!ctx) {
+              throw new Error("Cannot create user in login mode: context not available");
+            }
+            // maxAge: 1 で即時削除。リダイレクト先の FlashToaster が読み取り後に破棄される
+            ctx.setCookie(
+              "flash",
+              JSON.stringify({
+                type: "error",
+                message: "アカウントが存在しません。新規登録してください。",
+              }),
+              { maxAge: 1 }
+            );
+            throw ctx.redirect("/signup");
+          }
+          return { data: user };
+        },
+      },
     },
   },
 
