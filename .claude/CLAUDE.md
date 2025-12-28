@@ -60,8 +60,8 @@ app/
 │   ├── data.ts         # データ取得関数
 │   ├── atoms/          # Jotai atoms（クライアント状態）
 │   ├── hooks/          # カスタムフック
-│   ├── schema/         # Zodスキーマ（フォーム用）
-│   └── use-conform/    # Conform フォーム連携
+│   └── schema/         # Zodスキーマ（フォーム用）
+├── use-conform/        # Conform フォーム連携（Server Actions対応）
 ├── ui/                 # ページ固有のUIコンポーネント
 ├── schema/             # Zod スキーマ定義（共通）
 └── [page]/             # Next.js App Router ページ

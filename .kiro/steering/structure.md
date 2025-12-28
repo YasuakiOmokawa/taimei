@@ -38,6 +38,10 @@
 **Location**: `app/schema/`
 **Purpose**: Zod スキーマ定義
 
+### Conform Forms
+**Location**: `app/use-conform/`
+**Purpose**: Conform + Zod フォーム連携（Server Actions対応）
+
 ### Lib (ユーティリティ)
 **Location**: `app/lib/`
 **Purpose**: Server Actions、ユーティリティ関数
