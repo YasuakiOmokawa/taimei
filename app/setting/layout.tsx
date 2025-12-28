@@ -2,22 +2,14 @@ import { SettingSidebar } from "@/components/setting-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { fetchCurrentUser } from "../lib/data";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { verifySession } from "@/app/lib/auth-guard";
 
 export default async function Layout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    redirect("/login");
-  }
+  await verifySession({ returnTo: "/setting" });
 
   const currentUser = await fetchCurrentUser();
 
