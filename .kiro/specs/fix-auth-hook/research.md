@@ -5,8 +5,8 @@
 - **Discovery Scope**: Extension（既存の Better Auth 設定への機能追加）
 - **Key Findings**:
   - Magic Link のユーザー存在チェックは既に実装済み（Req 2, 4）
-  - GitHub OAuth のユーザー存在チェックは Better Auth hooks で実装可能
-  - 認証ミドルウェアは Next.js middleware.ts を新規作成し、既存の stackMiddleware パターンに統合
+  - GitHub OAuth のユーザー存在チェックは Better Auth hooks + callbackURL で実装
+  - 認証検証は Auth Guard パターン（`app/lib/auth-guard.ts`）で実装
 
 ## Research Log
 
@@ -22,32 +22,37 @@
   - `after` hook で `/callback/:id` パスをマッチして処理可能
   - `ctx.redirect()` でフックからリダイレクト可能
 - **Implications**:
-  - `additionalData: { mode: 'login' | 'signup' }` でログイン/新規登録を区別
-  - ログイン時: `databaseHooks.user.create.before` でユーザー作成を防止
-  - 新規登録時: `after` hook で既存ユーザーの場合にリダイレクト
+  - ログイン時: `databaseHooks.user.create.before` + `additionalData: { mode: 'login' }` でユーザー作成を防止
+  - 新規登録時: `callbackURL`/`newUserCallbackURL` で既存/新規を自動振り分け（`after` hook は不要）
+  - `after` hook での新規/既存判別は困難（hook 実行時点で両方とも DB に存在するため）
 
-### 既存ミドルウェアパターン
-- **Context**: 認証ミドルウェアの実装パターンを確認
-- **Sources Consulted**: `middlewares/stackMiddleware.ts`, `middlewares/types.ts`
+### 認証パターン調査
+- **Context**: Next.js App Router での認証ベストプラクティスを調査
+- **Sources Consulted**:
+  - [Next.js Authentication Guide](https://nextjs.org/docs/app/guides/authentication)
+  - [Better Auth Next.js Integration](https://www.better-auth.com/docs/integrations/next)
 - **Findings**:
-  - `MiddlewareFactory` 型でミドルウェアを定義
-  - `stackMiddleware()` で複数ミドルウェアを合成
-  - ルート `middleware.ts` は未作成
+  - **Better Auth 推奨**: "We recommend handling auth checks in each page/route"
+  - **Next.js 推奨**: Data Access Layer (DAL) パターンでデータソース近くで認証検証
+  - **Middleware の限界**: CVE-2025-29927 でバイパス可能な脆弱性が発見済み
+  - **Layout での認証チェックは NG**: クライアントナビゲーションで再レンダリングされない
+  - **Server Actions は Middleware をバイパス**: 個別保護が必須
 - **Implications**:
-  - `middlewares/auth.ts` を新規作成し `MiddlewareFactory` パターンに従う
-  - `middleware.ts` を作成し `stackMiddleware` で auth ミドルウェアを統合
+  - proxy.ts/middleware.ts での認証は**オプティミスティック**（UX向上）のみ
+  - セキュリティは Auth Guard (`app/lib/auth-guard.ts`) で担保
+  - 各ページで `verifySession()` を呼び出すパターンを採用
 
 ### フラッシュメッセージ機能
 - **Context**: 既存のフラッシュメッセージ実装を確認
-- **Sources Consulted**: `lib/flash-toaster.tsx`
+- **Sources Consulted**: `lib/flash-toaster.tsx`, [Better Auth Hooks](https://www.better-auth.com/docs/concepts/hooks)
 - **Findings**:
-  - `setFlash({ type, message })` で Cookie にフラッシュを設定
+  - 既存: `setFlash({ type, message })` で Cookie にフラッシュを設定
   - `maxAge: 1` で1秒後に自動削除
-  - Server Component から呼び出し可能
+  - Better Auth hooks 内では `ctx.setCookies()` が利用可能
+  - `ctx.setCookies("flash", JSON.stringify({...}), { maxAge: 1 })` で同等の Cookie 設定可能
 - **Implications**:
-  - Better Auth hooks 内からは直接 `setFlash()` を呼べない（headers が必要）
-  - 代替: リダイレクト URL にクエリパラメータでメッセージを渡す
-  - クライアント側でクエリパラメータを検出してフラッシュ表示
+  - ログインモード（hooks 使用）: `ctx.setCookies()` でフラッシュ Cookie 設定、既存 FlashToaster で表示
+  - 新規登録モード（hooks 不使用）: `callbackURL` にクエリパラメータ付与、ログインページで検知して toast 表示
 
 ## Architecture Pattern Evaluation
 
@@ -71,33 +76,44 @@
 - **Follow-up**: E2E テストで OAuth フロー全体を検証
 
 ### Decision: フラッシュメッセージの伝達方式
-- **Context**: Better Auth hooks 内からフラッシュメッセージを設定する方法
+- **Context**: OAuth 認証エラー時のフラッシュメッセージ表示方法
 - **Alternatives Considered**:
-  1. クエリパラメータ経由（`?flash=account_exists`）
-  2. 別の Cookie を直接設定
-  3. 専用のエラーページ
-- **Selected Approach**: Option 1 - クエリパラメータ経由
-- **Rationale**: シンプル、既存の useSearchParams パターンと整合
-- **Trade-offs**: URL にパラメータが露出するが、センシティブな情報ではない
-- **Follow-up**: クライアントコンポーネントでクエリパラメータを検出してフラッシュ表示
+  1. クエリパラメータ経由（`?from=signup`）
+  2. `ctx.setCookies()` で Cookie 設定
+  3. 専用 API route でリダイレクト前に Cookie 設定
+- **Selected Approach**: ハイブリッド方式
+  - ログインモード（未登録ユーザー）: Option 2 - hooks 内で `ctx.setCookies()` → 既存 FlashToaster
+  - 新規登録モード（既存ユーザー）: Option 1 - `callbackURL: "/login?from=signup"` → ログインページで検知
+- **Rationale**:
+  - ログインモード: hooks (`create.before`) が発火するので Cookie 設定可能
+  - 新規登録モード: hooks (`after`) での新規/既存判別が困難（タイミング問題）のためクエリパラメータ使用
+  - 認証専用のフラッシュなので影響範囲が限定的
+- **Trade-offs**: 2 つの方式が混在（ただし認証フローに閉じている）
+- **Follow-up**: -
 
-### Decision: 認証ミドルウェアの構成
+### Decision: 認証パターンの構成
 - **Context**: ルートエンドポイントと保護ルートの認証制御
 - **Alternatives Considered**:
-  1. Next.js middleware.ts で認証チェック
+  1. Next.js proxy.ts で認証チェック（一元管理）
   2. 各レイアウトで個別チェック（現状）
-  3. API route wrapper
-- **Selected Approach**: Option 1 - Next.js middleware.ts
-- **Rationale**: 一元的な認証制御、パフォーマンス、既存 stackMiddleware パターンとの統合
-- **Trade-offs**: Edge Runtime の制限（Drizzle 直接使用不可）→ Better Auth の session API 使用
-- **Follow-up**: Edge Runtime での Better Auth session 取得方法を確認
+  3. **Data Access Layer (DAL) パターン**（各ページで verifySession）
+- **Selected Approach**: Option 3 - DAL パターン
+- **Rationale**:
+  - Next.js / Better Auth 両方の公式推奨パターン
+  - セキュリティ: データソース近くで検証（CVE-2025-29927 対策）
+  - カスタマイズ性: ライブラリ自動生成エンドポイントに影響しない
+  - シンプル: proxy.ts の追加コード不要
+- **Trade-offs**:
+  - 各ページで `verifySession()` 呼び出しが必要（ボイラープレート）
+  - ページ読み込み開始後にリダイレクト（proxy.ts より若干遅い）
+- **Follow-up**: -
 
 ## Risks & Mitigations
 - **Risk 1**: Better Auth hooks の動作が期待通りでない可能性 — E2E テストで検証
-- **Risk 2**: Edge Runtime での制限 — Better Auth の Edge 対応 API を使用
-- **Risk 3**: OAuth state のデータ検証漏れ — サーバーサイドで必ず検証
+- **Risk 2**: OAuth state のデータ検証漏れ — サーバーサイドで必ず検証
 
 ## References
 - [Better Auth Hooks](https://www.better-auth.com/docs/concepts/hooks) — hooks API の詳細
 - [Better Auth OAuth](https://www.better-auth.com/docs/concepts/oauth) — OAuth state, additionalData の使用方法
-- [Next.js Middleware](https://nextjs.org/docs/app/building-your-application/routing/middleware) — middleware.ts の実装
+- [Better Auth Next.js Integration](https://www.better-auth.com/docs/integrations/next) — Next.js での認証パターン推奨
+- [Next.js Authentication Guide](https://nextjs.org/docs/app/guides/authentication) — DAL パターン、セキュリティベストプラクティス

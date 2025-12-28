@@ -6,7 +6,7 @@
 
 **Users**: 全ユーザー（認証済み・未認証）が対象。ログイン・新規登録・ダッシュボードアクセスのフローで利用。
 
-**Impact**: 既存の Better Auth 設定に hooks を追加し、新規の認証ミドルウェアを導入。既存のレイアウトファイルでの個別セッションチェックは維持。
+**Impact**: 既存の Better Auth 設定に hooks を追加し、Auth Guard パターンで認証検証を実装。既存のレイアウトファイルでの個別セッションチェックは Auth Guard に統合。
 
 ### Goals
 - 認証状態に応じたルートエンドポイントの自動リダイレクト
@@ -27,7 +27,9 @@
 - **Better Auth** (`lib/auth.ts`): GitHub OAuth + Magic Link 設定済み
 - **セッションチェック**: 各レイアウトファイル（dashboard/setting）で個別実装
 - **フラッシュメッセージ**: `lib/flash-toaster.tsx` で Cookie ベース実装
-- **ミドルウェア**: `middlewares/stackMiddleware.ts` でファクトリパターン実装済み、ルート `middleware.ts` は未作成
+
+新規追加:
+- **Auth Guard**: `app/lib/auth-guard.ts` でセッション検証を一元化（Next.js / Better Auth 推奨パターン）
 
 ### Architecture Pattern & Boundary Map
 
@@ -39,47 +41,39 @@ graph TB
         Dashboard[Dashboard]
     end
 
-    subgraph Middleware Layer
-        NextMiddleware[middleware.ts]
-        AuthMiddleware[middlewares/auth.ts]
+    subgraph Auth Guard Layer
+        AuthGuard[app/lib/auth-guard.ts]
+        VerifySession[verifySession]
     end
 
     subgraph Better Auth
         AuthConfig[lib/auth.ts]
         DatabaseHooks[databaseHooks]
-        AfterHooks[after hooks]
+        SessionAPI[auth.api.getSession]
     end
 
-    subgraph Services
-        UserService[UserService]
-    end
-
-    LoginPage --> NextMiddleware
-    SignupPage --> NextMiddleware
-    Dashboard --> NextMiddleware
-    NextMiddleware --> AuthMiddleware
-    AuthMiddleware --> AuthConfig
+    Dashboard --> AuthGuard
+    AuthGuard --> VerifySession
+    VerifySession --> SessionAPI
+    SessionAPI --> AuthConfig
     AuthConfig --> DatabaseHooks
-    AuthConfig --> AfterHooks
-    DatabaseHooks --> UserService
-    AfterHooks --> UserService
 ```
 
 **Architecture Integration**:
-- Selected pattern: Middleware + Better Auth Hooks（既存パターンの拡張）
-- Domain boundaries: 認証制御はミドルウェア層、ビジネスロジックは Better Auth hooks
-- Existing patterns preserved: stackMiddleware、Effect-TS サービスパターン
-- New components rationale: auth ミドルウェアは認証制御の一元化のため
+- Selected pattern: Auth Guard + Better Auth Hooks（Next.js / Better Auth 推奨パターン）
+- Domain boundaries: 認証検証は Auth Guard 層、OAuth フックは Better Auth hooks
+- Existing patterns preserved: Effect-TS サービスパターン
+- New components rationale: Auth Guard はデータソース近くでの認証検証一元化のため（セキュリティベストプラクティス）
 - Steering compliance: TypeScript strict mode、Effect-TS サービスパターン準拠
+- Reference: [Next.js Authentication Guide](https://nextjs.org/docs/app/guides/authentication), [Better Auth Next.js Integration](https://www.better-auth.com/docs/integrations/next)
 
 ### Technology Stack
 
 | Layer | Choice / Version | Role in Feature | Notes |
 |-------|------------------|-----------------|-------|
-| Middleware | Next.js Middleware (Edge) | 認証状態チェック、リダイレクト | Edge Runtime 制限あり |
-| Auth | Better Auth | OAuth hooks、セッション管理 | hooks API 使用 |
-| Services | Effect-TS | ユーザー存在チェック | 既存 UserService 活用 |
-| Flash | Cookie + Sonner | フラッシュメッセージ表示 | 既存実装活用 |
+| Auth Guard | React cache + Better Auth | セッション検証、リダイレクト | Next.js 推奨パターン |
+| Auth | Better Auth | OAuth hooks、セッション管理 | databaseHooks API 使用 |
+| Flash | Cookie + Sonner + Query Param | フラッシュメッセージ表示 | 既存実装 + LoginPageFlash |
 
 ## System Flows
 
@@ -91,24 +85,19 @@ sequenceDiagram
     participant SignupPage
     participant BetterAuth
     participant GitHub
-    participant AfterHook
-    participant UserService
     participant LoginPage
 
     User->>SignupPage: Click GitHub signup
-    SignupPage->>BetterAuth: signIn.social(mode: signup)
+    SignupPage->>BetterAuth: signIn.social(callbackURL: /login?from=signup)
     BetterAuth->>GitHub: OAuth redirect
     GitHub-->>BetterAuth: Callback with email
-    BetterAuth->>AfterHook: after hook triggered
-    AfterHook->>UserService: existsByEmail(email)
     alt User exists
-        UserService-->>AfterHook: true
-        AfterHook->>LoginPage: redirect with flash param
-        LoginPage->>User: Show flash message
+        BetterAuth->>LoginPage: redirect to callbackURL (/login?from=signup)
+        LoginPage->>LoginPage: Detect from=signup query param
+        LoginPage->>User: Show toast message
     else User not exists
-        UserService-->>AfterHook: false
-        AfterHook->>BetterAuth: Continue normal flow
-        BetterAuth->>User: Create user and redirect
+        BetterAuth->>BetterAuth: Create user
+        BetterAuth->>User: redirect to newUserCallbackURL
     end
 ```
 
@@ -129,9 +118,9 @@ sequenceDiagram
     GitHub-->>BetterAuth: Callback with email
     alt User not exists
         BetterAuth->>CreateHook: user.create.before
-        CreateHook->>BetterAuth: Throw error
-        BetterAuth->>SignupPage: errorCallbackURL with flash
-        SignupPage->>User: Show flash message
+        CreateHook->>CreateHook: ctx.setCookies(flash)
+        CreateHook->>SignupPage: throw ctx.redirect
+        SignupPage->>User: Show flash message (FlashToaster)
     else User exists
         BetterAuth->>User: Login and redirect
     end
@@ -142,22 +131,24 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant User
-    participant ProtectedRoute
-    participant AuthMiddleware
-    participant LoginPage
+    participant ProtectedPage
+    participant AuthGuard
     participant BetterAuth
-    participant OriginalRoute
+    participant LoginPage
 
-    User->>ProtectedRoute: Access /dashboard/xxx
-    ProtectedRoute->>AuthMiddleware: Check session
+    User->>ProtectedPage: Access /dashboard/xxx
+    ProtectedPage->>AuthGuard: verifySession()
+    AuthGuard->>BetterAuth: auth.api.getSession()
     alt Not authenticated
-        AuthMiddleware->>LoginPage: redirect with callbackUrl
+        BetterAuth-->>AuthGuard: null
+        AuthGuard->>LoginPage: redirect with callbackUrl
         LoginPage->>User: Show login form
         User->>BetterAuth: Login
-        BetterAuth->>OriginalRoute: redirect to callbackUrl
+        BetterAuth->>ProtectedPage: redirect to callbackUrl
     else Authenticated
-        AuthMiddleware->>ProtectedRoute: Continue
-        ProtectedRoute->>User: Show content
+        BetterAuth-->>AuthGuard: session
+        AuthGuard-->>ProtectedPage: session data
+        ProtectedPage->>User: Show content
     end
 ```
 
@@ -165,69 +156,117 @@ sequenceDiagram
 
 | Requirement | Summary | Components | Interfaces | Flows |
 |-------------|---------|------------|------------|-------|
-| 1.1 | 認証済み→/dashboard | AuthMiddleware | - | - |
-| 1.2 | 未認証→/login | AuthMiddleware | - | - |
+| 1.1 | 認証済み→/dashboard | RootPage, AuthGuard | verifySession | - |
+| 1.2 | 未認証→/login | RootPage, AuthGuard | verifySession | - |
 | 2.1 | 新規登録 Magic Link 既存チェック | (既存実装) | - | - |
 | 2.2 | 新規登録 Magic Link 正常フロー | (既存実装) | - | - |
-| 3.1 | 新規登録 GitHub 既存チェック | AfterHook, GithubAuthSignupForm | OAuthState | GitHub OAuth 新規登録 |
+| 3.1 | 新規登録 GitHub 既存チェック | GithubAuthSignupForm, LoginPageFlash | callbackURL | GitHub OAuth 新規登録 |
 | 3.2 | 新規登録 GitHub 正常フロー | (Better Auth default) | - | - |
 | 4.1 | ログイン Magic Link 未登録チェック | (既存実装) | - | - |
 | 4.2 | ログイン Magic Link 正常フロー | (既存実装) | - | - |
 | 5.1 | ログイン GitHub 未登録チェック | DatabaseHooks, GithubAuthForm | OAuthState | GitHub OAuth ログイン |
 | 5.2 | ログイン GitHub 正常フロー | (Better Auth default) | - | - |
-| 6.1 | 未認証アクセス→/login + callback | AuthMiddleware | - | 保護ルートアクセス |
+| 6.1 | 未認証アクセス→/login + callback | AuthGuard | verifySession | 保護ルートアクセス |
 | 6.2 | ログイン成功→callback URL | (既存実装 useRedirectPath) | - | - |
 | 6.3 | ログイン成功→/dashboard | (既存実装 useRedirectPath) | - | - |
-| 6.4 | パブリックルート定義 | AuthMiddleware | PublicRoutes | - |
+| 6.4 | パブリックルート定義 | (不要: AuthGuard は保護ページでのみ呼び出し) | - | - |
 
 ## Components and Interfaces
 
 | Component | Domain/Layer | Intent | Req Coverage | Key Dependencies | Contracts |
 |-----------|--------------|--------|--------------|------------------|-----------|
-| AuthMiddleware | Middleware | 認証状態に応じたリダイレクト | 1.1, 1.2, 6.1, 6.4 | Better Auth (P0) | - |
-| AuthHooks | Auth | GitHub OAuth ユーザー存在チェック | 3.1, 5.1 | UserService (P0) | Service |
+| AuthGuard (verifySession) | Auth Guard | セッション検証、未認証リダイレクト | 1.1, 1.2, 6.1 | Better Auth (P0) | Service |
+| RootPage | Page | ルートエンドポイントのリダイレクト | 1.1, 1.2 | AuthGuard (P0) | - |
+| AuthHooks | Auth | GitHub OAuth ログイン時の未登録ユーザー検出 | 5.1 | ctx.setCookies (P0) | Service |
 | GithubAuthForm | UI | ログイン用 GitHub ボタン（mode 追加） | 5.1 | authClient (P0) | - |
-| GithubAuthSignupForm | UI | 新規登録用 GitHub ボタン（mode 追加） | 3.1 | authClient (P0) | - |
-| FlashHandler | UI | クエリパラメータからフラッシュ表示 | 3.1, 5.1 | useSearchParams (P1) | - |
+| GithubAuthSignupForm | UI | 新規登録用 GitHub ボタン（callbackURL 変更） | 3.1 | authClient (P0) | - |
+| LoginPageFlash | UI | ログインページでのクエリパラメータ検知・フラッシュ表示 | 3.1 | useSearchParams (P0) | - |
 
-### Middleware Layer
+### Auth Guard Layer
 
-#### AuthMiddleware
+#### AuthGuard (verifySession)
 
 | Field | Detail |
 |-------|--------|
-| Intent | ルートエンドポイントと保護ルートの認証制御 |
-| Requirements | 1.1, 1.2, 6.1, 6.4 |
+| Intent | セッション検証の一元化、未認証時のリダイレクト |
+| Requirements | 1.1, 1.2, 6.1 |
 
 **Responsibilities & Constraints**
-- ルートエンドポイント（/）での認証状態チェックとリダイレクト
-- 保護ルートへの未認証アクセス時の /login リダイレクト（callbackUrl 付与）
-- パブリックルート（/login, /signup, /api/auth/*）のバイパス
-- Edge Runtime 制限: Drizzle 直接使用不可、Better Auth session API 使用
+- Better Auth session API を使用したセッション検証
+- 未認証時の /login リダイレクト（callbackUrl 付与）
+- React `cache()` によるリクエスト内でのメモ化
+- Server Component / Server Action からのみ呼び出し可能
 
 **Dependencies**
-- Inbound: Next.js Middleware runtime (P0)
+- Inbound: Server Components, Server Actions (P0)
 - External: Better Auth session API (P0)
 
 **Contracts**: Service [x]
 
 ##### Service Interface
 ```typescript
-// middlewares/auth.ts
-import { MiddlewareFactory } from "./types";
+// app/lib/auth-guard.ts
+import 'server-only'
+import { cache } from 'react'
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { auth } from '@/lib/auth'
 
-const PUBLIC_ROUTES = ["/login", "/signup", "/api/auth"];
+export const verifySession = cache(async (options?: { returnTo?: string }) => {
+  const session = await auth.api.getSession({
+    headers: await headers()
+  })
 
-export const authMiddleware: MiddlewareFactory;
+  if (!session) {
+    // returnTo: ログイン成功後に戻る先（デフォルトは /dashboard）
+    const callbackUrl = options?.returnTo ?? '/dashboard'
+    redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`)
+  }
+
+  return session
+})
+
+// ルートページ等、認証状態で分岐するがリダイレクト先が異なるケース用
+export const getSession = cache(async () => {
+  return await auth.api.getSession({
+    headers: await headers()
+  })
+})
 ```
-- Preconditions: リクエストが Next.js middleware で処理される
-- Postconditions: 認証状態に応じたリダイレクトまたは NextResponse.next()
-- Invariants: PUBLIC_ROUTES は認証チェックをスキップ
+- Preconditions: Server Component または Server Action から呼び出される
+- Postconditions: セッションが存在する場合は session を返却、存在しない場合は /login にリダイレクト
+- Invariants: `cache()` により同一リクエスト内で1回のみ実行
 
 **Implementation Notes**
-- Integration: `middleware.ts` で `stackMiddleware([authMiddleware])` として統合
-- Validation: セッション Cookie の存在チェック（Edge Runtime 対応）
-- Risks: Edge Runtime での Better Auth API 呼び出し制限
+- Integration: 保護ページの先頭で `await verifySession()` を呼び出し
+- Validation: Better Auth session API による DB 検証（セキュアな検証）
+- Risks: なし（Next.js / Better Auth 推奨パターン）
+
+#### RootPage
+
+| Field | Detail |
+|-------|--------|
+| Intent | ルートエンドポイント（/）での認証状態に応じたリダイレクト |
+| Requirements | 1.1, 1.2 |
+
+**Contracts**: -
+
+##### Implementation
+```typescript
+// app/page.tsx
+import { redirect } from 'next/navigation'
+import { getSession } from '@/app/lib/auth-guard'
+
+export default async function RootPage() {
+  const session = await getSession()
+
+  if (session) {
+    redirect('/dashboard')
+  } else {
+    redirect('/login')
+  }
+}
+```
 
 ### Auth Layer
 
@@ -235,30 +274,35 @@ export const authMiddleware: MiddlewareFactory;
 
 | Field | Detail |
 |-------|--------|
-| Intent | GitHub OAuth コールバック時のユーザー存在チェック |
-| Requirements | 3.1, 5.1 |
+| Intent | GitHub OAuth ログイン時の未登録ユーザー検出・リダイレクト |
+| Requirements | 5.1 |
 
 **Responsibilities & Constraints**
 - OAuth state から `mode` を取得
-- `mode: 'login'` 時: ユーザーが存在しない場合は作成を防止
-- `mode: 'signup'` 時: ユーザーが既に存在する場合はリダイレクト
-- フラッシュメッセージはクエリパラメータ経由で伝達
+- `mode: 'login'` 時: ユーザーが存在しない場合は作成を防止、フラッシュ Cookie 設定後リダイレクト
+- `mode: 'signup'` 時: Better Auth の `callbackURL`/`newUserCallbackURL` で処理（hooks 不使用）
 
 **Dependencies**
 - Inbound: Better Auth hooks runtime (P0)
-- External: UserService.existsByEmail (P0)
 
 **Contracts**: Service [x]
 
 ##### Service Interface
 ```typescript
 // lib/auth.ts への追加
-import { betterAuth } from "better-auth";
-import { getOAuthState } from "better-auth/api";
+import { betterAuth, type BetterAuthOptions } from "better-auth";
 
 interface OAuthStateData {
   mode?: "login" | "signup";
 }
+
+// Better Auth hooks の ctx 型（databaseHooks.user.create.before の第2引数）
+type HookContext = Parameters<NonNullable<NonNullable<BetterAuthOptions["databaseHooks"]>["user"]>["create"]>["before"]>[1];
+
+// maxAge: 1 で即時削除。リダイレクト先の FlashToaster が読み取り後に破棄される
+const setFlashCookie = (ctx: HookContext, flash: { type: string; message: string }) => {
+  ctx.setCookies("flash", JSON.stringify(flash), { maxAge: 1 });
+};
 
 export const auth = betterAuth({
   // ... existing config
@@ -267,22 +311,22 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user, ctx) => {
-          // ログインモードで新規ユーザー作成を防止
+          // ログイン画面からの OAuth で未登録ユーザーが来た場合、自動登録させず新規登録を促す
+          const state = ctx.context.oauth?.state as OAuthStateData | undefined;
+          if (state?.mode === "login") {
+            setFlashCookie(ctx, {
+              type: "error",
+              message: "アカウントが存在しません。新規登録してください。"
+            });
+            throw ctx.redirect("/signup");
+          }
+          return { data: user };
         },
       },
     },
   },
-
-  hooks: {
-    after: [
-      {
-        matcher: (ctx) => ctx.path.startsWith("/callback/"),
-        handler: async (ctx) => {
-          // サインアップモードで既存ユーザーをリダイレクト
-        },
-      },
-    ],
-  },
+  // 新規登録時の既存ユーザー検出は callbackURL のクエリパラメータで処理
+  // （after hook では新規/既存の判別が困難なため）
 });
 ```
 - Preconditions: OAuth コールバックが Better Auth で処理される
@@ -290,9 +334,9 @@ export const auth = betterAuth({
 - Invariants: `mode` は `login` または `signup` のみ許可
 
 **Implementation Notes**
-- Integration: 既存の `lib/auth.ts` に hooks を追加
+- Integration: 既存の `lib/auth.ts` に databaseHooks を追加
 - Validation: OAuth state の `mode` を厳密に検証
-- Risks: `getOAuthState` の戻り値が undefined の場合のハンドリング
+- Risks: `ctx.context.oauth?.state` が undefined の場合は通常フロー継続（ログインモード以外からの OAuth）
 
 ### UI Layer
 
@@ -311,8 +355,8 @@ export const auth = betterAuth({
 authClient.signIn.social({
   provider: "github",
   callbackURL: redirectPath,
-  errorCallbackURL: "/signup?flash=not_registered",
-  additionalData: { mode: "login" },
+  errorCallbackURL: "/signup",  // OAuth エラー時のフォールバック（通常は hooks でリダイレクト）
+  additionalData: { mode: "login" },  // hooks 側で login/signup を判別するため
 });
 ```
 
@@ -325,7 +369,7 @@ authClient.signIn.social({
 
 | Field | Detail |
 |-------|--------|
-| Intent | 新規登録画面用 GitHub ボタン（mode: signup を追加） |
+| Intent | 新規登録画面用 GitHub ボタン（callbackURL 変更） |
 | Requirements | 3.1 |
 
 **Contracts**: State [x]
@@ -335,76 +379,82 @@ authClient.signIn.social({
 // app/ui/github-auth-signup-form.tsx への修正
 authClient.signIn.social({
   provider: "github",
-  callbackURL: redirectPath,
-  newUserCallbackURL: redirectPath,
-  errorCallbackURL: "/signup?flash=signup_failed",
-  additionalData: { mode: "signup" },
+  callbackURL: "/login?from=signup",  // 既存ユーザー → ログインページ（クエリパラメータでフラッシュ表示）
+  newUserCallbackURL: redirectPath,   // 新規ユーザー → 成功時のリダイレクト先
+  errorCallbackURL: "/signup",
 });
 ```
 
 **Implementation Notes**
-- Integration: 既存コンポーネントへの `additionalData` 追加のみ
+- Integration: `callbackURL` に `?from=signup` を付与、`additionalData` は不要
+- Flash: ログインページでクエリパラメータを検知して toast 表示
 
-#### FlashHandler
+#### LoginPageFlash (新規)
 
 | Field | Detail |
 |-------|--------|
-| Intent | クエリパラメータからフラッシュメッセージを表示 |
-| Requirements | 3.1, 5.1 |
+| Intent | ログインページでクエリパラメータ `from=signup` を検知してフラッシュ表示 |
+| Requirements | 3.1 |
 
-**Responsibilities & Constraints**
-- URL クエリパラメータ `flash` を検出
-- 対応するフラッシュメッセージを表示
-- 表示後に URL からパラメータを削除
+**Contracts**: -
 
-**Contracts**: State [x]
-
-##### State Management
+##### Implementation
 ```typescript
-// app/lib/hooks/useFlashFromQuery.ts (新規)
-import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { toast } from "sonner";
+// app/login/page.tsx または専用コンポーネント
+'use client'
 
-const FLASH_MESSAGES: Record<string, { type: "success" | "error"; message: string }> = {
-  account_exists: { type: "error", message: "アカウントが既に存在します。ログインしてください。" },
-  not_registered: { type: "error", message: "アカウントが存在しません。新規登録してください。" },
-};
+import { useSearchParams } from 'next/navigation'
+import { useEffect } from 'react'
+import { toast } from 'sonner'
 
-export function useFlashFromQuery(): void;
+export function LoginPageFlash() {
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams.get('from') === 'signup') {
+      toast.error('アカウントが既に存在します。ログインしてください。')
+      // URL からクエリパラメータを削除（履歴を汚さないため）
+      window.history.replaceState({}, '', '/login')
+    }
+  }, [searchParams])
+
+  return null
+}
 ```
 
 **Implementation Notes**
-- Integration: LoginForm, SignUpForm で呼び出し
-- Validation: 定義済みの flash キーのみ処理
-- Risks: URL 直接編集による意図しないフラッシュ表示（低リスク）
+- Integration: ログインページに `<Suspense><LoginPageFlash /></Suspense>` で配置（`useSearchParams()` は Suspense 境界が必須）
+- UX: `replaceState` で URL をクリーンに保つ（リロード時の重複表示防止）
 
 ## Error Handling
 
 ### Error Strategy
-- Better Auth hooks でのエラー: `errorCallbackURL` にリダイレクト
-- ミドルウェアでのエラー: ログ出力後、通常フローで継続（フェイルセーフ）
+- Better Auth databaseHooks（ログインモード）: `ctx.setCookies()` でフラッシュ設定後、リダイレクト
+- Better Auth callbackURL（新規登録モード）: クエリパラメータでフラッシュ情報を渡し、ログインページで toast 表示
+- AuthGuard でのエラー: ログ出力後、/login にリダイレクト（フェイルセーフ）
 
 ### Error Categories and Responses
 **User Errors (4xx)**:
-- 未登録アカウントでログイン試行 → `/signup?flash=not_registered` にリダイレクト
-- 既存アカウントで新規登録試行 → `/login?flash=account_exists` にリダイレクト
+- 未登録アカウントでログイン試行 → フラッシュ Cookie 設定（hooks）→ `/signup` にリダイレクト
+- 既存アカウントで新規登録試行 → `/login?from=signup` にリダイレクト → toast 表示
 
 **System Errors (5xx)**:
 - OAuth state 取得失敗 → 通常フローで継続（ログ出力）
-- UserService エラー → エラーページにリダイレクト
 
 ## Testing Strategy
 
 ### Unit Tests
-- `authMiddleware`: パブリックルート判定、callbackUrl 生成
-- `useFlashFromQuery`: flash パラメータ検出、メッセージマッピング
+- `verifySession`: セッション検証、リダイレクト処理
+- `getSession`: セッション取得（リダイレクトなし）
+- `LoginPageFlash`: クエリパラメータ検知、toast 表示、URL クリーンアップ
 
 ### Integration Tests
-- Better Auth hooks: mode によるユーザー作成可否
-- ミドルウェア + Better Auth: 認証フロー全体
+- Better Auth databaseHooks: login mode でのユーザー作成防止、フラッシュ Cookie 設定
+- AuthGuard + Better Auth: 認証フロー全体
 
 ### E2E Tests
-- GitHub OAuth 新規登録（既存ユーザーあり/なし）
-- GitHub OAuth ログイン（既存ユーザーあり/なし）
+- GitHub OAuth 新規登録（既存ユーザーあり）→ ログインページでフラッシュ表示
+- GitHub OAuth 新規登録（既存ユーザーなし）→ 正常にダッシュボードへ
+- GitHub OAuth ログイン（既存ユーザーなし）→ 新規登録ページでフラッシュ表示
+- GitHub OAuth ログイン（既存ユーザーあり）→ 正常にダッシュボードへ
 - 保護ルートへの未認証アクセス → ログイン → コールバック
