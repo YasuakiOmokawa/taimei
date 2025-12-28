@@ -24,7 +24,7 @@
   - 新規登録ページへのリダイレクト処理
   - _Requirements: 5.1_
 
-- [ ] 3. UI コンポーネントの修正
+- [x] 3. UI コンポーネントの修正
 - [x] 3.1 (P) ログイン画面の GitHub ボタンに mode パラメータを追加する
   - `additionalData: { mode: "login" }` を signIn.social に追加
   - hooks 側で login/signup を判別可能にする
@@ -35,7 +35,7 @@
   - 新規ユーザー用のコールバック URL を設定
   - _Requirements: 3.1_
 
-- [ ] 3.3 ログインページでのフラッシュメッセージ表示機能を実装する
+- [x] 3.3 ログインページでのフラッシュメッセージ表示機能を実装する
   - クエリパラメータ `from=signup` の検知
   - toast でエラーメッセージ表示
   - `replaceState` で URL クリーンアップ（リロード時の重複防止）
