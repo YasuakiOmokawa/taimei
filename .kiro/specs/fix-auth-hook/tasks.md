@@ -30,7 +30,7 @@
   - hooks 側で login/signup を判別可能にする
   - _Requirements: 5.1_
 
-- [ ] 3.2 (P) 新規登録画面の GitHub ボタンのコールバック URL を変更する
+- [x] 3.2 (P) 新規登録画面の GitHub ボタンのコールバック URL を変更する
   - 既存ユーザー検出時のコールバック URL を `/login?from=signup` に設定
   - 新規ユーザー用のコールバック URL を設定
   - _Requirements: 3.1_
@@ -42,14 +42,14 @@
   - Suspense 境界での配置（`useSearchParams()` 対応）
   - _Requirements: 3.1_
 
-- [ ] 4. 既存レイアウトの Auth Guard 移行
-- [ ] 4.1 (P) dashboard レイアウトの認証チェックを Auth Guard に移行する
+- [x] 4. 既存レイアウトの Auth Guard 移行
+- [x] 4.1 (P) dashboard レイアウトの認証チェックを Auth Guard に移行する
   - 既存の `auth.api.getSession()` + `redirect()` を `verifySession()` に置換
   - 現在のパスを `returnTo` として渡す
   - `fetchCurrentUser()` 等のユーザー情報取得は維持
   - _Requirements: 6.1_
 
-- [ ] 4.2 (P) setting レイアウトの認証チェックを Auth Guard に移行する
+- [x] 4.2 (P) setting レイアウトの認証チェックを Auth Guard に移行する
   - 既存の `auth.api.getSession()` + `redirect()` を `verifySession()` に置換
   - 現在のパスを `returnTo` として渡す
   - _Requirements: 6.1_
