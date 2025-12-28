@@ -48,22 +48,43 @@ yarn storybook                     # Storybook起動
 ### Directory Structure
 ```
 app/
-├── services/           # Effect-TS ビジネスロジック（サービスパターン）
+├── api/                # Next.js API Routes（Better Auth等）
+├── services/           # Effect-TS ビジネスロジック
 │   ├── __tests__/      # サービス層のユニットテスト
+│   ├── *-service.ts    # サービス（ビジネスロジック）
+│   ├── *-repository.ts # リポジトリ（データアクセス）
 │   └── index.ts        # サービスのエクスポート
 ├── layers/lives/       # Effect-TS Layer 実装（DI 設定）
-├── lib/                # ユーティリティ、Server Actions
+├── lib/                # アプリ固有ユーティリティ
+│   ├── actions.ts      # Server Actions
+│   ├── data.ts         # データ取得関数
+│   ├── atoms/          # Jotai atoms（クライアント状態）
+│   ├── hooks/          # カスタムフック
+│   └── schema/         # Zodスキーマ（フォーム用）
+├── use-conform/        # Conform フォーム連携（Server Actions対応）
 ├── ui/                 # ページ固有のUIコンポーネント
-├── schema/             # Zod スキーマ定義
+├── schema/             # Zod スキーマ定義（共通）
 └── [page]/             # Next.js App Router ページ
+    └── (dashboard, login, setting, signup, steps, thanks)
+
+lib/                    # グローバルユーティリティ
+├── auth.ts             # Better Auth サーバー設定
+├── auth-client.ts      # Better Auth クライアント設定
+└── utils.ts            # 共通ユーティリティ（cn等）
 
 components/
 ├── ui/                 # shadcn/ui 共通コンポーネント
 └── *.tsx               # アプリ固有の共通コンポーネント
 
-db/drizzle/             # Drizzle スキーマ
+db/drizzle/             # Drizzle スキーマ定義
 drizzle/                # Drizzle マイグレーションSQL
 __tests__/              # 統合テスト
+e2e/                    # E2Eテスト（Playwright）
+├── tests/              # テストファイル
+└── playwright.config.ts
+hooks/                  # グローバルカスタムフック
+middlewares/            # Next.js ミドルウェア
+stories/                # Storybook ストーリー
 ```
 
 ---
