@@ -1,0 +1,22 @@
+{
+  "feature_name": "fix-auth-hook",
+  "created_at": "2025-12-28T01:22:22Z",
+  "updated_at": "2025-12-28T01:32:40Z",
+  "language": "ja",
+  "phase": "requirements-generated",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": false
+    },
+    "design": {
+      "generated": false,
+      "approved": false
+    },
+    "tasks": {
+      "generated": false,
+      "approved": false
+    }
+  },
+  "ready_for_implementation": false
+}
