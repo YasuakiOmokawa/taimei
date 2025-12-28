@@ -14,6 +14,8 @@ export default function GithubAuthForm() {
       provider: "github",
       callbackURL: redirectPath,
       errorCallbackURL: "/login?error=signin_failed",
+      // 未登録ユーザーの自動登録を防ぎ、新規登録画面への誘導を可能にするため
+      additionalData: { mode: "login" },
     });
   };
 
