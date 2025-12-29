@@ -78,13 +78,7 @@ export async function signInWithMagicLink(
 
   // fetch で verify エンドポイントを呼び、Set-Cookie を取得
   const verifyUrl = `${BASE_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=/dashboard`;
-  console.log(`[DEBUG] Verifying magic link: ${verifyUrl}`);
   const verifyResponse = await fetch(verifyUrl, { redirect: "manual" });
-  console.log(`[DEBUG] Verify response status: ${verifyResponse.status}`);
-  console.log(
-    `[DEBUG] Verify response headers:`,
-    Object.fromEntries(verifyResponse.headers.entries())
-  );
 
   const setCookieHeader = verifyResponse.headers.get("set-cookie");
   if (!setCookieHeader) {
@@ -93,7 +87,6 @@ export async function signInWithMagicLink(
 
   // クッキーをパースしてブラウザコンテキストに設定
   const cookies = parseCookies(setCookieHeader);
-  console.log(`[DEBUG] Parsed cookies:`, JSON.stringify(cookies, null, 2));
   const context = await browser.newContext();
   await context.addCookies(cookies);
 
