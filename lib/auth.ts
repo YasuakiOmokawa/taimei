@@ -1,11 +1,13 @@
 import { betterAuth } from "better-auth";
-import { getOAuthState } from "better-auth/api";
+import { createAuthMiddleware, getOAuthState } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@/db/drizzle/client";
 import * as schema from "@/db/drizzle/schema";
 import { handleUserCreateBefore } from "./auth/hooks/user-create-hook";
+import { getSessionFlashMessage } from "./auth/hooks/session-flash-hook";
+import { setFlash } from "@/lib/flash-toaster";
 
 export const auth = betterAuth({
   // E2E テスト等で使用する baseURL（環境変数から取得）
@@ -63,11 +65,14 @@ export const auth = betterAuth({
     },
   },
 
-  callbacks: {
-    session: {
-      // セッション作成後のフラッシュメッセージ設定
-      // onNewSession で実装する場合は Phase 6 で追加
-    },
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      const newSession = ctx.context.newSession;
+      if (newSession) {
+        const flash = getSessionFlashMessage(new Date(newSession.user.createdAt));
+        await setFlash(flash);
+      }
+    }),
   },
 });
 
