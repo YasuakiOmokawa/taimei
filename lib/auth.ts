@@ -75,6 +75,8 @@ export const auth = betterAuth({
         }
       },
       expiresIn: 300, // 5分
+      // テスト環境ではレートリミットを実質無制限に（E2Eテストのリトライで429を回避）
+      rateLimit: isTestEnvironment() ? { window: 1, max: 1000 } : undefined,
     }),
   ],
 
