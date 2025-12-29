@@ -6,6 +6,7 @@ import {
   Heading,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Section,
@@ -18,108 +19,110 @@ type MagicLinkEmailProps = {
   appName: string;
 };
 
-export function MagicLinkEmail({ url, appName }: MagicLinkEmailProps) {
+export default function MagicLinkEmail({
+  url = "https://example.com/auth/magic-link?token=xxx",
+  appName = "Taimei",
+}: MagicLinkEmailProps) {
+  const logoUrl =
+    "https://7iv4djergayei7gf.public.blob.vercel-storage.com/taimei/public/my-service-logo.png";
+
   return (
     <Html lang="ja">
-      <Head />
-      <Preview>
-        {appName} へのログインリンク - 5分間有効
-      </Preview>
-      <Tailwind
-        config={{
-          theme: {
-            extend: {
-              colors: {
-                brand: {
-                  50: "#eef2ff",
-                  100: "#e0e7ff",
-                  600: "#4f46e5",
-                  700: "#4338ca",
-                  800: "#3730a3",
-                  900: "#312e81",
-                },
-              },
-            },
-          },
-        }}
-      >
-        <Body className="mx-auto bg-slate-50 font-sans">
-          {/* Header with brand */}
-          <Container className="mx-auto max-w-[580px] px-4 py-8">
-            <Section className="mb-8 text-center">
-              <Text className="m-0 text-2xl font-bold tracking-tight text-brand-800">
-                {appName}
-              </Text>
+      <Head>
+        <style>
+          {`
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+          `}
+        </style>
+      </Head>
+      <Preview>{appName} へのログインリンク - 5分間有効</Preview>
+      <Tailwind>
+        <Body className="mx-auto bg-white font-sans">
+          <Container className="mx-auto max-w-[480px] px-6 py-12">
+            <Section className="text-center">
+              <Img
+                src={logoUrl}
+                width="80"
+                height="80"
+                alt={appName}
+                className="mx-auto"
+              />
             </Section>
 
-            {/* Main card */}
-            <Section className="rounded-2xl border border-slate-200 bg-white px-10 py-12 shadow-lg">
-              {/* Icon */}
-              <Section className="mb-6 text-center">
-                <Text className="m-0 text-5xl">🔐</Text>
-              </Section>
-
-              <Heading className="m-0 mb-3 text-center text-2xl font-semibold tracking-tight text-slate-900">
+            <Section className="mt-10">
+              <Heading
+                className="m-0 text-center text-2xl font-medium tracking-tight"
+                style={{ color: "#171717" }}
+              >
                 ログインリクエスト
               </Heading>
 
-              <Text className="m-0 mb-8 text-center text-base leading-relaxed text-slate-500">
-                {appName} へのログインリクエストを受け付けました
-              </Text>
-
-              <Hr className="mx-0 my-6 border-slate-100" />
-
-              <Text className="m-0 mb-6 text-center text-sm leading-relaxed text-slate-600">
-                以下のボタンをクリックしてログインを完了してください。
+              <Text
+                className="mt-4 text-center text-base leading-relaxed"
+                style={{ color: "#737373" }}
+              >
+                {appName} へのログインリンクをお送りします。
                 <br />
-                このリンクは
-                <span className="font-semibold text-brand-700"> 5分間 </span>
-                有効です。
+                下のボタンをクリックしてログインしてください。
               </Text>
-
-              {/* CTA Button */}
-              <Section className="my-8 text-center">
-                <Button
-                  href={url}
-                  className="inline-block rounded-xl bg-brand-600 px-10 py-4 text-center text-base font-semibold text-white no-underline shadow-md"
-                >
-                  ログインする →
-                </Button>
-              </Section>
-
-              {/* Security notice */}
-              <Section className="mt-8 rounded-lg bg-slate-50 px-5 py-4">
-                <Text className="m-0 text-center text-xs leading-relaxed text-slate-500">
-                  🛡️ セキュリティのため、このリンクは1回のみ使用可能です。
-                  <br />
-                  心当たりのない場合は、このメールを無視してください。
-                </Text>
-              </Section>
             </Section>
 
-            {/* Alternative link */}
-            <Section className="mt-8 px-4">
-              <Text className="m-0 mb-2 text-center text-xs text-slate-400">
-                ボタンが機能しない場合は、以下のURLをブラウザに貼り付けてください：
+            <Section className="mt-8 text-center">
+              <Button
+                href={url}
+                className="inline-block rounded-lg px-8 py-3 text-center text-base font-medium text-white no-underline"
+                style={{ backgroundColor: "#171717" }}
+              >
+                ログインする
+              </Button>
+            </Section>
+
+            <Text
+              className="mt-6 text-center text-sm"
+              style={{ color: "#dc2626" }}
+            >
+              このリンクは5分間有効です
+            </Text>
+
+            <Hr className="my-10" style={{ borderColor: "#e5e5e5" }} />
+
+            <Section>
+              <Text
+                className="m-0 text-center text-xs leading-relaxed"
+                style={{ color: "#a3a3a3" }}
+              >
+                ボタンが機能しない場合は、以下のURLをコピーしてブラウザに貼り付けてください
               </Text>
-              <Text className="m-0 text-center">
+              <Text className="mt-2 text-center">
                 <Link
                   href={url}
-                  className="break-all text-xs text-brand-600 underline"
+                  className="break-all text-xs underline"
+                  style={{ color: "#dc2626" }}
                 >
                   {url}
                 </Link>
               </Text>
             </Section>
 
-            {/* Footer */}
-            <Section className="mt-12 border-t border-slate-200 pt-8">
-              <Text className="m-0 text-center text-xs leading-relaxed text-slate-400">
-                © {new Date().getFullYear()} {appName}. All rights reserved.
+            <Section className="mt-8">
+              <Text
+                className="m-0 text-center text-xs leading-relaxed"
+                style={{ color: "#a3a3a3" }}
+              >
+                このリンクは1回のみ使用可能です。
                 <br />
-                このメールは自動送信されています。返信はできません。
+                心当たりのない場合は、このメールを無視してください。
               </Text>
             </Section>
+
+            <Hr className="my-10" style={{ borderColor: "#e5e5e5" }} />
+
+            <Text
+              className="m-0 text-center text-xs"
+              style={{ color: "#d4d4d4" }}
+            >
+              © {new Date().getFullYear()} {appName}
+            </Text>
           </Container>
         </Body>
       </Tailwind>

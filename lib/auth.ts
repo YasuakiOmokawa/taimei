@@ -17,9 +17,10 @@ import {
   getResendClient,
   getFromEmail,
   getAppName,
+  getAppUrl,
   isTestEnvironment,
 } from "./email/client";
-import { MagicLinkEmail } from "./email/magic-link";
+import MagicLinkEmail from "./email/magic-link";
 
 export const auth = betterAuth({
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
