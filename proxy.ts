@@ -4,6 +4,14 @@ import { getSessionCookie } from "better-auth/cookies";
 // Better Auth 用のプロキシ（セッションCookieの存在チェックのみ）
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get("host") || "";
+
+  // Better AuthはNEXT_PUBLIC_APP_URL（wwwなし）にAPIリクエストを送るため、wwwありだとCORSエラーになる
+  if (host.startsWith("www.")) {
+    const url = request.nextUrl.clone();
+    url.host = host.replace(/^www\./, "");
+    return NextResponse.redirect(url, 301);
+  }
 
   // 認証不要なパス
   const publicPaths = ["/", "/login", "/signup", "/api/auth"];
