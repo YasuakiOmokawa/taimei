@@ -113,8 +113,19 @@ export const auth = betterAuth({
       const newSession = ctx.context.newSession;
       if (newSession) {
         const createdAt = new Date(newSession.user.createdAt);
-        const flash = getSessionFlashMessage(createdAt);
-        await setFlash(flash);
+
+        // signup 画面から OAuth で既存ユーザーがログインした場合、
+        // クライアント側で「アカウントが既に存在します」フラッシュを表示するため、
+        // サーバー側の「ログインしました」フラッシュはスキップ
+        const oauthState = await getOAuthState();
+        const isSignupFlowExistingUser =
+          oauthState?.callbackURL?.includes("from=signup") &&
+          !isNewUser(createdAt);
+
+        if (!isSignupFlowExistingUser) {
+          const flash = getSessionFlashMessage(createdAt);
+          await setFlash(flash);
+        }
 
         // 新規ユーザーにウェルカムメール送信（失敗してもセッション作成には影響させない）
         if (isNewUser(createdAt)) {

@@ -12,7 +12,7 @@ export function FlashToasterClient({
   children: ReactNode;
 }) {
   useEffect(() => {
-    if (!!flash) {
+    if (flash) {
       const data: Flash = JSON.parse(flash);
       switch (data.type) {
         case "success":
@@ -25,6 +25,6 @@ export function FlashToasterClient({
           break;
       }
     }
-  });
+  }, [flash]);
   return children;
 }
