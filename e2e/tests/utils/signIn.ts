@@ -21,23 +21,38 @@ export async function createTestUser(): Promise<string> {
 }
 
 /**
- * verification テーブルから Magic Link トークンを取得
+ * verification テーブルから Magic Link トークンを取得（リトライ付き）
+ * Server Action 完了を待つため、トークンが見つかるまでポーリング
  */
-export async function getVerificationToken(email: string): Promise<string> {
+export async function getVerificationToken(
+  email: string,
+  options: { maxRetries?: number; retryDelay?: number } = {}
+): Promise<string> {
+  const { maxRetries = 10, retryDelay = 500 } = options;
   const expectedValue = JSON.stringify({ email });
-  const record = await db
-    .select()
-    .from(verification)
-    .where(eq(verification.value, expectedValue))
-    .orderBy(desc(verification.createdAt))
-    .limit(1)
-    .then((rows) => rows[0]);
 
-  if (!record) {
-    throw new Error(`Verification token not found for ${email}`);
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const record = await db
+      .select()
+      .from(verification)
+      .where(eq(verification.value, expectedValue))
+      .orderBy(desc(verification.createdAt))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    if (record) {
+      return record.identifier;
+    }
+
+    // 最後の試行でなければ待機してリトライ
+    if (attempt < maxRetries - 1) {
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+    }
   }
 
-  return record.identifier;
+  throw new Error(
+    `Verification token not found for ${email} after ${maxRetries} attempts`
+  );
 }
 
 /**

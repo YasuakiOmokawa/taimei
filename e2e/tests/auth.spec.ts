@@ -28,14 +28,7 @@ test.describe("認証フロー", () => {
         .fill(testEmail);
       await page.getByRole("button", { name: "ログイン", exact: true }).click();
 
-      // Magic Link 送信成功の toast を待つ（Server Action 完了を確認）
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({ hasText: "メールを送信しました。" })
-      ).toBeVisible({ timeout: 10000 });
-
-      // verification テーブルからトークンを取得
+      // verification テーブルからトークンを取得（DBポーリングで Server Action 完了を待機）
       const token = await getVerificationToken(testEmail);
 
       // トークンを使って認証
