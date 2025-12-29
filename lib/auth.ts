@@ -9,7 +9,12 @@ import { handleUserCreateBefore } from "./auth/hooks/user-create-hook";
 import { getSessionFlashMessage } from "./auth/hooks/session-flash-hook";
 import { setFlash } from "@/lib/flash-toaster";
 import { render } from "@react-email/components";
-import { getResendClient, getFromEmail, getAppName } from "./email/client";
+import {
+  getResendClient,
+  getFromEmail,
+  getAppName,
+  isTestEnvironment,
+} from "./email/client";
 import { MagicLinkEmail } from "./email/magic-link";
 
 export const auth = betterAuth({
@@ -38,6 +43,12 @@ export const auth = betterAuth({
     nextCookies(),
     magicLink({
       sendMagicLink: async ({ email, url }) => {
+        // E2E テスト環境ではメール送信をスキップ（DBから直接トークン取得）
+        if (isTestEnvironment()) {
+          console.log(`[TEST] Magic Link for ${email}: ${url}`);
+          return;
+        }
+
         const resend = getResendClient();
         const fromEmail = getFromEmail();
         const appName = getAppName();

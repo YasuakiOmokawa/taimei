@@ -2,6 +2,10 @@ import { Resend } from "resend";
 
 let resendInstance: Resend | null = null;
 
+export function isTestEnvironment(): boolean {
+  return process.env.APP_ENV === "test";
+}
+
 export function getResendClient(): Resend {
   if (!resendInstance) {
     const apiKey = process.env.AUTH_RESEND_KEY;
