@@ -6,7 +6,7 @@ import {
   getAppUrl,
   isTestEnvironment,
 } from "./client";
-import { WelcomeEmail } from "./welcome";
+import WelcomeEmail from "./welcome";
 
 export async function sendWelcomeEmail(
   email: string,
