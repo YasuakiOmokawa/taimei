@@ -25,6 +25,12 @@ export const auth = betterAuth({
   // E2E テスト等で使用する baseURL（環境変数から取得）
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
 
+  advanced: {
+    // テスト環境（HTTP）では __Secure- プレフィックスを無効化
+    // 本番環境（HTTPS）では Better Auth のデフォルト動作を使用
+    useSecureCookies: !isTestEnvironment(),
+  },
+
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
