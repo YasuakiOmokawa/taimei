@@ -22,8 +22,13 @@ import {
 import { MagicLinkEmail } from "./email/magic-link";
 
 export const auth = betterAuth({
-  // E2E テスト等で使用する baseURL（環境変数から取得）
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
+
+  advanced: {
+    // テスト環境（HTTP）では __Secure- プレフィックスを無効化
+    // 本番環境（HTTPS）では Better Auth のデフォルト動作を使用
+    useSecureCookies: !isTestEnvironment(),
+  },
 
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -75,6 +80,8 @@ export const auth = betterAuth({
         }
       },
       expiresIn: 300, // 5分
+      // テスト環境ではレートリミットを実質無制限に（E2Eテストのリトライで429を回避）
+      rateLimit: isTestEnvironment() ? { window: 1, max: 1000 } : undefined,
     }),
   ],
 

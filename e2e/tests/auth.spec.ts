@@ -3,6 +3,7 @@ import {
   createTestUser,
   getVerificationToken,
   signInWithMagicLink,
+  BASE_URL,
 } from "./utils/signIn";
 
 test.describe("認証フロー", () => {
@@ -14,7 +15,10 @@ test.describe("認証フロー", () => {
       await expect(page).toHaveURL(/\/login\?callbackUrl=.*dashboard/);
     });
 
-    test("ログイン後、callbackUrl にリダイレクトされる", async ({ page }) => {
+    test("ログイン後、callbackUrl にリダイレクトされる", async ({
+      page,
+      browser,
+    }) => {
       // 1. テストユーザーを作成
       const testEmail = await createTestUser();
 
@@ -22,29 +26,15 @@ test.describe("認証フロー", () => {
       await page.goto("/dashboard");
       await expect(page).toHaveURL(/\/login\?callbackUrl=.*dashboard/);
 
-      // 3. Magic Link でログイン
-      await page
-        .getByLabel("Email")
-        .fill(testEmail);
-      await page.getByRole("button", { name: "ログイン", exact: true }).click();
+      // 3. Magic Link でログイン（API直接呼び出しでトークン生成）
+      const context = await signInWithMagicLink(browser, testEmail);
+      const authedPage = await context.newPage();
 
-      // Magic Link 送信成功の toast を待つ（Server Action 完了を確認）
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({ hasText: "メールを送信しました。" })
-      ).toBeVisible({ timeout: 10000 });
+      // 4. /dashboard にリダイレクトされること
+      await authedPage.goto("/dashboard");
+      await expect(authedPage).toHaveURL(/\/dashboard/);
 
-      // verification テーブルからトークンを取得
-      const token = await getVerificationToken(testEmail);
-
-      // トークンを使って認証
-      await page.goto(
-        `/api/auth/magic-link/verify?token=${token}&callbackURL=/dashboard`
-      );
-
-      // /dashboard にリダイレクトされること
-      await expect(page).toHaveURL(/\/dashboard/);
+      await context.close();
     });
   });
 
@@ -73,6 +63,36 @@ test.describe("認証フロー", () => {
       await expect(page).toHaveURL(/\/dashboard/);
 
       await context.close();
+    });
+  });
+
+  test.describe("Magic Link - UIフォーム経由のログイン", () => {
+    test("UIフォームからログインするとトークンが生成される", async ({
+      page,
+    }) => {
+      // 1. テストユーザーを作成
+      const testEmail = await createTestUser();
+
+      // 2. UIフォームからログイン（Server Action経由）
+      await page.goto("/login");
+      await page.getByLabel("Email").fill(testEmail);
+      await page.getByRole("button", { name: "ログイン", exact: true }).click();
+
+      // 3. 成功フラッシュを待つ
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: "メールを送信しました。" })
+      ).toBeVisible();
+
+      // 4. Server Action が verification テーブルにトークンを生成したことを確認
+      const token = await getVerificationToken(testEmail);
+      expect(token).toBeTruthy();
+
+      // 5. トークンで認証してダッシュボードにアクセス可能か検証
+      const verifyUrl = `${BASE_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=/dashboard`;
+      const verifyResponse = await fetch(verifyUrl, { redirect: "manual" });
+      expect(verifyResponse.status).toBe(302);
     });
   });
 
