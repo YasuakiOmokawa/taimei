@@ -9,7 +9,6 @@ import { setFlash } from "@/lib/flash-toaster";
 import { deleteUserSchema } from "../setting/profile/schema";
 import { fetchCurrentUser } from "./data";
 import { auth } from "@/lib/auth";
-import { authClient } from "@/lib/auth-client";
 import { headers } from "next/headers";
 import { Effect, Either } from "effect";
 import { runService, UserService, InvoiceService } from "@/app/services";
@@ -79,13 +78,17 @@ export async function loginWithEmailLink(
     return submission.reply();
   }
 
-  // Better Auth の Magic Link API を使用
-  const response = await authClient.signIn.magicLink({
-    email: submission.value.email,
-    callbackURL: redirectPath,
-  });
-
-  if (response.error) {
+  // Better Auth の Magic Link API（サーバーサイド）を使用
+  try {
+    await auth.api.signInMagicLink({
+      body: {
+        email: submission.value.email,
+        callbackURL: redirectPath,
+      },
+      headers: await headers(),
+    });
+  } catch (error) {
+    console.error("Magic link error:", error);
     return submission.reply({
       formErrors: ["メール送信に失敗しました。"],
     });
@@ -120,13 +123,17 @@ export async function signupWithEmailLink(
     return submission.reply();
   }
 
-  // Better Auth の Magic Link API を使用
-  const response = await authClient.signIn.magicLink({
-    email: submission.value.email,
-    callbackURL: redirectPath,
-  });
-
-  if (response.error) {
+  // Better Auth の Magic Link API（サーバーサイド）を使用
+  try {
+    await auth.api.signInMagicLink({
+      body: {
+        email: submission.value.email,
+        callbackURL: redirectPath,
+      },
+      headers: await headers(),
+    });
+  } catch (error) {
+    console.error("Magic link error:", error);
     return submission.reply({
       formErrors: ["メール送信に失敗しました。"],
     });
