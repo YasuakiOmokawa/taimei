@@ -17,7 +17,6 @@ import {
   getResendClient,
   getFromEmail,
   getAppName,
-  getAppUrl,
   isTestEnvironment,
 } from "./email/client";
 import MagicLinkEmail from "./email/magic-link";
