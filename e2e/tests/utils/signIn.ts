@@ -3,28 +3,29 @@ import { db } from "../../db/client";
 import { user, verification } from "../../db/schema";
 import { eq, desc } from "drizzle-orm";
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3001";
+export const BASE_URL =
+  process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3001";
 
-export async function signIn(browser: Browser): Promise<BrowserContext> {
-  // 1. テストユーザー作成（テストごとにユニークなメールアドレス）
-  const testEmail = `e2e-test-${Date.now()}@example.com`;
-  await createTestUser(testEmail);
-
-  // 2. Magic Link API を呼んでトークン生成
-  const response = await fetch(`${BASE_URL}/api/auth/sign-in/magic-link`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: testEmail }),
+/**
+ * テストユーザーを作成し、メールアドレスを返す
+ */
+export async function createTestUser(): Promise<string> {
+  const uuid = crypto.randomUUID();
+  await db.insert(user).values({
+    id: uuid,
+    name: "E2E Test User",
+    email: `e2e-${uuid}@example.com`,
+    emailVerified: false,
   });
+  return `e2e-${uuid}@example.com`;
+}
 
-  if (!response.ok) {
-    throw new Error(`Magic link request failed: ${response.status}`);
-  }
-
-  // 3. verification テーブルからトークン取得
-  // Better Auth は identifier=token, value=JSON(email) の形式で保存
-  const expectedValue = JSON.stringify({ email: testEmail });
-  const verificationRecord = await db
+/**
+ * verification テーブルから Magic Link トークンを取得
+ */
+export async function getVerificationToken(email: string): Promise<string> {
+  const expectedValue = JSON.stringify({ email });
+  const record = await db
     .select()
     .from(verification)
     .where(eq(verification.value, expectedValue))
@@ -32,13 +33,35 @@ export async function signIn(browser: Browser): Promise<BrowserContext> {
     .limit(1)
     .then((rows) => rows[0]);
 
-  if (!verificationRecord) {
-    throw new Error(`Verification token not found for ${testEmail}`);
+  if (!record) {
+    throw new Error(`Verification token not found for ${email}`);
   }
 
-  const token = verificationRecord.identifier;
+  return record.identifier;
+}
 
-  // 4. fetch で verify エンドポイントを呼び、Set-Cookie を取得
+/**
+ * 指定メールアドレスで Magic Link 認証を行い、認証済みコンテキストを返す
+ */
+export async function signInWithMagicLink(
+  browser: Browser,
+  email: string
+): Promise<BrowserContext> {
+  // Magic Link API を呼んでトークン生成
+  const response = await fetch(`${BASE_URL}/api/auth/sign-in/magic-link`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Magic link request failed: ${response.status}`);
+  }
+
+  // verification テーブルからトークン取得
+  const token = await getVerificationToken(email);
+
+  // fetch で verify エンドポイントを呼び、Set-Cookie を取得
   const verifyUrl = `${BASE_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=/dashboard`;
   const verifyResponse = await fetch(verifyUrl, { redirect: "manual" });
 
@@ -47,7 +70,7 @@ export async function signIn(browser: Browser): Promise<BrowserContext> {
     throw new Error("No Set-Cookie header in verify response");
   }
 
-  // 5. クッキーをパースしてブラウザコンテキストに設定
+  // クッキーをパースしてブラウザコンテキストに設定
   const cookies = parseCookies(setCookieHeader);
   const context = await browser.newContext();
   await context.addCookies(cookies);
@@ -55,7 +78,18 @@ export async function signIn(browser: Browser): Promise<BrowserContext> {
   return context;
 }
 
-function parseCookies(
+/**
+ * テストユーザーを作成し、Magic Link 認証を行う（既存互換）
+ */
+export async function signIn(browser: Browser): Promise<BrowserContext> {
+  const email = await createTestUser();
+  return signInWithMagicLink(browser, email);
+}
+
+/**
+ * Set-Cookie ヘッダーをパースして Playwright Cookie 形式に変換
+ */
+export function parseCookies(
   setCookieHeader: string
 ): Array<{
   name: string;
@@ -109,14 +143,5 @@ function parseCookies(
     }
 
     return cookie;
-  });
-}
-
-async function createTestUser(email: string) {
-  await db.insert(user).values({
-    id: `test-user-${Date.now()}`,
-    name: "E2E Test User",
-    email,
-    emailVerified: false,
   });
 }

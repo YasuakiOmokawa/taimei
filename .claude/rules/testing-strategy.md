@@ -5,6 +5,7 @@ globs:
   - "**/*.test.tsx"
   - "**/*.spec.ts"
   - "__tests__/**/*"
+  - ".kiro/specs/**/design.md"
 ---
 
 # taimei テスト戦略
