@@ -8,6 +8,14 @@ import * as schema from "@/db/drizzle/schema";
 import { handleUserCreateBefore } from "./auth/hooks/user-create-hook";
 import { getSessionFlashMessage } from "./auth/hooks/session-flash-hook";
 import { setFlash } from "@/lib/flash-toaster";
+import { render } from "@react-email/components";
+import {
+  getResendClient,
+  getFromEmail,
+  getAppName,
+  isTestEnvironment,
+} from "./email/client";
+import { MagicLinkEmail } from "./email/magic-link";
 
 export const auth = betterAuth({
   // E2E テスト等で使用する baseURL（環境変数から取得）
@@ -35,8 +43,32 @@ export const auth = betterAuth({
     nextCookies(),
     magicLink({
       sendMagicLink: async ({ email, url }) => {
-        // Resend 経由でメール送信（Phase 6 で実装）
-        console.log(`Sending magic link to ${email}: ${url}`);
+        // E2E テスト環境ではメール送信をスキップ（DBから直接トークン取得）
+        if (isTestEnvironment()) {
+          console.log(`[TEST] Magic Link for ${email}: ${url}`);
+          return;
+        }
+
+        const resend = getResendClient();
+        const fromEmail = getFromEmail();
+        const appName = getAppName();
+
+        const emailComponent = MagicLinkEmail({ url, appName });
+        const html = await render(emailComponent);
+        const text = await render(emailComponent, { plainText: true });
+
+        const { error } = await resend.emails.send({
+          from: fromEmail,
+          to: email,
+          subject: `${appName} へのログインリンク`,
+          html,
+          text,
+        });
+
+        if (error) {
+          console.error("Failed to send magic link email:", error);
+          throw new Error(`Email sending failed: ${error.message}`);
+        }
       },
       expiresIn: 300, // 5分
     }),
