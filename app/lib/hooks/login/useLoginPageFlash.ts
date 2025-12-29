@@ -2,28 +2,43 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
-/**
- * テスト容易性のため純粋関数として抽出。Hook 内のサイドエフェクトはテスト戦略上テストしない。
- */
+// テスト容易性のため純粋関数として抽出
 export const shouldShowExistingAccountFlash = (from: string | null): boolean =>
   from === "signup";
 
+export const shouldShowAccountNotLinkedFlash = (
+  errors: string[]
+): boolean => errors.includes("account_not_linked");
+
 /**
- * 新規登録画面からの GitHub OAuth で既存ユーザーがリダイレクトされた場合に使用。
+ * ログインページでのクライアント側フラッシュメッセージ表示
+ *
+ * 対象シナリオ:
+ * - error=account_not_linked: Magic Link 登録済みユーザーが GitHub でログイン試行
+ * - from=signup: signup 画面から GitHub OAuth で既存ユーザーがリダイレクト
+ *
+ * from=signup でエラーなしの場合はサーバー側フラッシュに任せる。
  */
 export const useLoginPageFlash = (): void => {
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
-  // React 18 StrictMode では Effect が2回実行されるため、useRef でガード
+  const errors = searchParams.getAll("error");
   const hasShown = useRef(false);
 
   useEffect(() => {
-    // hasShown チェック→設定の順序を変更しないこと（2回実行時の競合防止）
-    if (shouldShowExistingAccountFlash(from) && !hasShown.current) {
+    if (hasShown.current) return;
+
+    if (shouldShowAccountNotLinkedFlash(errors)) {
+      hasShown.current = true;
+      toast.error(
+        "このメールアドレスのアカウントは既に存在します。ログイン後、設定画面からGitHubを連携できます。"
+      );
+      // replaceState でブラウザ履歴を汚さない（戻るボタンでクエリパラメータ付きURLに戻らない）
+      window.history.replaceState({}, "", "/login");
+    } else if (shouldShowExistingAccountFlash(from)) {
       hasShown.current = true;
       toast.error("アカウントが既に存在します。ログインしてください。");
-      // pushState ではなく replaceState を使用（ブラウザ履歴を汚さない）
       window.history.replaceState({}, "", "/login");
     }
-  }, [from]);
+  }, [from, errors]);
 };
