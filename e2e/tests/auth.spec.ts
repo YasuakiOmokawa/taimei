@@ -14,7 +14,10 @@ test.describe("認証フロー", () => {
       await expect(page).toHaveURL(/\/login\?callbackUrl=.*dashboard/);
     });
 
-    test("ログイン後、callbackUrl にリダイレクトされる", async ({ page }) => {
+    test("ログイン後、callbackUrl にリダイレクトされる", async ({
+      page,
+      browser,
+    }) => {
       // 1. テストユーザーを作成
       const testEmail = await createTestUser();
 
@@ -22,22 +25,15 @@ test.describe("認証フロー", () => {
       await page.goto("/dashboard");
       await expect(page).toHaveURL(/\/login\?callbackUrl=.*dashboard/);
 
-      // 3. Magic Link でログイン
-      await page
-        .getByLabel("Email")
-        .fill(testEmail);
-      await page.getByRole("button", { name: "ログイン", exact: true }).click();
+      // 3. Magic Link でログイン（API直接呼び出しでトークン生成）
+      const context = await signInWithMagicLink(browser, testEmail);
+      const authedPage = await context.newPage();
 
-      // verification テーブルからトークンを取得（DBポーリングで Server Action 完了を待機）
-      const token = await getVerificationToken(testEmail);
+      // 4. /dashboard にリダイレクトされること
+      await authedPage.goto("/dashboard");
+      await expect(authedPage).toHaveURL(/\/dashboard/);
 
-      // トークンを使って認証
-      await page.goto(
-        `/api/auth/magic-link/verify?token=${token}&callbackURL=/dashboard`
-      );
-
-      // /dashboard にリダイレクトされること
-      await expect(page).toHaveURL(/\/dashboard/);
+      await context.close();
     });
   });
 
