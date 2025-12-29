@@ -6,7 +6,11 @@ import { nextCookies } from "better-auth/next-js";
 import { db } from "@/db/drizzle/client";
 import * as schema from "@/db/drizzle/schema";
 import { handleUserCreateBefore } from "./auth/hooks/user-create-hook";
-import { getSessionFlashMessage } from "./auth/hooks/session-flash-hook";
+import {
+  isNewUser,
+  getSessionFlashMessage,
+} from "./auth/hooks/session-flash-hook";
+import { sendWelcomeEmail } from "./email/send-welcome";
 import { setFlash } from "@/lib/flash-toaster";
 import { render } from "@react-email/components";
 import {
@@ -101,8 +105,16 @@ export const auth = betterAuth({
     after: createAuthMiddleware(async (ctx) => {
       const newSession = ctx.context.newSession;
       if (newSession) {
-        const flash = getSessionFlashMessage(new Date(newSession.user.createdAt));
+        const createdAt = new Date(newSession.user.createdAt);
+        const flash = getSessionFlashMessage(createdAt);
         await setFlash(flash);
+
+        // 新規ユーザーにウェルカムメール送信（失敗してもセッション作成には影響させない）
+        if (isNewUser(createdAt)) {
+          sendWelcomeEmail(newSession.user.email, newSession.user.name).catch(
+            (e) => console.error("Welcome email failed:", e)
+          );
+        }
       }
     }),
   },
