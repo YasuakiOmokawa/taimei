@@ -29,3 +29,8 @@ export function getFromEmail(): string {
 export function getAppName(): string {
   return process.env.APP_NAME || "taimei";
 }
+
+// メール内リンク生成用のアプリURL
+export function getAppUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+}
