@@ -28,7 +28,7 @@ export async function getVerificationToken(
   email: string,
   options: { maxRetries?: number; retryDelay?: number } = {}
 ): Promise<string> {
-  const { maxRetries = 10, retryDelay = 500 } = options;
+  const { maxRetries = 20, retryDelay = 1000 } = options;
   const expectedValue = JSON.stringify({ email });
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
