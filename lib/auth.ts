@@ -22,7 +22,6 @@ import {
 import { MagicLinkEmail } from "./email/magic-link";
 
 export const auth = betterAuth({
-  // E2E テスト等で使用する baseURL（環境変数から取得）
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
 
   advanced: {

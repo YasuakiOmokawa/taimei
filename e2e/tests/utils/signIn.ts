@@ -6,9 +6,6 @@ import { eq, desc } from "drizzle-orm";
 export const BASE_URL =
   process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3001";
 
-/**
- * テストユーザーを作成し、メールアドレスを返す
- */
 export async function createTestUser(): Promise<string> {
   const uuid = crypto.randomUUID();
   await db.insert(user).values({
@@ -21,8 +18,8 @@ export async function createTestUser(): Promise<string> {
 }
 
 /**
- * verification テーブルから Magic Link トークンを取得（リトライ付き）
- * Server Action 完了を待つため、トークンが見つかるまでポーリング
+ * Server Action の非同期処理完了を待つため、トークンが見つかるまでポーリング
+ * デフォルト: 20回 × 1秒間隔 = 最大20秒
  */
 export async function getVerificationToken(
   email: string,
@@ -44,7 +41,6 @@ export async function getVerificationToken(
       return record.identifier;
     }
 
-    // 最後の試行でなければ待機してリトライ
     if (attempt < maxRetries - 1) {
       await new Promise((resolve) => setTimeout(resolve, retryDelay));
     }
@@ -55,14 +51,10 @@ export async function getVerificationToken(
   );
 }
 
-/**
- * 指定メールアドレスで Magic Link 認証を行い、認証済みコンテキストを返す
- */
 export async function signInWithMagicLink(
   browser: Browser,
   email: string
 ): Promise<BrowserContext> {
-  // Magic Link API を呼んでトークン生成
   const response = await fetch(`${BASE_URL}/api/auth/sign-in/magic-link`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -73,10 +65,9 @@ export async function signInWithMagicLink(
     throw new Error(`Magic link request failed: ${response.status}`);
   }
 
-  // verification テーブルからトークン取得
   const token = await getVerificationToken(email);
 
-  // fetch で verify エンドポイントを呼び、Set-Cookie を取得
+  // Playwright の page.goto() ではなく fetch を使用（Set-Cookie ヘッダーを直接取得するため）
   const verifyUrl = `${BASE_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=/dashboard`;
   const verifyResponse = await fetch(verifyUrl, { redirect: "manual" });
 
@@ -85,7 +76,6 @@ export async function signInWithMagicLink(
     throw new Error("No Set-Cookie header in verify response");
   }
 
-  // クッキーをパースしてブラウザコンテキストに設定
   const cookies = parseCookies(setCookieHeader);
   const context = await browser.newContext();
   await context.addCookies(cookies);
@@ -93,17 +83,11 @@ export async function signInWithMagicLink(
   return context;
 }
 
-/**
- * テストユーザーを作成し、Magic Link 認証を行う（既存互換）
- */
 export async function signIn(browser: Browser): Promise<BrowserContext> {
   const email = await createTestUser();
   return signInWithMagicLink(browser, email);
 }
 
-/**
- * Set-Cookie ヘッダーをパースして Playwright Cookie 形式に変換
- */
 export function parseCookies(
   setCookieHeader: string
 ): Array<{
@@ -115,8 +99,7 @@ export function parseCookies(
   secure?: boolean;
   sameSite?: "Strict" | "Lax" | "None";
 }> {
-  // Set-Cookie ヘッダーは複数のクッキーがカンマ区切りで来る可能性がある
-  // ただし、クッキー値内にカンマが含まれることもあるため、正規表現でパース
+  // カンマ区切りだがクッキー値内にもカンマが含まれうるため、名前=値パターンの前でのみ分割
   const cookieStrings = setCookieHeader.split(/,(?=\s*[a-zA-Z_][a-zA-Z0-9_-]*=)/);
   const domain = new URL(BASE_URL).hostname;
 
