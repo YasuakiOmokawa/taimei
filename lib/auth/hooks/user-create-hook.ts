@@ -1,11 +1,16 @@
 import { GenericEndpointContext } from "@better-auth/core";
 import { getOAuthState as getOAuthStateFn } from "better-auth/api";
+import {
+  AuthErrorCode,
+  AUTH_ERROR_MESSAGES,
+} from "@/lib/auth/messages/auth-messages";
 
 type OAuthState = Awaited<ReturnType<typeof getOAuthStateFn>>;
 
 /**
  * ログイン画面からの OAuth で未登録ユーザーが来た場合、
- * 自動登録させず新規登録画面にリダイレクトする
+ * 自動登録させず新規登録画面にリダイレクトする。
+ * ログインフロー経由での自動ユーザー作成を防ぎ、ユーザーに明示的な登録意思確認を取る。
  */
 export async function handleUserCreateBefore<T>(
   user: T,
@@ -26,7 +31,7 @@ export async function handleUserCreateBefore<T>(
       "flash",
       JSON.stringify({
         type: "error",
-        message: "アカウントが存在しません。新規登録してください。",
+        message: AUTH_ERROR_MESSAGES[AuthErrorCode.LOGIN_UNREGISTERED],
       }),
       { maxAge: 1 }
     );
