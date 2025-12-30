@@ -3,8 +3,8 @@ import { createAuthMiddleware, getOAuthState } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins";
 import { nextCookies } from "better-auth/next-js";
-import { eq } from "drizzle-orm";
-import { cookies } from "next/headers";
+import { Effect, Either } from "effect";
+import { render } from "@react-email/components";
 import { db } from "@/db/drizzle/client";
 import * as schema from "@/db/drizzle/schema";
 import { handleUserCreateBefore } from "./auth/hooks/user-create-hook";
@@ -14,7 +14,6 @@ import {
 } from "./auth/hooks/session-flash-hook";
 import { sendWelcomeEmail } from "./email/send-welcome";
 import { setFlash } from "@/lib/flash-toaster";
-import { render } from "@react-email/components";
 import {
   getResendClient,
   getFromEmail,
@@ -22,6 +21,10 @@ import {
   isTestEnvironment,
 } from "./email/client";
 import MagicLinkEmail from "./email/magic-link";
+import {
+  AuthErrorCode,
+  AUTH_ERROR_MESSAGES,
+} from "./auth/messages/auth-messages";
 
 export const auth = betterAuth({
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
@@ -124,18 +127,36 @@ export const auth = betterAuth({
           !isJustSignedUp(createdAt);
 
         if (isSignupFlowExistingUser) {
-          // セッションを DB から削除
-          await db
-            .delete(schema.session)
-            .where(eq(schema.session.id, newSession.session.id));
+          // 循環依存回避のため動的インポート
+          const { AuthService, runService } = await import("@/app/services");
 
-          // Cookie キャッシュも削除（cookieCache が有効なため、DB 削除だけでは不十分）
-          const cookieStore = await cookies();
-          const prefix = isTestEnvironment() ? "" : "__Secure-";
-          cookieStore.delete(`${prefix}better-auth.session_token`);
-          cookieStore.delete(`${prefix}better-auth.session_data`);
+          // アカウント情報を取得してプロバイダーを判定
+          const result = await runService(() =>
+            Effect.gen(function* () {
+              const service = yield* AuthService;
+              return yield* service.findAccountByUserId(newSession.user.id);
+            })
+          );
 
-          return; // フラッシュ設定をスキップ（クライアント側でエラー表示）
+          // GitHub登録済み → user_already_exists
+          // Magic Link登録済み（GitHub未連携） → account_not_linked
+          const userAccount = Either.isRight(result) ? result.right : null;
+          const isGitHubAccount = userAccount?.providerId === "github";
+          const message = isGitHubAccount
+            ? AUTH_ERROR_MESSAGES[AuthErrorCode.USER_ALREADY_EXISTS]
+            : AUTH_ERROR_MESSAGES[AuthErrorCode.ACCOUNT_NOT_LINKED];
+
+          await setFlash({ type: "error", message });
+
+          // Better Auth の signOut API でセッション無効化（Cookie も正しく削除される）
+          if (ctx.request) {
+            await auth.api.signOut({ headers: ctx.request.headers });
+          }
+
+          return new Response(null, {
+            status: 302,
+            headers: { Location: "/login" },
+          });
         }
 
         const flash = getAuthSuccessMessage(createdAt);
