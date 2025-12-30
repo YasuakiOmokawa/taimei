@@ -19,18 +19,13 @@ test.describe("認証フロー", () => {
       page,
       browser,
     }) => {
-      // 1. テストユーザーを作成
       const testEmail = await createTestUser();
-
-      // 2. 未認証で /dashboard にアクセス → /login にリダイレクト
       await page.goto("/dashboard");
       await expect(page).toHaveURL(/\/login\?callbackUrl=.*dashboard/);
 
-      // 3. Magic Link でログイン（API直接呼び出しでトークン生成）
+      // Magic Link でのセッション作成後の挙動を検証
       const context = await signInWithMagicLink(browser, testEmail);
       const authedPage = await context.newPage();
-
-      // 4. /dashboard にリダイレクトされること
       await authedPage.goto("/dashboard");
       await expect(authedPage).toHaveURL(/\/dashboard/);
 
@@ -43,23 +38,18 @@ test.describe("認証フロー", () => {
       page,
     }) => {
       await page.goto("/");
-
-      // ランディングページが表示されること（/login へのリダイレクトではない）
       await expect(page).toHaveURL("/");
     });
 
     test("認証済みで / にアクセスしてもランディングページが表示される", async ({
       browser,
     }) => {
-      // テストユーザーを作成してログイン
+      // 認証状態でもルートパスは /login にリダイレクトしない仕様を検証
       const testEmail = await createTestUser();
       const context = await signInWithMagicLink(browser, testEmail);
       const page = await context.newPage();
 
-      // ルートページにアクセス
       await page.goto("/");
-
-      // ランディングページが表示されること（/dashboard へのリダイレクトではない）
       await expect(page).toHaveURL("/");
 
       await context.close();
@@ -70,26 +60,22 @@ test.describe("認証フロー", () => {
     test("UIフォームからログインするとトークンが生成される", async ({
       page,
     }) => {
-      // 1. テストユーザーを作成
       const testEmail = await createTestUser();
 
-      // 2. UIフォームからログイン（Server Action経由）
       await page.goto("/login");
       await page.getByLabel("Email").fill(testEmail);
       await page.getByRole("button", { name: "ログイン", exact: true }).click();
 
-      // 3. 成功フラッシュを待つ
       await expect(
         page
           .locator("[data-sonner-toast]")
           .filter({ hasText: "メールを送信しました。" })
       ).toBeVisible();
 
-      // 4. Server Action が verification テーブルにトークンを生成したことを確認
+      // Server Action が verification テーブルにトークンを生成すること
       const token = await getVerificationToken(testEmail);
       expect(token).toBeTruthy();
 
-      // 5. トークンで認証してダッシュボードにアクセス可能か検証
       const verifyUrl = `${BASE_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=/dashboard`;
       const verifyResponse = await fetch(verifyUrl, { redirect: "manual" });
       expect(verifyResponse.status).toBe(302);
@@ -121,7 +107,6 @@ test.describe("認証フロー", () => {
     test("既存メールで新規登録試行するとフラッシュメッセージが表示される", async ({
       page,
     }) => {
-      // 既存ユーザーを作成
       const existingEmail = await createTestUser();
       await page.goto("/signup");
       await page
@@ -129,7 +114,6 @@ test.describe("認証フロー", () => {
         .fill(existingEmail);
       await page.getByRole("button", { name: "登録", exact: true }).click();
 
-      // フラッシュメッセージ（toast）が表示されること
       await expect(
         page
           .locator("[data-sonner-toast]")
@@ -138,20 +122,33 @@ test.describe("認証フロー", () => {
     });
   });
 
-  test.describe("LoginPageFlash - クエリパラメータからのフラッシュ表示", () => {
-    test("/login?from=signup でフラッシュメッセージが表示される", async ({
+  test.describe("AuthMessageHandler - クエリパラメータからのフラッシュ表示", () => {
+    test("/login?error=user_already_exists でフラッシュメッセージが表示される", async ({
       page,
     }) => {
-      await page.goto("/login?from=signup");
+      await page.goto("/login?error=user_already_exists");
 
-      // フラッシュメッセージ（toast）が表示されること
       await expect(
         page
           .locator("[data-sonner-toast]")
-          .filter({ hasText: "アカウントが既に存在します。ログインしてください。" })
+          .filter({ hasText: "アカウントがすでに存在します。" })
       ).toBeVisible();
 
-      // URL からクエリパラメータが削除されること
+      // クエリパラメータが削除されることを検証
+      await expect(page).toHaveURL("/login");
+    });
+
+    test("/login?error=login_unregistered でフラッシュメッセージが表示される", async ({
+      page,
+    }) => {
+      await page.goto("/login?error=login_unregistered");
+
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: "アカウントが存在しません。新規登録してください。" })
+      ).toBeVisible();
+
       await expect(page).toHaveURL("/login");
     });
   });
