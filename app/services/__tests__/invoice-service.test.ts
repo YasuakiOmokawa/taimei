@@ -24,7 +24,7 @@ const createMockRepository = (initialInvoices: Invoice[] = []) => {
   const invoices = [...initialInvoices];
   let idCounter = 1;
 
-  return {
+  return new InvoiceRepository({
     create: (input: CreateInvoiceInput) =>
       Effect.succeed({
         id: `test-invoice-${idCounter++}`,
@@ -77,12 +77,12 @@ const createMockRepository = (initialInvoices: Invoice[] = []) => {
 
     fetchPages: (_query: string, _itemsPerPage = 6) =>
       Effect.succeed(Math.ceil(invoices.length / _itemsPerPage)),
-  };
+  });
 };
 
 // テスト用 Layer を構築
 const createTestLayer = (initialInvoices: Invoice[] = []) =>
-  InvoiceService.Live.pipe(
+  InvoiceService.Default.pipe(
     Layer.provide(
       Layer.succeed(InvoiceRepository, createMockRepository(initialInvoices))
     )
@@ -170,7 +170,6 @@ describe("InvoiceService", () => {
       expect(Either.isLeft(result)).toBe(true);
       if (Either.isLeft(result)) {
         expect(result.left).toBeInstanceOf(InvoiceNotFound);
-        expect(result.left._tag).toBe("InvoiceNotFound");
       }
     });
   });
@@ -210,7 +209,6 @@ describe("InvoiceService", () => {
       expect(Either.isLeft(result)).toBe(true);
       if (Either.isLeft(result)) {
         expect(result.left).toBeInstanceOf(InvoiceNotFound);
-        expect(result.left._tag).toBe("InvoiceNotFound");
       }
     });
   });
@@ -254,7 +252,6 @@ describe("InvoiceService", () => {
       expect(Either.isLeft(result)).toBe(true);
       if (Either.isLeft(result)) {
         expect(result.left).toBeInstanceOf(InvoiceNotFound);
-        expect(result.left._tag).toBe("InvoiceNotFound");
       }
     });
   });

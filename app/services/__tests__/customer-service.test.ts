@@ -24,23 +24,24 @@ type FilteredCustomer = {
 const createMockRepository = (
   customers: Customer[] = [],
   filteredCustomers: FilteredCustomer[] = []
-) => ({
-  findAll: () =>
-    Effect.succeed(
-      customers.map((c) => ({
-        id: c.id,
-        name: c.name,
-      }))
-    ),
+) =>
+  new CustomerRepository({
+    findAll: () =>
+      Effect.succeed(
+        customers.map((c) => ({
+          id: c.id,
+          name: c.name,
+        }))
+      ),
 
-  fetchFiltered: (_query: string) => Effect.succeed(filteredCustomers),
-});
+    fetchFiltered: (_query: string) => Effect.succeed(filteredCustomers),
+  });
 
 const createTestLayer = (
   customers: Customer[] = [],
   filteredCustomers: FilteredCustomer[] = []
 ) =>
-  CustomerService.Live.pipe(
+  CustomerService.Default.pipe(
     Layer.provide(
       Layer.succeed(
         CustomerRepository,

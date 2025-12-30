@@ -1,14 +1,17 @@
-import { Context, Effect, Layer } from "effect";
+import { Effect, Layer } from "effect";
 
 /**
  * グローバル変数（crypto.randomUUID）をサービス化してテスタビリティを向上
  * Effect の Service Pattern に従い、依存性注入可能な形で実装
+ *
+ * 複数の Layer バリアント（Live, Test, TestSequence, Custom）を持つため、
+ * Effect.Service ではなく Effect.Tag パターンを使用
  */
 export interface IdGeneratorService {
   readonly generate: Effect.Effect<string>;
 }
 
-export class IdGenerator extends Context.Tag("services/IdGenerator")<
+export class IdGenerator extends Effect.Tag("services/IdGenerator")<
   IdGenerator,
   IdGeneratorService
 >() {
