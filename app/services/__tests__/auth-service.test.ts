@@ -6,10 +6,8 @@ import { MagicLinkError, SignOutError } from "../auth-errors";
 import { AuthRepositoryError } from "../auth-repository";
 
 // Layer DI を利用したモック実装
-// テストではproviderId のみ使用するため、型アサーションで簡略化
-type MockAccount = Parameters<
-  ConstructorParameters<typeof AuthService>[0]["findAccountByUserId"]
-> extends [(infer _)] ? ReturnType<ConstructorParameters<typeof AuthService>[0]["findAccountByUserId"]> extends Effect.Effect<infer R, infer _E, infer _C> ? R : never : never;
+// テストでは providerId のみ使用するため、必要最小限の型定義
+type MockAccount = { providerId: string } | undefined;
 
 const createMockAuthService = (options: {
   session?: Session | null;

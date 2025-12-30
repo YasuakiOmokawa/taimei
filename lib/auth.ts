@@ -148,7 +148,10 @@ export const auth = betterAuth({
           await setFlash({ type: "error", message });
 
           // Better Auth の signOut API でセッション無効化（Cookie も正しく削除される）
-          if (ctx.request) {
+          // createAuthMiddleware 内では ctx.request は常に存在するが、型安全性のためガード
+          if (!ctx.request) {
+            console.error("ctx.request is unexpectedly null in auth middleware");
+          } else {
             await auth.api.signOut({ headers: ctx.request.headers });
           }
 
