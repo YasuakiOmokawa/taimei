@@ -7,6 +7,7 @@ export const AuthErrorCode = {
   SIGNIN_FAILED: "signin_failed",
   SIGNOUT_FAILED: "signout_failed",
   SIGNUP_FAILED: "signup_failed",
+  SYSTEM_ERROR: "system_error",
 } as const;
 
 export type AuthErrorCode = (typeof AuthErrorCode)[keyof typeof AuthErrorCode];
@@ -21,6 +22,7 @@ export const AUTH_ERROR_MESSAGES: Record<AuthErrorCode, string> = {
   signin_failed: "ログインに失敗しました。",
   signout_failed: "ログアウトに失敗しました。",
   signup_failed: "登録に失敗しました。",
+  system_error: "システムエラーが発生しました。しばらく時間をおいて再度お試しください。",
 };
 
 export const AuthSuccessCode = {

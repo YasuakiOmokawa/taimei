@@ -21,10 +21,6 @@ import {
   isTestEnvironment,
 } from "./email/client";
 import MagicLinkEmail from "./email/magic-link";
-import {
-  AuthErrorCode,
-  AUTH_ERROR_MESSAGES,
-} from "./auth/messages/auth-messages";
 
 export const auth = betterAuth({
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
@@ -116,18 +112,19 @@ export const auth = betterAuth({
   hooks: {
     after: createAuthMiddleware(async (ctx) => {
       const newSession = ctx.context.newSession;
+
       if (newSession) {
         const createdAt = new Date(newSession.user.createdAt);
 
-        // signup 画面から OAuth で既存ユーザーがログインした場合、
-        // セッションを無効化してログインを拒否する
+        // signup 画面経由での「なりすまし登録」を防ぐ
+        // 既存ユーザーは login 画面からログインさせ、signup フローを中断する
         const oauthState = await getOAuthState();
-        const isSignupFlowExistingUser =
-          oauthState?.callbackURL?.includes("error=user_already_exists") &&
-          !isJustSignedUp(createdAt);
+        const hasFromSignup = oauthState?.callbackURL?.includes("from=signup");
+        const justSignedUp = isJustSignedUp(createdAt);
+        const isSignupFlowExistingUser = hasFromSignup && !justSignedUp;
 
         if (isSignupFlowExistingUser) {
-          // 循環依存回避のため動的インポート
+          // auth.ts → services/index.ts の相互参照を避けるため動的インポート
           const { AuthService, runService } = await import("@/app/services");
 
           const result = await runService(() =>
@@ -137,28 +134,27 @@ export const auth = betterAuth({
             })
           );
 
-          // GitHub登録済み → user_already_exists
-          // Magic Link登録済み（GitHub未連携） → account_not_linked
-          const userAccount = Either.isRight(result) ? result.right : null;
-          const isGitHubAccount = userAccount?.providerId === "github";
-          const message = isGitHubAccount
-            ? AUTH_ERROR_MESSAGES[AuthErrorCode.USER_ALREADY_EXISTS]
-            : AUTH_ERROR_MESSAGES[AuthErrorCode.ACCOUNT_NOT_LINKED];
-
-          await setFlash({ type: "error", message });
-
-          // Better Auth の signOut API でセッション無効化（Cookie も正しく削除される）
-          // createAuthMiddleware 内では ctx.request は常に存在するが、型安全性のためガード
-          if (!ctx.request) {
-            console.error("ctx.request is unexpectedly null in auth middleware");
-          } else {
-            await auth.api.signOut({ headers: ctx.request.headers });
+          // DB エラー時はシステムエラーとして処理（ユーザーに誤った案内を出さない）
+          if (Either.isLeft(result)) {
+            console.error("[AUTH] Failed to find account:", result.left);
+            throw ctx.redirect("/login?error=system_error");
           }
 
-          return new Response(null, {
-            status: 302,
-            headers: { Location: "/login" },
-          });
+          // エラーメッセージを出し分け：GitHub連携済みなら「既存アカウントあり」、
+          // Magic Link のみなら「GitHub連携を促す」メッセージを表示
+          const userAccount = result.right;
+          const isGitHubAccount = userAccount?.providerId === "github";
+
+          // auth.api.signOut() は別リクエストコンテキストを生成するため、
+          // OAuth コールバックのレスポンスに Cookie 削除が反映されない
+          const sessionToken = newSession.session.token;
+          await ctx.context.internalAdapter.deleteSession(sessionToken);
+          const cookieName = ctx.context.authCookies.sessionToken.name;
+          ctx.setCookie(cookieName, "", { maxAge: 0, path: "/" });
+
+          // useAuthMessage フックがクエリパラメータからエラーコードを読み取り toast 表示
+          const errorCode = isGitHubAccount ? "user_already_exists" : "account_not_linked";
+          throw ctx.redirect(`/login?error=${errorCode}`);
         }
 
         const flash = getAuthSuccessMessage(createdAt);
