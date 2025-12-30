@@ -21,10 +21,7 @@ import {
   isTestEnvironment,
 } from "./email/client";
 import MagicLinkEmail from "./email/magic-link";
-import {
-  AuthErrorCode,
-  AUTH_ERROR_MESSAGES,
-} from "./auth/messages/auth-messages";
+import { AuthErrorCode } from "./auth/messages/auth-messages";
 
 export const auth = betterAuth({
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
@@ -123,7 +120,7 @@ export const auth = betterAuth({
         // セッションを無効化してログインを拒否する
         const oauthState = await getOAuthState();
         const isSignupFlowExistingUser =
-          oauthState?.callbackURL?.includes("error=user_already_exists") &&
+          oauthState?.callbackURL?.includes("from=signup") &&
           !isJustSignedUp(createdAt);
 
         if (isSignupFlowExistingUser) {
@@ -141,11 +138,9 @@ export const auth = betterAuth({
           // Magic Link登録済み（GitHub未連携） → account_not_linked
           const userAccount = Either.isRight(result) ? result.right : null;
           const isGitHubAccount = userAccount?.providerId === "github";
-          const message = isGitHubAccount
-            ? AUTH_ERROR_MESSAGES[AuthErrorCode.USER_ALREADY_EXISTS]
-            : AUTH_ERROR_MESSAGES[AuthErrorCode.ACCOUNT_NOT_LINKED];
-
-          await setFlash({ type: "error", message });
+          const errorCode = isGitHubAccount
+            ? AuthErrorCode.USER_ALREADY_EXISTS
+            : AuthErrorCode.ACCOUNT_NOT_LINKED;
 
           // Better Auth の signOut API でセッション無効化（Cookie も正しく削除される）
           // createAuthMiddleware 内では ctx.request は常に存在するが、型安全性のためガード
@@ -157,7 +152,7 @@ export const auth = betterAuth({
 
           return new Response(null, {
             status: 302,
-            headers: { Location: "/login" },
+            headers: { Location: `/login?error=${errorCode}` },
           });
         }
 
