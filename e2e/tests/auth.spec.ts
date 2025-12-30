@@ -69,7 +69,7 @@ test.describe("認証フロー", () => {
       await expect(
         page
           .locator("[data-sonner-toast]")
-          .filter({ hasText: "メールを送信しました。" })
+          .filter({ hasText: "認証リンクをメールで送信しました。" })
       ).toBeVisible();
 
       // Server Action が verification テーブルにトークンを生成すること
