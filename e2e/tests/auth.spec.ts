@@ -38,7 +38,7 @@ test.describe("認証フロー", () => {
     });
   });
 
-  test.describe("ルートページの認証リダイレクト", () => {
+  test.describe("ルートページの表示", () => {
     test("未認証で / にアクセスするとランディングページが表示される", async ({
       page,
     }) => {
@@ -48,7 +48,7 @@ test.describe("認証フロー", () => {
       await expect(page).toHaveURL("/");
     });
 
-    test("認証済みで / にアクセスすると /dashboard にリダイレクトされる", async ({
+    test("認証済みで / にアクセスしてもランディングページが表示される", async ({
       browser,
     }) => {
       // テストユーザーを作成してログイン
@@ -59,8 +59,8 @@ test.describe("認証フロー", () => {
       // ルートページにアクセス
       await page.goto("/");
 
-      // /dashboard にリダイレクトされること
-      await expect(page).toHaveURL(/\/dashboard/);
+      // ランディングページが表示されること（/dashboard へのリダイレクトではない）
+      await expect(page).toHaveURL("/");
 
       await context.close();
     });
