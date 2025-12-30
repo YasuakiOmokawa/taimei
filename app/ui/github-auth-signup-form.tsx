@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import githubIcon from "@/app/ui/icons/github-mark.png";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
+import { BProgress } from "@bprogress/core";
 import { useRedirectPath } from "@/app/lib/hooks/login/useRedirectPath";
 
 export default function GithubAuthSignupForm() {
   const redirectPath = useRedirectPath();
 
   const handleGithubSignup = () => {
+    BProgress.start();
     // 既存ユーザーはログイン画面に戻し、新規ユーザーのみ signup フローを続行
     authClient.signIn.social({
       provider: "github",
