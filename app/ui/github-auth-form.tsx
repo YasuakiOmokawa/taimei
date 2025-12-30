@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import githubIcon from "@/app/ui/icons/github-mark.png";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
+import { BProgress } from "@bprogress/core";
 import { useRedirectPath } from "@/app/lib/hooks/login/useRedirectPath";
 
 export default function GithubAuthForm() {
   const redirectPath = useRedirectPath();
 
   const handleGithubLogin = () => {
+    BProgress.start();
     authClient.signIn.social({
       provider: "github",
       callbackURL: redirectPath,
