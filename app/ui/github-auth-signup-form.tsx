@@ -15,7 +15,7 @@ export default function GithubAuthSignupForm() {
     // 既存ユーザーはログイン画面に戻し、新規ユーザーのみ signup フローを続行
     authClient.signIn.social({
       provider: "github",
-      callbackURL: "/login?from=signup",
+      callbackURL: "/login?error=user_already_exists",
       newUserCallbackURL: redirectPath,
       errorCallbackURL: "/signup?error=signup_failed",
     });

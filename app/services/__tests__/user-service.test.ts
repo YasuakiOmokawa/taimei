@@ -17,7 +17,7 @@ type User = {
 const createMockRepository = (initialUsers: User[] = []) => {
   const users = [...initialUsers];
 
-  return {
+  return new UserRepository({
     existsByEmail: (email: string) =>
       Effect.succeed(users.some((u) => u.email === email)),
 
@@ -48,12 +48,14 @@ const createMockRepository = (initialUsers: User[] = []) => {
           return users.splice(index, 1);
         })()
       ),
-  };
+  });
 };
 
 const createTestLayer = (initialUsers: User[] = []) =>
-  UserService.Live.pipe(
-    Layer.provide(Layer.succeed(UserRepository, createMockRepository(initialUsers)))
+  UserService.Default.pipe(
+    Layer.provide(
+      Layer.succeed(UserRepository, createMockRepository(initialUsers))
+    )
   );
 
 const createTestUser = (overrides: Partial<User> = {}): User => ({
@@ -117,7 +119,6 @@ describe("UserService", () => {
       expect(Either.isLeft(result)).toBe(true);
       if (Either.isLeft(result)) {
         expect(result.left).toBeInstanceOf(UserNotFound);
-        expect(result.left._tag).toBe("UserNotFound");
       }
     });
   });
@@ -149,7 +150,6 @@ describe("UserService", () => {
       expect(Either.isLeft(result)).toBe(true);
       if (Either.isLeft(result)) {
         expect(result.left).toBeInstanceOf(UserNotFound);
-        expect(result.left._tag).toBe("UserNotFound");
       }
     });
   });
@@ -184,7 +184,6 @@ describe("UserService", () => {
       expect(Either.isLeft(result)).toBe(true);
       if (Either.isLeft(result)) {
         expect(result.left).toBeInstanceOf(UserNotFound);
-        expect(result.left._tag).toBe("UserNotFound");
       }
     });
   });

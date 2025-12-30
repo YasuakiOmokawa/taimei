@@ -1,38 +1,37 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
-import { Data, Effect, Layer } from "effect";
+import { Data, Effect } from "effect";
 import { tags2 } from "@/db/drizzle/schema";
 import { eq } from "drizzle-orm";
 
-const makeTag2Repository = Effect.andThen(PgDrizzle.PgDrizzle, (pgdrizzle) => {
-  return {
-    find: (id: string) => {
-      return Effect.tryPromise({
-        try: () =>
-          pgdrizzle
-            .select()
-            .from(tags2)
-            .where(eq(tags2.id, id))
-            .then((res) => res.at(0)),
-        catch: (e) =>
-          new Tag2RepositoryError({ message: `Tag2RepositoryError: ${e}` }),
-      });
-    },
-    findAll: () => {
-      return Effect.tryPromise({
-        try: () => pgdrizzle.select().from(tags2),
-        catch: (e) =>
-          new Tag2RepositoryError({ message: `Tag2RepositoryError: ${e}` }),
-      });
-    },
-  };
-});
+export class Tag2Repository extends Effect.Service<Tag2Repository>()(
+  "services/Tag2Repository",
+  {
+    effect: Effect.gen(function* () {
+      const pgdrizzle = yield* PgDrizzle.PgDrizzle;
 
-export class Tag2Repository extends Effect.Tag("services/Tag2Repository")<
-  Tag2Repository,
-  Effect.Effect.Success<typeof makeTag2Repository>
->() {
-  static Live = Layer.effect(this, makeTag2Repository);
-}
+      return {
+        find: (id: string) =>
+          Effect.tryPromise({
+            try: () =>
+              pgdrizzle
+                .select()
+                .from(tags2)
+                .where(eq(tags2.id, id))
+                .then((res) => res.at(0)),
+            catch: (e) =>
+              new Tag2RepositoryError({ message: `Tag2RepositoryError: ${e}` }),
+          }),
+
+        findAll: () =>
+          Effect.tryPromise({
+            try: () => pgdrizzle.select().from(tags2),
+            catch: (e) =>
+              new Tag2RepositoryError({ message: `Tag2RepositoryError: ${e}` }),
+          }),
+      } as const;
+    }),
+  }
+) {}
 
 export class Tag2RepositoryError extends Data.TaggedError(
   "Tag2RepositoryError"

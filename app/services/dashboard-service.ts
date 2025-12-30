@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect";
+import { Effect } from "effect";
 import { DashboardRepository } from "./dashboard-repository";
 import { formatCurrency } from "@/app/lib/utils";
 
@@ -24,60 +24,46 @@ export type CardData = {
   totalPendingInvoices: string;
 };
 
-const makeDashboardService = Effect.gen(function* () {
-  const repository = yield* DashboardRepository;
-
-  const fetchRevenue = (): Effect.Effect<
-    Revenue[],
-    ReturnType<typeof repository.fetchRevenue> extends Effect.Effect<
-      unknown,
-      infer E,
-      unknown
-    >
-      ? E
-      : never
-  > => repository.fetchRevenue();
-
-  const fetchLatestInvoices = () =>
-    Effect.gen(function* () {
-      const data = yield* repository.fetchLatestInvoices();
-      return data.map((invoice) => ({
-        id: invoice.id,
-        amount: formatCurrency(invoice.amount),
-        customer: {
-          name: invoice.customerName,
-          email: invoice.customerEmail,
-          image_url: invoice.customerImageUrl,
-        },
-      })) as LatestInvoice[];
-    });
-
-  const fetchCardData = () =>
-    Effect.gen(function* () {
-      const [invoiceCount, customerCount, invoiceStatus] = yield* Effect.all([
-        repository.fetchInvoiceCount(),
-        repository.fetchCustomerCount(),
-        repository.fetchInvoiceStatus(),
-      ]);
+export class DashboardService extends Effect.Service<DashboardService>()(
+  "services/DashboardService",
+  {
+    effect: Effect.gen(function* () {
+      const repository = yield* DashboardRepository;
 
       return {
-        numberOfCustomers: customerCount,
-        numberOfInvoices: invoiceCount,
-        totalPaidInvoices: formatCurrency(invoiceStatus.paid),
-        totalPendingInvoices: formatCurrency(invoiceStatus.pending),
-      } as CardData;
-    });
+        fetchRevenue: () => repository.fetchRevenue(),
 
-  return {
-    fetchRevenue,
-    fetchLatestInvoices,
-    fetchCardData,
-  };
-});
+        fetchLatestInvoices: () =>
+          Effect.gen(function* () {
+            const data = yield* repository.fetchLatestInvoices();
+            return data.map((invoice) => ({
+              id: invoice.id,
+              amount: formatCurrency(invoice.amount),
+              customer: {
+                name: invoice.customerName,
+                email: invoice.customerEmail,
+                image_url: invoice.customerImageUrl,
+              },
+            })) as LatestInvoice[];
+          }),
 
-export class DashboardService extends Effect.Tag("services/DashboardService")<
-  DashboardService,
-  Effect.Effect.Success<typeof makeDashboardService>
->() {
-  static Live = Layer.effect(this, makeDashboardService);
-}
+        fetchCardData: () =>
+          Effect.gen(function* () {
+            const [invoiceCount, customerCount, invoiceStatus] =
+              yield* Effect.all([
+                repository.fetchInvoiceCount(),
+                repository.fetchCustomerCount(),
+                repository.fetchInvoiceStatus(),
+              ]);
+
+            return {
+              numberOfCustomers: customerCount,
+              numberOfInvoices: invoiceCount,
+              totalPaidInvoices: formatCurrency(invoiceStatus.paid),
+              totalPendingInvoices: formatCurrency(invoiceStatus.pending),
+            } as CardData;
+          }),
+      } as const;
+    }),
+  }
+) {}

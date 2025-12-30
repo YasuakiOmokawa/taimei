@@ -3,6 +3,8 @@ import { createAuthMiddleware, getOAuthState } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins";
 import { nextCookies } from "better-auth/next-js";
+import { eq } from "drizzle-orm";
+import { cookies } from "next/headers";
 import { db } from "@/db/drizzle/client";
 import * as schema from "@/db/drizzle/schema";
 import { handleUserCreateBefore } from "./auth/hooks/user-create-hook";
@@ -115,17 +117,29 @@ export const auth = betterAuth({
         const createdAt = new Date(newSession.user.createdAt);
 
         // signup 画面から OAuth で既存ユーザーがログインした場合、
-        // クライアント側で「アカウントが既に存在します」フラッシュを表示するため、
-        // サーバー側の「ログインしました」フラッシュはスキップ
+        // セッションを無効化してログインを拒否する
         const oauthState = await getOAuthState();
         const isSignupFlowExistingUser =
-          oauthState?.callbackURL?.includes("from=signup") &&
+          oauthState?.callbackURL?.includes("error=user_already_exists") &&
           !isJustSignedUp(createdAt);
 
-        if (!isSignupFlowExistingUser) {
-          const flash = getAuthSuccessMessage(createdAt);
-          await setFlash(flash);
+        if (isSignupFlowExistingUser) {
+          // セッションを DB から削除
+          await db
+            .delete(schema.session)
+            .where(eq(schema.session.id, newSession.session.id));
+
+          // Cookie キャッシュも削除（cookieCache が有効なため、DB 削除だけでは不十分）
+          const cookieStore = await cookies();
+          const prefix = isTestEnvironment() ? "" : "__Secure-";
+          cookieStore.delete(`${prefix}better-auth.session_token`);
+          cookieStore.delete(`${prefix}better-auth.session_data`);
+
+          return; // フラッシュ設定をスキップ（クライアント側でエラー表示）
         }
+
+        const flash = getAuthSuccessMessage(createdAt);
+        await setFlash(flash);
 
         // 新規ユーザーにウェルカムメール送信（失敗してもセッション作成には影響させない）
         if (isJustSignedUp(createdAt)) {

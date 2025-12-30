@@ -14,6 +14,7 @@ import { InvoiceService } from "./invoice-service";
 import { InvoiceRepository } from "./invoice-repository";
 import { CustomerService } from "./customer-service";
 import { CustomerRepository } from "./customer-repository";
+import { AuthService } from "./auth-service";
 
 // 外部から直接 import できるようにエクスポート（パス簡略化のため）
 export { IdGenerator } from "./id-generator-service";
@@ -33,35 +34,45 @@ export { InvoiceService, InvoiceNotFound } from "./invoice-service";
 export { InvoiceRepositoryError, type CreateInvoiceInput, type UpdateInvoiceInput } from "./invoice-repository";
 export { CustomerService } from "./customer-service";
 export { CustomerRepositoryError } from "./customer-repository";
+export { AuthService } from "./auth-service";
+export {
+  MagicLinkError,
+  SessionError,
+  SignOutError,
+  UserNotFoundError,
+  UserAlreadyExistsError,
+} from "./auth-errors";
 
 // すべてのサービスの依存関係を一箇所で解決するため Layer.mergeAll で統合
+// Effect.Service は .Default、Effect.Tag は .Live を使用
 export const Live = Layer.mergeAll(
-  Tag2Service.Live.pipe(
-    Layer.provide(Tag2Repository.Live),
+  Tag2Service.Default.pipe(
+    Layer.provide(Tag2Repository.Default),
     Layer.provide(PgDrizzleLive)
   ),
-  UserService.Live.pipe(
-    Layer.provide(UserRepository.Live),
+  UserService.Default.pipe(
+    Layer.provide(UserRepository.Default),
     Layer.provide(PgDrizzleLive)
   ),
-  UserProfileService.Live.pipe(
-    Layer.provide(UserProfileRepository.Live),
+  UserProfileService.Default.pipe(
+    Layer.provide(UserProfileRepository.Default),
     Layer.provide(IdGenerator.Live),
     Layer.provide(PgDrizzleLive)
   ),
-  DashboardService.Live.pipe(
-    Layer.provide(DashboardRepository.Live),
+  DashboardService.Default.pipe(
+    Layer.provide(DashboardRepository.Default),
     Layer.provide(PgDrizzleLive)
   ),
-  InvoiceService.Live.pipe(
-    Layer.provide(InvoiceRepository.Live),
+  InvoiceService.Default.pipe(
+    Layer.provide(InvoiceRepository.Default),
     Layer.provide(PgDrizzleLive)
   ),
-  CustomerService.Live.pipe(
-    Layer.provide(CustomerRepository.Live),
+  CustomerService.Default.pipe(
+    Layer.provide(CustomerRepository.Default),
     Layer.provide(PgDrizzleLive)
   ),
-  ConformAccountRegistrationService.Live
+  ConformAccountRegistrationService.Default.pipe(Layer.provide(IdGenerator.Live)),
+  AuthService.Default
 );
 
 // Next.js の Server Actions から Effect を実行するため、

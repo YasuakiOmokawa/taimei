@@ -7,13 +7,11 @@ import EmailLinkSignupForm from "@/app/ui/email-link-signup-form";
 import Link from "next/link";
 import GithubAuthSignupForm from "@/app/ui/github-auth-signup-form";
 import AuthFormFooter from "./auth-form-footer";
-import { useSignupPageFlash } from "@/app/lib/hooks/signup/useSignupPageFlash";
 
 export function SignUpForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  useSignupPageFlash();
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>

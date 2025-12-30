@@ -8,10 +8,19 @@ import { emailLinkLoginSchema } from "./schema/login/schema";
 import { setFlash } from "@/lib/flash-toaster";
 import { deleteUserSchema } from "../setting/profile/schema";
 import { fetchCurrentUser } from "./data";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { Effect, Either } from "effect";
-import { runService, UserService, InvoiceService } from "@/app/services";
+import {
+  runService,
+  UserService,
+  InvoiceService,
+  AuthService,
+} from "@/app/services";
+import {
+  AuthErrorCode,
+  AuthSuccessCode,
+  AUTH_ERROR_MESSAGES,
+  AUTH_SUCCESS_MESSAGES,
+} from "@/lib/auth/messages/auth-messages";
 
 export type State = {
   errors?: {
@@ -28,11 +37,25 @@ export type State = {
 };
 
 export async function signOut() {
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* AuthService;
+      yield* service.signOut();
+    })
+  );
+
+  if (Either.isLeft(result)) {
+    await setFlash({
+      type: "error",
+      message: AUTH_ERROR_MESSAGES[AuthErrorCode.SIGNOUT_FAILED],
+    });
+    redirect("/");
+  }
+
   await setFlash({
     type: "success",
-    message: "ログアウトしました。",
+    message: AUTH_SUCCESS_MESSAGES[AuthSuccessCode.LOGGED_OUT],
   });
-  await auth.api.signOut({ headers: await headers() });
   redirect("/");
 }
 
@@ -68,30 +91,28 @@ export async function loginWithEmailLink(
   if (!(await isExistsUser(submission.value.email))) {
     await setFlash({
       type: "error",
-      message: "アカウントが存在しません。",
+      message: AUTH_ERROR_MESSAGES[AuthErrorCode.USER_NOT_FOUND],
     });
     return submission.reply();
   }
 
-  // authClient（クライアントサイドAPI）は Server Action で動作しないため auth.api を使用
-  try {
-    await auth.api.signInMagicLink({
-      body: {
-        email: submission.value.email,
-        callbackURL: redirectPath,
-      },
-      headers: await headers(),
-    });
-  } catch (error) {
-    console.error("Magic link error:", error);
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* AuthService;
+      yield* service.sendMagicLink(submission.value.email, redirectPath);
+    })
+  );
+
+  if (Either.isLeft(result)) {
+    console.error("Magic link error:", result.left);
     return submission.reply({
-      formErrors: ["メール送信に失敗しました。"],
+      formErrors: [AUTH_ERROR_MESSAGES[AuthErrorCode.MAGIC_LINK_FAILED]],
     });
   }
 
   await setFlash({
     type: "success",
-    message: "メールを送信しました。",
+    message: AUTH_SUCCESS_MESSAGES[AuthSuccessCode.MAGIC_LINK_SENT],
   });
   return submission.reply();
 }
@@ -113,29 +134,28 @@ export async function signupWithEmailLink(
   if (await isExistsUser(submission.value.email)) {
     await setFlash({
       type: "error",
-      message: "アカウントがすでに存在します。",
+      message: AUTH_ERROR_MESSAGES[AuthErrorCode.USER_ALREADY_EXISTS],
     });
     return submission.reply();
   }
 
-  try {
-    await auth.api.signInMagicLink({
-      body: {
-        email: submission.value.email,
-        callbackURL: redirectPath,
-      },
-      headers: await headers(),
-    });
-  } catch (error) {
-    console.error("Magic link error:", error);
+  const result = await runService(() =>
+    Effect.gen(function* () {
+      const service = yield* AuthService;
+      yield* service.sendMagicLink(submission.value.email, redirectPath);
+    })
+  );
+
+  if (Either.isLeft(result)) {
+    console.error("Magic link error:", result.left);
     return submission.reply({
-      formErrors: ["メール送信に失敗しました。"],
+      formErrors: [AUTH_ERROR_MESSAGES[AuthErrorCode.MAGIC_LINK_FAILED]],
     });
   }
 
   await setFlash({
     type: "success",
-    message: "メールを送信しました。",
+    message: AUTH_SUCCESS_MESSAGES[AuthSuccessCode.MAGIC_LINK_SENT],
   });
   return submission.reply();
 }
