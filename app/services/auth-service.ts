@@ -1,12 +1,15 @@
 import { Effect } from "effect";
-import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
+import { AuthRepository } from "./auth-repository";
 import { MagicLinkError, SessionError, SignOutError } from "./auth-errors";
 
 export class AuthService extends Effect.Service<AuthService>()(
   "services/AuthService",
   {
     effect: Effect.gen(function* () {
+      const repo = yield* AuthRepository;
+
       return {
         getSession: () =>
           Effect.tryPromise({
@@ -37,6 +40,8 @@ export class AuthService extends Effect.Service<AuthService>()(
             },
             catch: (e) => new MagicLinkError({ cause: e }),
           }),
+
+        findAccountByUserId: (userId: string) => repo.findAccountByUserId(userId),
       } as const;
     }),
   }

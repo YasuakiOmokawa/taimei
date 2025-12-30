@@ -151,6 +151,23 @@ test.describe("認証フロー", () => {
 
       await expect(page).toHaveURL("/login");
     });
+
+    test("/login?error=account_not_linked でフラッシュメッセージが表示される", async ({
+      page,
+    }) => {
+      await page.goto("/login?error=account_not_linked");
+
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({
+            hasText:
+              "このメールアドレスのアカウントは既に存在します。ログイン後、設定画面からGitHubを連携できます。",
+          })
+      ).toBeVisible();
+
+      await expect(page).toHaveURL("/login");
+    });
   });
 
 });

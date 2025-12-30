@@ -3,12 +3,18 @@ import { Effect, Either } from "effect";
 import type { Session } from "@/lib/auth";
 import { AuthService } from "../auth-service";
 import { MagicLinkError, SignOutError } from "../auth-errors";
+import { AuthRepositoryError } from "../auth-repository";
 
 // Layer DI を利用したモック実装
+// テストでは providerId のみ使用するため、必要最小限の型定義
+type MockAccount = { providerId: string } | undefined;
+
 const createMockAuthService = (options: {
   session?: Session | null;
   signOutError?: boolean;
   magicLinkError?: boolean;
+  accountQueryError?: boolean;
+  account?: MockAccount;
 } = {}) =>
   new AuthService({
     getSession: () => Effect.succeed(options.session ?? null),
@@ -22,6 +28,13 @@ const createMockAuthService = (options: {
       options.magicLinkError
         ? Effect.fail(new MagicLinkError({ cause: new Error("Magic link failed") }))
         : Effect.succeed(undefined as void),
+
+    findAccountByUserId: (_userId: string) =>
+      options.accountQueryError
+        ? Effect.fail(
+            new AuthRepositoryError({ message: "Account query failed" })
+          )
+        : Effect.succeed(options.account ?? undefined),
   });
 
 const runWithMock = <A, E>(
@@ -155,6 +168,61 @@ describe("AuthService", () => {
       if (Either.isLeft(result)) {
         expect(result.left).toBeInstanceOf(MagicLinkError);
         expect(result.left._tag).toBe("MagicLinkError");
+      }
+    });
+  });
+
+  describe("findAccountByUserId", () => {
+    it("正常系: アカウントが存在する場合、アカウントを返す", async () => {
+      const mockAccount = { providerId: "github" } as MockAccount;
+      const mock = createMockAuthService({ account: mockAccount });
+
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const service = yield* AuthService;
+          return yield* service.findAccountByUserId("user-1");
+        }),
+        mock
+      );
+
+      expect(Either.isRight(result)).toBe(true);
+      if (Either.isRight(result)) {
+        expect(result.right?.providerId).toBe("github");
+      }
+    });
+
+    it("正常系: アカウントが存在しない場合、undefined を返す", async () => {
+      const mock = createMockAuthService({ account: undefined });
+
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const service = yield* AuthService;
+          return yield* service.findAccountByUserId("user-1");
+        }),
+        mock
+      );
+
+      expect(Either.isRight(result)).toBe(true);
+      if (Either.isRight(result)) {
+        expect(result.right).toBeUndefined();
+      }
+    });
+
+    it("異常系: アカウント検索に失敗した場合、AuthRepositoryError を返す", async () => {
+      const mock = createMockAuthService({ accountQueryError: true });
+
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const service = yield* AuthService;
+          return yield* service.findAccountByUserId("user-1");
+        }),
+        mock
+      );
+
+      expect(Either.isLeft(result)).toBe(true);
+      if (Either.isLeft(result)) {
+        expect(result.left).toBeInstanceOf(AuthRepositoryError);
+        expect(result.left._tag).toBe("AuthRepositoryError");
       }
     });
   });
