@@ -21,7 +21,10 @@ import {
   isTestEnvironment,
 } from "./email/client";
 import MagicLinkEmail from "./email/magic-link";
-import { AuthErrorCode } from "./auth/messages/auth-messages";
+import {
+  AuthErrorCode,
+  AUTH_ERROR_MESSAGES,
+} from "./auth/messages/auth-messages";
 
 export const auth = betterAuth({
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
@@ -138,9 +141,13 @@ export const auth = betterAuth({
           // Magic Link登録済み（GitHub未連携） → account_not_linked
           const userAccount = Either.isRight(result) ? result.right : null;
           const isGitHubAccount = userAccount?.providerId === "github";
-          const errorCode = isGitHubAccount
-            ? AuthErrorCode.USER_ALREADY_EXISTS
-            : AuthErrorCode.ACCOUNT_NOT_LINKED;
+          const message = isGitHubAccount
+            ? AUTH_ERROR_MESSAGES[AuthErrorCode.USER_ALREADY_EXISTS]
+            : AUTH_ERROR_MESSAGES[AuthErrorCode.ACCOUNT_NOT_LINKED];
+
+          // Cookie ベースのフラッシュメッセージを設定
+          // （hooks.after の Response リダイレクトは Better Auth に無視されるため）
+          await setFlash({ type: "error", message });
 
           // Better Auth の signOut API でセッション無効化（Cookie も正しく削除される）
           // createAuthMiddleware 内では ctx.request は常に存在するが、型安全性のためガード
@@ -150,9 +157,12 @@ export const auth = betterAuth({
             await auth.api.signOut({ headers: ctx.request.headers });
           }
 
+          // Response を返すことで Better Auth のフローを中断しセッション無効化を確定
+          // 注: リダイレクト先は callbackURL（/login?from=signup）になる
+          // （Better Auth は hooks.after の Response.Location を無視する既知の制限）
           return new Response(null, {
             status: 302,
-            headers: { Location: `/login?error=${errorCode}` },
+            headers: { Location: "/login" },
           });
         }
 
