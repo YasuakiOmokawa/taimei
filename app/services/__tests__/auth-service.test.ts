@@ -2,11 +2,7 @@ import { describe, it, expect } from "vitest";
 import { Effect, Either } from "effect";
 import type { Session } from "@/lib/auth";
 import { AuthService } from "../auth-service";
-import {
-  MagicLinkError,
-  SessionInvalidateError,
-  SignOutError,
-} from "../auth-errors";
+import { MagicLinkError, SignOutError } from "../auth-errors";
 import { AuthRepositoryError } from "../auth-repository";
 
 // Layer DI を利用したモック実装
@@ -19,7 +15,6 @@ const createMockAuthService = (options: {
   session?: Session | null;
   signOutError?: boolean;
   magicLinkError?: boolean;
-  invalidateSessionError?: boolean;
   accountQueryError?: boolean;
   account?: MockAccount;
 } = {}) =>
@@ -34,15 +29,6 @@ const createMockAuthService = (options: {
     sendMagicLink: (_email: string, _callbackURL: string) =>
       options.magicLinkError
         ? Effect.fail(new MagicLinkError({ cause: new Error("Magic link failed") }))
-        : Effect.succeed(undefined as void),
-
-    invalidateSession: (_sessionId: string) =>
-      options.invalidateSessionError
-        ? Effect.fail(
-            new SessionInvalidateError({
-              cause: new Error("Session invalidate failed"),
-            })
-          )
         : Effect.succeed(undefined as void),
 
     findAccountByUserId: (_userId: string) =>
@@ -184,40 +170,6 @@ describe("AuthService", () => {
       if (Either.isLeft(result)) {
         expect(result.left).toBeInstanceOf(MagicLinkError);
         expect(result.left._tag).toBe("MagicLinkError");
-      }
-    });
-  });
-
-  describe("invalidateSession", () => {
-    it("正常系: セッション無効化に成功する", async () => {
-      const mock = createMockAuthService();
-
-      const result = await runWithMock(
-        Effect.gen(function* () {
-          const service = yield* AuthService;
-          return yield* service.invalidateSession("session-1");
-        }),
-        mock
-      );
-
-      expect(Either.isRight(result)).toBe(true);
-    });
-
-    it("異常系: セッション無効化に失敗した場合、SessionInvalidateError を返す", async () => {
-      const mock = createMockAuthService({ invalidateSessionError: true });
-
-      const result = await runWithMock(
-        Effect.gen(function* () {
-          const service = yield* AuthService;
-          return yield* service.invalidateSession("session-1");
-        }),
-        mock
-      );
-
-      expect(Either.isLeft(result)).toBe(true);
-      if (Either.isLeft(result)) {
-        expect(result.left).toBeInstanceOf(SessionInvalidateError);
-        expect(result.left._tag).toBe("SessionInvalidateError");
       }
     });
   });

@@ -41,7 +41,6 @@ export {
   MagicLinkError,
   SessionError,
   SignOutError,
-  SessionInvalidateError,
   UserNotFoundError,
   UserAlreadyExistsError,
 } from "./auth-errors";

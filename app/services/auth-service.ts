@@ -1,14 +1,8 @@
 import { Effect } from "effect";
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { isTestEnvironment } from "@/lib/email/client";
 import { AuthRepository } from "./auth-repository";
-import {
-  MagicLinkError,
-  SessionError,
-  SessionInvalidateError,
-  SignOutError,
-} from "./auth-errors";
+import { MagicLinkError, SessionError, SignOutError } from "./auth-errors";
 
 export class AuthService extends Effect.Service<AuthService>()(
   "services/AuthService",
@@ -46,24 +40,6 @@ export class AuthService extends Effect.Service<AuthService>()(
             },
             catch: (e) => new MagicLinkError({ cause: e }),
           }),
-
-        invalidateSession: (sessionId: string) =>
-          Effect.gen(function* () {
-            yield* repo.deleteSession(sessionId);
-
-            // cookieCache が有効なため、DB 削除だけでは不十分
-            yield* Effect.tryPromise({
-              try: async () => {
-                const cookieStore = await cookies();
-                const prefix = isTestEnvironment() ? "" : "__Secure-";
-                cookieStore.delete(`${prefix}better-auth.session_token`);
-                cookieStore.delete(`${prefix}better-auth.session_data`);
-              },
-              catch: (e) => new SessionInvalidateError({ cause: e }),
-            });
-          }).pipe(
-            Effect.catchAll((e) => Effect.fail(new SessionInvalidateError({ cause: e })))
-          ),
 
         findAccountByUserId: (userId: string) => repo.findAccountByUserId(userId),
       } as const;
