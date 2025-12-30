@@ -230,18 +230,70 @@ Effect.gen(function* () {
 - 依存関係の明示化
 - 実装の差し替えが容易
 
-**実装パターン**:
+### Effect.Tag vs Effect.Service の使い分け
+
+**Effect.Service を使用する場合（推奨）**:
+
+- 標準的なサービス実装
+- `.Default` Layer のみで十分なケース
+- 外部ライブラリ統合（認証、決済等）
 
 ```typescript
-export class MyService extends Context.Tag("MyService")<
-  MyService,
-  MyServiceInterface
+// Effect.Service パターン（推奨）
+export class AuthService extends Effect.Service<AuthService>()(
+  "services/AuthService",
+  {
+    effect: Effect.gen(function* () {
+      return { /* implementation */ } as const;
+    }),
+  }
+) {}
+
+// 使用時
+AuthService.Default  // 自動生成された Layer
+```
+
+**Effect.Tag を使用する場合**:
+
+- 複数の Layer バリアント（Test, Custom 等）が必要
+- テスト用に複数の実装パターンを提供したい場合
+
+```typescript
+// Effect.Tag パターン（複数 Layer が必要な場合）
+export class IdGenerator extends Effect.Tag("services/IdGenerator")<
+  IdGenerator,
+  IdGeneratorService
 >() {
-  static Live = Layer.succeed(this, liveImplementation);
-  static Test = Layer.succeed(this, testImplementation);
-  static Custom = (impl: MyServiceInterface) => Layer.succeed(this, impl);
+  static Live = Layer.succeed(this, { generate: () => crypto.randomUUID() });
+  static Test = Layer.succeed(this, { generate: () => "fixed-uuid" });
+  static TestSequence = Layer.sync(this, () => { /* sequential */ });
+  static Custom = (gen: () => string) => Layer.succeed(this, { generate: gen });
 }
 ```
+
+**参考**: `IdGenerator`（Live, Test, TestSequence, Custom の4バリアント）
+
+### カスタム Layer パターン
+
+Effect.Service で依存関係を差し替えたい場合、`.Default` をベースに `Layer.provide` で提供:
+
+```typescript
+export class ConformAccountRegistrationService extends Effect.Service<ConformAccountRegistrationService>()(
+  "services/ConformAccountRegistrationService",
+  {
+    effect: Effect.gen(function* () {
+      const idGen = yield* IdGenerator;
+      return { /* implementation using idGen */ } as const;
+    }),
+  }
+) {
+  // カスタム実装を提供
+  static Test = Layer.provide(this.Default, IdGenerator.Test);
+  static TestSequence = Layer.provide(this.Default, IdGenerator.TestSequence);
+}
+```
+
+**参考**: `ConformAccountRegistrationService`
 
 ### Type Annotations
 
