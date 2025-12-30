@@ -130,7 +130,6 @@ export const auth = betterAuth({
           // 循環依存回避のため動的インポート
           const { AuthService, runService } = await import("@/app/services");
 
-          // アカウント情報を取得してプロバイダーを判定
           const result = await runService(() =>
             Effect.gen(function* () {
               const service = yield* AuthService;

@@ -47,12 +47,11 @@ export class AuthService extends Effect.Service<AuthService>()(
             catch: (e) => new MagicLinkError({ cause: e }),
           }),
 
-        // セッション無効化（DB削除 + Cookie削除）
         invalidateSession: (sessionId: string) =>
           Effect.gen(function* () {
             yield* repo.deleteSession(sessionId);
 
-            // Cookie キャッシュも削除
+            // cookieCache が有効なため、DB 削除だけでは不十分
             yield* Effect.tryPromise({
               try: async () => {
                 const cookieStore = await cookies();
@@ -66,7 +65,6 @@ export class AuthService extends Effect.Service<AuthService>()(
             Effect.catchAll((e) => Effect.fail(new SessionInvalidateError({ cause: e })))
           ),
 
-        // アカウント検索
         findAccountByUserId: (userId: string) => repo.findAccountByUserId(userId),
       } as const;
     }),
