@@ -7,8 +7,8 @@ import { db } from "@/db/drizzle/client";
 import * as schema from "@/db/drizzle/schema";
 import { handleUserCreateBefore } from "./auth/hooks/user-create-hook";
 import {
-  isNewUser,
-  getSessionFlashMessage,
+  isJustSignedUp,
+  getAuthSuccessMessage,
 } from "./auth/hooks/session-flash-hook";
 import { sendWelcomeEmail } from "./email/send-welcome";
 import { setFlash } from "@/lib/flash-toaster";
@@ -120,15 +120,15 @@ export const auth = betterAuth({
         const oauthState = await getOAuthState();
         const isSignupFlowExistingUser =
           oauthState?.callbackURL?.includes("from=signup") &&
-          !isNewUser(createdAt);
+          !isJustSignedUp(createdAt);
 
         if (!isSignupFlowExistingUser) {
-          const flash = getSessionFlashMessage(createdAt);
+          const flash = getAuthSuccessMessage(createdAt);
           await setFlash(flash);
         }
 
         // 新規ユーザーにウェルカムメール送信（失敗してもセッション作成には影響させない）
-        if (isNewUser(createdAt)) {
+        if (isJustSignedUp(createdAt)) {
           sendWelcomeEmail(newSession.user.email, newSession.user.name).catch(
             (e) => console.error("Welcome email failed:", e)
           );
