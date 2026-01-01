@@ -1,7 +1,7 @@
 import { render } from "@react-email/components";
 import {
   getResendClient,
-  getFromEmail,
+  getWelcomeFromEmail,
   getAppName,
   getAppUrl,
   isTestEnvironment,
@@ -18,7 +18,7 @@ export async function sendWelcomeEmail(
   }
 
   const resend = getResendClient();
-  const fromEmail = getFromEmail();
+  const fromEmail = getWelcomeFromEmail();
   const appName = getAppName();
   const dashboardUrl = `${getAppUrl()}/dashboard`;
 

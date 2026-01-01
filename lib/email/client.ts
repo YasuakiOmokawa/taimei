@@ -22,8 +22,13 @@ export function getResendClient(): Resend {
   return resendInstance;
 }
 
-export function getFromEmail(): string {
-  return process.env.AUTH_FROM_EMAIL || "onboarding@resend.dev";
+// メール種別ごとに送信元を分離（受信者がメールの用途を識別しやすくするため）
+export function getWelcomeFromEmail(): string {
+  return process.env.AUTH_FROM_EMAIL_WELCOME || "onboarding@resend.dev";
+}
+
+export function getMagicLinkFromEmail(): string {
+  return process.env.AUTH_FROM_EMAIL_MAGIC_LINK || "onboarding@resend.dev";
 }
 
 export function getAppName(): string {
