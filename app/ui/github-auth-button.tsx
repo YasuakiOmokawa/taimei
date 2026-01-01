@@ -7,30 +7,29 @@ import { authClient } from "@/lib/auth-client";
 import { BProgress } from "@bprogress/core";
 import { useRedirectPath } from "@/app/lib/hooks/login/useRedirectPath";
 
-export default function GithubAuthSignupForm() {
+export default function GithubAuthButton() {
   const redirectPath = useRedirectPath();
 
-  const handleGithubSignup = () => {
+  const handleGithubAuth = () => {
     BProgress.start();
-    // 既存ユーザーはログイン画面に戻し、新規ユーザーのみ signup フローを続行
     authClient.signIn.social({
       provider: "github",
-      callbackURL: "/login?from=signup",
-      newUserCallbackURL: redirectPath,
-      errorCallbackURL: "/signup?error=signup_failed",
+      callbackURL: redirectPath,
+      // OAuth 失敗時は統合認証ページにリダイレクト（エラー表示 + 再試行導線）
+      errorCallbackURL: "/auth?error=signin_failed",
     });
   };
 
   return (
-    <Button type="button" variant="outline" className="w-full" onClick={handleGithubSignup}>
+    <Button type="button" variant="outline" className="w-full" onClick={handleGithubAuth}>
       <Image
         src={githubIcon}
-        alt="GitHub icon for signup"
+        alt="GitHub icon"
         width={100}
         height={100}
         className="h-5 w-5"
       />
-      GitHub で登録
+      GitHub で続ける
     </Button>
   );
 }

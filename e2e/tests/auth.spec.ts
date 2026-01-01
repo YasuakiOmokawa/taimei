@@ -3,16 +3,16 @@ import {
   createTestUser,
   getVerificationToken,
   signInWithMagicLink,
-  BASE_URL,
+  verifyMagicLinkAndGetContext,
 } from "./utils/signIn";
 
 test.describe("認証フロー", () => {
   test.describe("保護ルートへの未認証アクセス", () => {
-    test("未認証で保護ルートにアクセスすると /login?callbackUrl にリダイレクトされる", async ({
+    test("未認証で保護ルートにアクセスすると /auth?callbackUrl にリダイレクトされる", async ({
       page,
     }) => {
       await page.goto("/dashboard");
-      await expect(page).toHaveURL(/\/login\?callbackUrl=.*dashboard/);
+      await expect(page).toHaveURL(/\/auth\?callbackUrl=.*dashboard/);
     });
 
     test("ログイン後、callbackUrl にリダイレクトされる", async ({
@@ -21,7 +21,7 @@ test.describe("認証フロー", () => {
     }) => {
       const testEmail = await createTestUser();
       await page.goto("/dashboard");
-      await expect(page).toHaveURL(/\/login\?callbackUrl=.*dashboard/);
+      await expect(page).toHaveURL(/\/auth\?callbackUrl=.*dashboard/);
 
       // Magic Link でのセッション作成後の挙動を検証
       const context = await signInWithMagicLink(browser, testEmail);
@@ -44,7 +44,7 @@ test.describe("認証フロー", () => {
     test("認証済みで / にアクセスしてもランディングページが表示される", async ({
       browser,
     }) => {
-      // 認証状態でもルートパスは /login にリダイレクトしない仕様を検証
+      // 認証状態でもルートパスは /auth にリダイレクトしない仕様を検証
       const testEmail = await createTestUser();
       const context = await signInWithMagicLink(browser, testEmail);
       const page = await context.newPage();
@@ -56,15 +56,18 @@ test.describe("認証フロー", () => {
     });
   });
 
-  test.describe("Magic Link - UIフォーム経由のログイン", () => {
-    test("UIフォームからログインするとトークンが生成される", async ({
+  test.describe("統合認証フロー", () => {
+    test("未登録メールで認証すると新規アカウントが作成される", async ({
       page,
+      browser,
     }) => {
-      const testEmail = await createTestUser();
+      // Arrange: 未登録メールアドレス
+      const newEmail = `new-${Date.now()}@example.com`;
 
-      await page.goto("/login");
-      await page.getByLabel("Email").fill(testEmail);
-      await page.getByRole("button", { name: "ログイン", exact: true }).click();
+      // Act: フォーム送信 → Magic Link 検証 → dashboard アクセス
+      await page.goto("/auth");
+      await page.getByLabel("Email").fill(newEmail);
+      await page.getByRole("button", { name: "メールで続ける" }).click();
 
       await expect(
         page
@@ -72,102 +75,75 @@ test.describe("認証フロー", () => {
           .filter({ hasText: "認証リンクをメールで送信しました。" })
       ).toBeVisible();
 
-      // Server Action が verification テーブルにトークンを生成すること
-      const token = await getVerificationToken(testEmail);
-      expect(token).toBeTruthy();
+      const token = await getVerificationToken(newEmail);
+      const context = await verifyMagicLinkAndGetContext(browser, token);
+      const authedPage = await context.newPage();
+      await authedPage.goto("/dashboard");
 
-      const verifyUrl = `${BASE_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=/dashboard`;
-      const verifyResponse = await fetch(verifyUrl, { redirect: "manual" });
-      expect(verifyResponse.status).toBe(302);
+      // Assert: ダッシュボードが表示される（認証成功）
+      await expect(authedPage).toHaveURL(/\/dashboard/);
+      await expect(authedPage.locator("h1")).toContainText("Dashboard");
+
+      await context.close();
     });
-  });
 
-  test.describe("Magic Link - ログイン画面での未登録アカウント検出", () => {
-    test("未登録メールでログイン試行するとフラッシュメッセージが表示される", async ({
-      page,
-    }) => {
-      const unregisteredEmail = `unregistered-${Date.now()}@example.com`;
-
-      await page.goto("/login");
-      await page
-        .getByLabel("Email")
-        .fill(unregisteredEmail);
-      await page.getByRole("button", { name: "ログイン", exact: true }).click();
-
-      // フラッシュメッセージ（toast）が表示されること
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({ hasText: "アカウントが存在しません。" })
-      ).toBeVisible();
-    });
-  });
-
-  test.describe("Magic Link - 新規登録画面での既存アカウント検出", () => {
-    test("既存メールで新規登録試行するとフラッシュメッセージが表示される", async ({
-      page,
-    }) => {
+    test("既存メールで認証するとログインできる", async ({ page, browser }) => {
+      // Arrange: 既存ユーザー作成
       const existingEmail = await createTestUser();
-      await page.goto("/signup");
-      await page
-        .getByLabel("Email")
-        .fill(existingEmail);
-      await page.getByRole("button", { name: "登録", exact: true }).click();
+
+      // Act: フォーム送信 → Magic Link 検証 → dashboard アクセス
+      await page.goto("/auth");
+      await page.getByLabel("Email").fill(existingEmail);
+      await page.getByRole("button", { name: "メールで続ける" }).click();
 
       await expect(
         page
           .locator("[data-sonner-toast]")
-          .filter({ hasText: "アカウントがすでに存在します。" })
+          .filter({ hasText: "認証リンクをメールで送信しました。" })
       ).toBeVisible();
+
+      const token = await getVerificationToken(existingEmail);
+      const context = await verifyMagicLinkAndGetContext(browser, token);
+      const authedPage = await context.newPage();
+      await authedPage.goto("/dashboard");
+
+      // Assert: ダッシュボードが表示される（認証成功）
+      await expect(authedPage).toHaveURL(/\/dashboard/);
+      await expect(authedPage.locator("h1")).toContainText("Dashboard");
+
+      await context.close();
+    });
+
+    test("認証済みユーザーが /auth にアクセスすると /dashboard にリダイレクトされる", async ({
+      browser,
+    }) => {
+      // Arrange: 認証済みユーザー
+      const testEmail = await createTestUser();
+      const context = await signInWithMagicLink(browser, testEmail);
+      const page = await context.newPage();
+
+      // Act: /auth にアクセス
+      await page.goto("/auth");
+
+      // Assert: /dashboard にリダイレクト
+      await expect(page).toHaveURL(/\/dashboard/);
+
+      await context.close();
+    });
+
+    test("/auth?error=signin_failed でフラッシュメッセージが表示される", async ({
+      page,
+    }) => {
+      // Act: エラーパラメータ付きで /auth にアクセス
+      await page.goto("/auth?error=signin_failed");
+
+      // Assert: エラー toast + URL クリーン
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: "ログインに失敗しました。" })
+      ).toBeVisible();
+      await expect(page).toHaveURL("/auth");
     });
   });
-
-  test.describe("AuthMessageHandler - クエリパラメータからのフラッシュ表示", () => {
-    test("/login?error=user_already_exists でフラッシュメッセージが表示される", async ({
-      page,
-    }) => {
-      await page.goto("/login?error=user_already_exists");
-
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({ hasText: "アカウントがすでに存在します。" })
-      ).toBeVisible();
-
-      // クエリパラメータが削除されることを検証
-      await expect(page).toHaveURL("/login");
-    });
-
-    test("/login?error=login_unregistered でフラッシュメッセージが表示される", async ({
-      page,
-    }) => {
-      await page.goto("/login?error=login_unregistered");
-
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({ hasText: "アカウントが存在しません。新規登録してください。" })
-      ).toBeVisible();
-
-      await expect(page).toHaveURL("/login");
-    });
-
-    test("/login?error=account_not_linked でフラッシュメッセージが表示される", async ({
-      page,
-    }) => {
-      await page.goto("/login?error=account_not_linked");
-
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({
-            hasText:
-              "このメールアドレスのアカウントは既に存在します。ログイン後、設定画面からGitHubを連携できます。",
-          })
-      ).toBeVisible();
-
-      await expect(page).toHaveURL("/login");
-    });
-  });
-
 });

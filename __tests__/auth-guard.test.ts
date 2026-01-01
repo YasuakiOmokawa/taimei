@@ -46,13 +46,13 @@ describe('auth-guard', () => {
   })
 
   describe('verifySession', () => {
-    test('未認証の場合、/login へリダイレクト（デフォルト callbackUrl=/dashboard）', async () => {
+    test('未認証の場合、/auth へリダイレクト（デフォルト callbackUrl=/dashboard）', async () => {
       vi.mocked(auth.api.getSession).mockResolvedValue(null)
 
       const { verifySession } = await import('@/app/lib/auth-guard')
       await verifySession()
 
-      expect(redirect).toHaveBeenCalledWith('/login?callbackUrl=%2Fdashboard')
+      expect(redirect).toHaveBeenCalledWith('/auth?callbackUrl=%2Fdashboard')
     })
 
     test('未認証の場合、カスタム returnTo を callbackUrl に設定', async () => {
@@ -62,7 +62,7 @@ describe('auth-guard', () => {
       await verifySession({ returnTo: '/settings/profile' })
 
       expect(redirect).toHaveBeenCalledWith(
-        '/login?callbackUrl=%2Fsettings%2Fprofile',
+        '/auth?callbackUrl=%2Fsettings%2Fprofile',
       )
     })
 

@@ -32,7 +32,7 @@ describe("useAuthMessage", () => {
     });
 
     Object.defineProperty(window, "location", {
-      value: { pathname: "/login" },
+      value: { pathname: "/auth" },
       writable: true,
     });
   });
@@ -44,25 +44,23 @@ describe("useAuthMessage", () => {
   describe("エラーコード処理", () => {
     it("正常系: 有効なエラーコードでtoast.errorを呼び出す", () => {
       mockGet.mockImplementation((key: string) =>
-        key === "error" ? "user_not_found" : null
+        key === "error" ? "signin_failed" : null
       );
 
       renderHook(() => useAuthMessage());
 
-      expect(mockToastError).toHaveBeenCalledWith("アカウントが存在しません。");
-      expect(mockReplaceState).toHaveBeenCalledWith({}, "", "/login");
+      expect(mockToastError).toHaveBeenCalledWith("ログインに失敗しました。");
+      expect(mockReplaceState).toHaveBeenCalledWith({}, "", "/auth");
     });
 
-    it("正常系: login_unregisteredエラーで適切なメッセージを表示", () => {
+    it("正常系: magic_link_failedエラーで適切なメッセージを表示", () => {
       mockGet.mockImplementation((key: string) =>
-        key === "error" ? "login_unregistered" : null
+        key === "error" ? "magic_link_failed" : null
       );
 
       renderHook(() => useAuthMessage());
 
-      expect(mockToastError).toHaveBeenCalledWith(
-        "アカウントが存在しません。新規登録してください。"
-      );
+      expect(mockToastError).toHaveBeenCalledWith("メール送信に失敗しました。");
     });
 
     it("異常系: 無効なエラーコードではtoastを呼び出さない", () => {
@@ -86,7 +84,7 @@ describe("useAuthMessage", () => {
       renderHook(() => useAuthMessage());
 
       expect(mockToastSuccess).toHaveBeenCalledWith("ログインしました");
-      expect(mockReplaceState).toHaveBeenCalledWith({}, "", "/login");
+      expect(mockReplaceState).toHaveBeenCalledWith({}, "", "/auth");
     });
 
     it("正常系: magic_link_sent成功で適切なメッセージを表示", () => {
@@ -116,7 +114,7 @@ describe("useAuthMessage", () => {
   describe("重複表示防止", () => {
     it("正常系: 同じコードで複数回呼び出されてもtoastは1回のみ", () => {
       mockGet.mockImplementation((key: string) =>
-        key === "error" ? "user_not_found" : null
+        key === "error" ? "signin_failed" : null
       );
 
       const { rerender } = renderHook(() => useAuthMessage());
@@ -142,14 +140,14 @@ describe("useAuthMessage", () => {
   describe("エラー優先", () => {
     it("正常系: errorとsuccessの両方がある場合はerrorを優先", () => {
       mockGet.mockImplementation((key: string) => {
-        if (key === "error") return "user_not_found";
+        if (key === "error") return "signin_failed";
         if (key === "success") return "logged_in";
         return null;
       });
 
       renderHook(() => useAuthMessage());
 
-      expect(mockToastError).toHaveBeenCalledWith("アカウントが存在しません。");
+      expect(mockToastError).toHaveBeenCalledWith("ログインに失敗しました。");
       expect(mockToastSuccess).not.toHaveBeenCalled();
     });
   });

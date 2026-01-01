@@ -29,7 +29,9 @@ const createMockAuthService = (options: {
         ? Effect.fail(new MagicLinkError({ cause: new Error("Magic link failed") }))
         : Effect.succeed(undefined as void),
 
-    findAccountByUserId: (_userId: string) =>
+    // テストでは providerId のみ使用するため、型アサーションで簡略化
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    findAccountByUserId: (_userId: string): any =>
       options.accountQueryError
         ? Effect.fail(
             new AuthRepositoryError({ message: "Account query failed" })

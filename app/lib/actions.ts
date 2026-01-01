@@ -59,22 +59,7 @@ export async function signOut() {
   redirect("/");
 }
 
-async function isExistsUser(email: string): Promise<boolean> {
-  const result = await runService(() =>
-    Effect.gen(function* () {
-      const service = yield* UserService;
-      return yield* service.existsByEmail(email);
-    })
-  );
-
-  if (Either.isLeft(result)) {
-    throw new Error(`Failed to check user existence: ${result.left._tag}`);
-  }
-
-  return result.right;
-}
-
-export async function loginWithEmailLink(
+export async function sendAuthEmailLink(
   redirectPath: string,
   _prevState: unknown,
   formData: FormData
@@ -84,58 +69,6 @@ export async function loginWithEmailLink(
   });
 
   if (submission.status !== "success") {
-    return submission.reply();
-  }
-
-  // ログイン時：ユーザーが存在しない場合はエラー
-  if (!(await isExistsUser(submission.value.email))) {
-    await setFlash({
-      type: "error",
-      message: AUTH_ERROR_MESSAGES[AuthErrorCode.USER_NOT_FOUND],
-    });
-    return submission.reply();
-  }
-
-  const result = await runService(() =>
-    Effect.gen(function* () {
-      const service = yield* AuthService;
-      yield* service.sendMagicLink(submission.value.email, redirectPath);
-    })
-  );
-
-  if (Either.isLeft(result)) {
-    console.error("Magic link error:", result.left);
-    return submission.reply({
-      formErrors: [AUTH_ERROR_MESSAGES[AuthErrorCode.MAGIC_LINK_FAILED]],
-    });
-  }
-
-  await setFlash({
-    type: "success",
-    message: AUTH_SUCCESS_MESSAGES[AuthSuccessCode.MAGIC_LINK_SENT],
-  });
-  return submission.reply();
-}
-
-export async function signupWithEmailLink(
-  redirectPath: string,
-  _prevState: unknown,
-  formData: FormData
-) {
-  const submission = parseWithZod(formData, {
-    schema: emailLinkLoginSchema,
-  });
-
-  if (submission.status !== "success") {
-    return submission.reply();
-  }
-
-  // サインアップ時：ユーザーが既に存在する場合はエラー
-  if (await isExistsUser(submission.value.email)) {
-    await setFlash({
-      type: "error",
-      message: AUTH_ERROR_MESSAGES[AuthErrorCode.USER_ALREADY_EXISTS],
-    });
     return submission.reply();
   }
 

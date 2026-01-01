@@ -88,6 +88,29 @@ export async function signIn(browser: Browser): Promise<BrowserContext> {
   return signInWithMagicLink(browser, email);
 }
 
+/**
+ * Magic Link トークンを検証してセッションを持つ BrowserContext を返す
+ * signInWithMagicLink と異なり、トークンを直接受け取る（getVerificationToken 済みの場合に使用）
+ */
+export async function verifyMagicLinkAndGetContext(
+  browser: Browser,
+  token: string
+): Promise<BrowserContext> {
+  const verifyUrl = `${BASE_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=/dashboard`;
+  const verifyResponse = await fetch(verifyUrl, { redirect: "manual" });
+
+  const setCookieHeader = verifyResponse.headers.get("set-cookie");
+  if (!setCookieHeader) {
+    throw new Error("No Set-Cookie header in verify response");
+  }
+
+  const cookies = parseCookies(setCookieHeader);
+  const context = await browser.newContext();
+  await context.addCookies(cookies);
+
+  return context;
+}
+
 export function parseCookies(
   setCookieHeader: string
 ): Array<{

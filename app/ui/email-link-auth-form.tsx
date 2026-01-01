@@ -4,16 +4,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useActionState } from "react";
-import { loginWithEmailLink } from "@/app/lib/actions";
+import { sendAuthEmailLink } from "@/app/lib/actions";
 import { useRedirectPath } from "@/app/lib/hooks/login/useRedirectPath";
 import { useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod/v4";
 import { emailLinkLoginSchema } from "@/app/lib/schema/login/schema";
 import { ExclamationCircleIcon } from "@heroicons/react/24/outline";
 
-export default function EmailLinkLoginForm() {
+export default function EmailLinkAuthForm() {
   const [lastResult, action] = useActionState(
-    loginWithEmailLink.bind(null, useRedirectPath()),
+    sendAuthEmailLink.bind(null, useRedirectPath()),
     undefined
   );
   const [form, fields] = useForm({
@@ -45,7 +45,7 @@ export default function EmailLinkLoginForm() {
           )}
         </div>
         <Button type="submit" className="w-full">
-          ログイン
+          メールで続ける
         </Button>
         {form.errors && (
           <div
