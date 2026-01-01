@@ -25,7 +25,7 @@ export default function LandingPage() {
 
           <nav className="hidden md:flex gap-8">
             <Link
-              href="/login"
+              href="/auth"
               className="text-base font-medium transition-colors hover:text-primary"
             >
               ログイン
@@ -51,7 +51,7 @@ export default function LandingPage() {
           <div className="md:hidden border-t">
             <nav className="container flex flex-col py-4">
               <Link
-                href="/login"
+                href="/auth"
                 className="py-2 text-sm font-medium transition-colors hover:text-primary"
                 onClick={() => setIsMenuOpen(false)}
               >
@@ -79,7 +79,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Button size="lg" className="text-base px-8 py-6" asChild>
-                    <Link href="/signup">
+                    <Link href="/auth">
                       <MyServiceName /> を試す
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Link>

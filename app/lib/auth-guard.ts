@@ -14,7 +14,7 @@ export const verifySession = cache(
 
     if (!session) {
       const callbackUrl = options?.returnTo ?? '/dashboard'
-      redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`)
+      redirect(`/auth?callbackUrl=${encodeURIComponent(callbackUrl)}`)
     }
 
     return session
