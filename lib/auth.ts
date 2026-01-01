@@ -14,7 +14,7 @@ import { sendWelcomeEmail } from "./email/send-welcome";
 import { setFlash } from "@/lib/flash-toaster";
 import {
   getResendClient,
-  getFromEmail,
+  getMagicLinkFromEmail,
   getAppName,
   isTestEnvironment,
 } from "./email/client";
@@ -58,7 +58,7 @@ export const auth = betterAuth({
         }
 
         const resend = getResendClient();
-        const fromEmail = getFromEmail();
+        const fromEmail = getMagicLinkFromEmail();
         const appName = getAppName();
 
         const emailComponent = MagicLinkEmail({ url, appName });
