@@ -6,7 +6,7 @@ export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 認証不要なパス
-  const publicPaths = ["/", "/login", "/signup", "/api/auth"];
+  const publicPaths = ["/", "/auth", "/api/auth"];
   const isPublicPath = publicPaths.some(
     (path) => pathname === path || pathname.startsWith(path + "/")
   );
@@ -21,9 +21,9 @@ export default async function proxy(request: NextRequest) {
   });
 
   if (!sessionCookie) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", request.url);
-    return NextResponse.redirect(loginUrl);
+    const authUrl = new URL("/auth", request.url);
+    authUrl.searchParams.set("callbackUrl", request.url);
+    return NextResponse.redirect(authUrl);
   }
 
   return NextResponse.next();

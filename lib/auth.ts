@@ -1,13 +1,11 @@
 import { betterAuth } from "better-auth";
-import { createAuthMiddleware, getOAuthState } from "better-auth/api";
+import { createAuthMiddleware } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins";
 import { nextCookies } from "better-auth/next-js";
-import { Effect, Either } from "effect";
 import { render } from "@react-email/components";
 import { db } from "@/db/drizzle/client";
 import * as schema from "@/db/drizzle/schema";
-import { handleUserCreateBefore } from "./auth/hooks/user-create-hook";
 import {
   isJustSignedUp,
   getAuthSuccessMessage,
@@ -93,19 +91,12 @@ export const auth = betterAuth({
     },
   },
 
-  // アカウントリンクは無効（明示的にログイン後に連携させる）
+  // アカウントリンクを有効化（同一メールアドレスの認証方法を自動連携）
   account: {
     accountLinking: {
-      enabled: false,
-    },
-  },
-
-  databaseHooks: {
-    user: {
-      create: {
-        before: async (user, ctx) =>
-          handleUserCreateBefore(user, ctx, getOAuthState),
-      },
+      enabled: true,
+      // 連携時に GitHub のアバター/名前で既存ユーザー情報を上書きしない
+      trustedProviders: [],
     },
   },
 
@@ -115,47 +106,6 @@ export const auth = betterAuth({
 
       if (newSession) {
         const createdAt = new Date(newSession.user.createdAt);
-
-        // signup 画面経由での「なりすまし登録」を防ぐ
-        // 既存ユーザーは login 画面からログインさせ、signup フローを中断する
-        const oauthState = await getOAuthState();
-        const hasFromSignup = oauthState?.callbackURL?.includes("from=signup");
-        const justSignedUp = isJustSignedUp(createdAt);
-        const isSignupFlowExistingUser = hasFromSignup && !justSignedUp;
-
-        if (isSignupFlowExistingUser) {
-          // auth.ts → services/index.ts の相互参照を避けるため動的インポート
-          const { AuthService, runService } = await import("@/app/services");
-
-          const result = await runService(() =>
-            Effect.gen(function* () {
-              const service = yield* AuthService;
-              return yield* service.findAccountByUserId(newSession.user.id);
-            })
-          );
-
-          // DB エラー時はシステムエラーとして処理（ユーザーに誤った案内を出さない）
-          if (Either.isLeft(result)) {
-            console.error("[AUTH] Failed to find account:", result.left);
-            throw ctx.redirect("/login?error=system_error");
-          }
-
-          // エラーメッセージを出し分け：GitHub連携済みなら「既存アカウントあり」、
-          // Magic Link のみなら「GitHub連携を促す」メッセージを表示
-          const userAccount = result.right;
-          const isGitHubAccount = userAccount?.providerId === "github";
-
-          // auth.api.signOut() は別リクエストコンテキストを生成するため、
-          // OAuth コールバックのレスポンスに Cookie 削除が反映されない
-          const sessionToken = newSession.session.token;
-          await ctx.context.internalAdapter.deleteSession(sessionToken);
-          const cookieName = ctx.context.authCookies.sessionToken.name;
-          ctx.setCookie(cookieName, "", { maxAge: 0, path: "/" });
-
-          // useAuthMessage フックがクエリパラメータからエラーコードを読み取り toast 表示
-          const errorCode = isGitHubAccount ? "user_already_exists" : "account_not_linked";
-          throw ctx.redirect(`/login?error=${errorCode}`);
-        }
 
         const flash = getAuthSuccessMessage(createdAt);
         await setFlash(flash);
