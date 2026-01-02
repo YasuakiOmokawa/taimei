@@ -127,4 +127,7 @@ stories/                # Storybook ストーリー
 ### Next.js
 調査時は `https://nextjs.org/docs/llms-full.txt` を参照すること。
 
+### Effect-TS
+調査時は `https://effect.website/llms-full.txt` を参照すること。
+
 ---
