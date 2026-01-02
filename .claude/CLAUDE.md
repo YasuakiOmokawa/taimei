@@ -12,14 +12,14 @@ bun install
 docker compose up --build --watch
 
 # テスト実行
-yarn test                          # 全テスト
-yarn test:services                 # サービス層のテストのみ
-npx vitest run <file_path>         # 特定ファイル
+bun vitest                         # 全テスト
+bun vitest run app/services        # サービス層のテストのみ
+bun vitest run <file_path>         # 特定ファイル
 
 # リント・型チェック
-yarn lint                          # ESLint
-yarn lint --fix                    # ESLint自動修正
-npx tsc --noEmit                   # TypeScript型チェック
+bun eslint .                       # ESLint
+bun eslint . --fix                 # ESLint自動修正
+bun tsc --noEmit                   # TypeScript型チェック
 
 # データベース
 bunx drizzle-kit migrate           # マイグレーション適用
@@ -29,7 +29,7 @@ bunx drizzle-kit generate          # スキーマからマイグレーションS
 E2E_SERVICE_COMMAND='npm test' docker compose -f docker-compose.e2e.yml up --build
 
 # Storybook
-yarn storybook                     # Storybook起動
+bun storybook                      # Storybook起動
 ```
 
 ## Architecture Overview
@@ -51,8 +51,8 @@ app/
 ├── api/                # Next.js API Routes（Better Auth等）
 ├── services/           # Effect-TS ビジネスロジック
 │   ├── __tests__/      # サービス層のユニットテスト
-│   ├── *-service.ts    # サービス（ビジネスロジック）
-│   ├── *-repository.ts # リポジトリ（データアクセス）
+│   ├── *-service.ts    # サービス（ビジネスロジック + データアクセス）
+│   ├── *-errors.ts     # TaggedError 定義
 │   └── index.ts        # サービスのエクスポート
 ├── layers/lives/       # Effect-TS Layer 実装（DI 設定）
 ├── lib/                # アプリ固有ユーティリティ
@@ -108,8 +108,9 @@ stories/                # Storybook ストーリー
 
 ---
 
-## Effect-TS Guidelines
+## Library Documentation
 
-詳細は `.kiro/steering/effect-patterns.md` を参照
+### Better Auth
+調査時は `https://www.better-auth.com/llms.txt` を参照すること。
 
 ---
