@@ -49,10 +49,12 @@ bun storybook                      # Storybook起動
 app/
 ├── api/                # Next.js API Routes（Better Auth等）
 ├── services/           # Effect-TS ビジネスロジック
-│   ├── __tests__/      # サービス層のユニットテスト
-│   ├── *-service.ts    # サービス（ビジネスロジック + データアクセス）
+│   ├── __tests__/      # サービス層のテスト
+│   │   ├── db/         # DB テスト基盤（withRollback, runServiceWithTx）
+│   │   └── factories/  # テストデータファクトリ（@praha/drizzle-factory）
+│   ├── *-service.ts    # サービス（ビジネスロジック + DB アクセス）
 │   ├── *-errors.ts     # TaggedError 定義
-│   └── index.ts        # サービスのエクスポート
+│   └── index.ts        # サービスのエクスポート + Layer 統合
 ├── layers/lives/       # Effect-TS Layer 実装（DI 設定）
 ├── lib/                # アプリ固有ユーティリティ
 │   ├── actions.ts      # Server Actions
