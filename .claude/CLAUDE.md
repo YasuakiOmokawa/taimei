@@ -11,17 +11,16 @@ bun install
 # 開発環境起動（ホットリロード有効）
 docker compose up --build --watch
 
-# テスト実行
-bun vitest                         # 全テスト
-bun vitest run app/services        # サービス層のテストのみ
-bun vitest run <file_path>         # 特定ファイル
+# テスト実行（test_db が必要）
+bun run test:db                    # DB起動→全テスト→DB停止（推奨）
+bun vitest run <file_path>         # 特定ファイル（test_db起動済み前提）
 
 # リント・型チェック
 bun eslint .                       # ESLint
 bun eslint . --fix                 # ESLint自動修正
 bun tsc --noEmit                   # TypeScript型チェック
 
-# データベース
+# データベース（本番用。テストはglobalSetupで自動実行）
 bunx drizzle-kit migrate           # マイグレーション適用
 bunx drizzle-kit generate          # スキーマからマイグレーションSQL生成
 
