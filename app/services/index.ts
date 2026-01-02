@@ -5,7 +5,6 @@ import { Effect, Layer, ManagedRuntime } from "effect";
 import { Tag2Repository } from "./tag2_repository";
 import { UserService } from "./user-service";
 import { UserProfileService } from "./user-profile-service";
-import { UserProfileRepository } from "./user-profile-repository";
 import { IdGenerator } from "./id-generator-service";
 import { DashboardService } from "./dashboard-service";
 import { DashboardRepository } from "./dashboard-repository";
@@ -25,8 +24,11 @@ export {
   type CreateAccountInput,
 } from "./conform-account-registration-service";
 export { UserService, UserNotFound, UserServiceError } from "./user-service";
-export { UserProfileService, UserProfileNotFound } from "./user-profile-service";
-export { UserProfileRepositoryError } from "./user-profile-repository";
+export {
+  UserProfileService,
+  UserProfileNotFound,
+  UserProfileServiceError,
+} from "./user-profile-service";
 export { DashboardService, type Revenue, type LatestInvoice, type CardData } from "./dashboard-service";
 export { DashboardRepositoryError } from "./dashboard-repository";
 export { InvoiceService, InvoiceNotFound } from "./invoice-service";
@@ -52,7 +54,6 @@ export const Live = Layer.mergeAll(
   ),
   UserService.Default.pipe(Layer.provide(PgDrizzleLive)),
   UserProfileService.Default.pipe(
-    Layer.provide(UserProfileRepository.Default),
     Layer.provide(IdGenerator.Live),
     Layer.provide(PgDrizzleLive)
   ),
