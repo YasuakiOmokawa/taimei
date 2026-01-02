@@ -7,6 +7,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    globalSetup: ["./app/services/__tests__/db/global-setup.ts"],
     setupFiles: ["./__tests__/utils/setup-tests.ts"],
     // root所有のディレクトリや、テストに不要なディレクトリをスキャン対象から除外
     exclude: [
