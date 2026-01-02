@@ -124,4 +124,7 @@ stories/                # Storybook ストーリー
 ### Better Auth
 調査時は `https://www.better-auth.com/llms.txt` を参照すること。
 
+### Next.js
+調査時は `https://nextjs.org/docs/llms-full.txt` を参照すること。
+
 ---
