@@ -5,6 +5,7 @@ import * as PgDrizzle from "@effect/sql-drizzle/Pg";
 import { Effect, Either, Layer } from "effect";
 import { UserService } from "../../user-service";
 import { UserProfileService } from "../../user-profile-service";
+import { CustomerService } from "../../customer-service";
 import { IdGenerator } from "../../id-generator-service";
 import type { PgRemoteDatabase } from "drizzle-orm/pg-proxy";
 
@@ -37,7 +38,7 @@ export function getFactory(db: TestDb = testDb) {
  */
 export function runServiceWithTx<A, E>(
   tx: TestDb,
-  effect: Effect.Effect<A, E, UserService | UserProfileService>
+  effect: Effect.Effect<A, E, UserService | UserProfileService | CustomerService>
 ): Promise<Either.Either<A, E>> {
   const TestPgDrizzleLayer = Layer.succeed(
     PgDrizzle.PgDrizzle,
@@ -46,7 +47,8 @@ export function runServiceWithTx<A, E>(
 
   const TestServiceLayer = Layer.mergeAll(
     UserService.Default,
-    UserProfileService.Default.pipe(Layer.provide(IdGenerator.TestSequence))
+    UserProfileService.Default.pipe(Layer.provide(IdGenerator.TestSequence)),
+    CustomerService.Default
   ).pipe(Layer.provide(TestPgDrizzleLayer));
 
   return effect.pipe(
