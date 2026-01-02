@@ -1,72 +1,44 @@
-import { describe, it, expect } from "vitest";
-import { Effect, Either } from "effect";
+import { describe } from "vitest";
+import { expect } from "@effect/vitest";
+import { Effect } from "effect";
 import { DashboardService } from "../dashboard-service";
-import {
-  withRollback,
-  useFactoryReset,
-  runServiceWithTx,
-} from "./db/test-helpers";
+import { dbEffect } from "./db/effect-test-helpers";
 
 describe("DashboardService", () => {
-  useFactoryReset();
 
   describe("fetchCardData", () => {
-    it("正常系: データがない場合はゼロ値を返す", async () => {
-      await withRollback(async (tx) => {
-        const result = await runServiceWithTx(
-          tx,
-          Effect.gen(function* () {
-            const service = yield* DashboardService;
-            return yield* service.fetchCardData();
-          })
-        );
+    dbEffect("正常系: データがない場合はゼロ値を返す", () =>
+      Effect.gen(function* () {
+        const service = yield* DashboardService;
+        const cardData = yield* service.fetchCardData();
 
-        expect(Either.isRight(result)).toBe(true);
-        if (Either.isRight(result)) {
-          expect(result.right.numberOfCustomers).toBe(0);
-          expect(result.right.numberOfInvoices).toBe(0);
-          expect(result.right.totalPaidInvoices).toBe("$0.00");
-          expect(result.right.totalPendingInvoices).toBe("$0.00");
-        }
-      });
-    });
+        expect(cardData.numberOfCustomers).toBe(0);
+        expect(cardData.numberOfInvoices).toBe(0);
+        expect(cardData.totalPaidInvoices).toBe("$0.00");
+        expect(cardData.totalPendingInvoices).toBe("$0.00");
+      })
+    );
   });
 
   describe("fetchRevenue", () => {
-    it("正常系: データがない場合は空配列を返す", async () => {
-      await withRollback(async (tx) => {
-        const result = await runServiceWithTx(
-          tx,
-          Effect.gen(function* () {
-            const service = yield* DashboardService;
-            return yield* service.fetchRevenue();
-          })
-        );
+    dbEffect("正常系: データがない場合は空配列を返す", () =>
+      Effect.gen(function* () {
+        const service = yield* DashboardService;
+        const revenue = yield* service.fetchRevenue();
 
-        expect(Either.isRight(result)).toBe(true);
-        if (Either.isRight(result)) {
-          expect(result.right).toHaveLength(0);
-        }
-      });
-    });
+        expect(revenue).toHaveLength(0);
+      })
+    );
   });
 
   describe("fetchLatestInvoices", () => {
-    it("正常系: データがない場合は空配列を返す", async () => {
-      await withRollback(async (tx) => {
-        const result = await runServiceWithTx(
-          tx,
-          Effect.gen(function* () {
-            const service = yield* DashboardService;
-            return yield* service.fetchLatestInvoices();
-          })
-        );
+    dbEffect("正常系: データがない場合は空配列を返す", () =>
+      Effect.gen(function* () {
+        const service = yield* DashboardService;
+        const invoices = yield* service.fetchLatestInvoices();
 
-        expect(Either.isRight(result)).toBe(true);
-        if (Either.isRight(result)) {
-          expect(result.right).toHaveLength(0);
-        }
-      });
-    });
+        expect(invoices).toHaveLength(0);
+      })
+    );
   });
 });
