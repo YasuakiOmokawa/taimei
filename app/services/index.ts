@@ -9,7 +9,6 @@ import { IdGenerator } from "./id-generator-service";
 import { DashboardService } from "./dashboard-service";
 import { DashboardRepository } from "./dashboard-repository";
 import { InvoiceService } from "./invoice-service";
-import { InvoiceRepository } from "./invoice-repository";
 import { CustomerService } from "./customer-service";
 import { AuthService } from "./auth-service";
 import { AuthRepository } from "./auth-repository";
@@ -30,8 +29,13 @@ export {
 } from "./user-profile-service";
 export { DashboardService, type Revenue, type LatestInvoice, type CardData } from "./dashboard-service";
 export { DashboardRepositoryError } from "./dashboard-repository";
-export { InvoiceService, InvoiceNotFound } from "./invoice-service";
-export { InvoiceRepositoryError, type CreateInvoiceInput, type UpdateInvoiceInput } from "./invoice-repository";
+export {
+  InvoiceService,
+  InvoiceNotFound,
+  InvoiceServiceError,
+  type CreateInvoiceInput,
+  type UpdateInvoiceInput,
+} from "./invoice-service";
 export { CustomerService, CustomerServiceError } from "./customer-service";
 export { AuthService } from "./auth-service";
 export { AuthRepositoryError } from "./auth-repository";
@@ -59,10 +63,7 @@ export const Live = Layer.mergeAll(
     Layer.provide(DashboardRepository.Default),
     Layer.provide(PgDrizzleLive)
   ),
-  InvoiceService.Default.pipe(
-    Layer.provide(InvoiceRepository.Default),
-    Layer.provide(PgDrizzleLive)
-  ),
+  InvoiceService.Default.pipe(Layer.provide(PgDrizzleLive)),
   CustomerService.Default.pipe(Layer.provide(PgDrizzleLive)),
   ConformAccountRegistrationService.Default.pipe(Layer.provide(IdGenerator.Live)),
   AuthService.Default.pipe(
