@@ -1,39 +1,3 @@
-/**
- * Effect-TS テストヘルパー
- *
- * ## 使い分け
- *
- * | テスト種別 | 使用 API | 用途 |
- * |-----------|----------|------|
- * | DB 統合テスト | `dbEffect` | Service + DB アクセスのテスト |
- * | 純粋 Layer テスト | `it.effect` (@effect/vitest) | DB 不要のテスト（IdGenerator 等） |
- *
- * ## DB 統合テスト（dbEffect）
- * ```typescript
- * import { dbEffect } from "./db/effect-test-helpers";
- *
- * dbEffect("テスト名", ({ factory: f }) =>
- *   Effect.gen(function* () {
- *     const user = yield* Effect.promise(() => f.user.create());
- *     const service = yield* UserService;
- *     // ...
- *   })
- * );
- * ```
- *
- * ## 純粋 Layer テスト（it.effect）
- * ```typescript
- * import { it } from "@effect/vitest";
- *
- * it.effect("テスト名", () =>
- *   Effect.gen(function* () {
- *     const service = yield* IdGenerator;
- *     // ...
- *   }).pipe(Effect.provide(IdGenerator.Live))
- * );
- * ```
- */
-
 import { it as vitestIt } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
@@ -76,23 +40,6 @@ const createTestServiceLayer = (tx: TestDb) => {
   ).pipe(Layer.provide(TestPgDrizzleLayer));
 };
 
-/**
- * DB テスト用カスタム it.effect
- *
- * - withRollback による自動ロールバック
- * - factory の自動提供
- * - Effect を直接返せる（Either.isRight 不要）
- *
- * @example
- * dbEffect("正常系: プロフィールを返す", ({ factory: f }) =>
- *   Effect.gen(function* () {
- *     const user = await f.user.create();
- *     const service = yield* UserProfileService;
- *     const profile = yield* service.findByUserId(user.id);
- *     expect(profile.userId).toBe(user.id);
- *   })
- * );
- */
 export const dbEffect = (
   name: string,
   fn: (ctx: DbTestContext) => Effect.Effect<void, unknown, ServiceLayer>,
