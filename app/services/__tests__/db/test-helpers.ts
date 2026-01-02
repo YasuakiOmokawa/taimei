@@ -1,6 +1,6 @@
 import { factory } from "../factories";
 import { testDb, withRollback, type TestDb } from "./test-db";
-import { beforeEach } from "vitest";
+import { beforeEach, expect } from "vitest";
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
 import { Effect, Either, Layer } from "effect";
 import { UserService } from "../../user-service";
@@ -68,6 +68,34 @@ export function runServiceWithTx<A, E>(
     Effect.either,
     Effect.runPromise
   );
+}
+
+/**
+ * Either.Right の検証ヘルパー
+ * テストでの Either 結果検証のボイラープレートを削減
+ */
+export function expectRight<A, E>(
+  result: Either.Either<A, E>,
+  assertion?: (value: A) => void
+): void {
+  expect(Either.isRight(result)).toBe(true);
+  if (Either.isRight(result) && assertion) {
+    assertion(result.right);
+  }
+}
+
+/**
+ * Either.Left の検証ヘルパー
+ * エラーケースの検証用
+ */
+export function expectLeft<A, E>(
+  result: Either.Either<A, E>,
+  assertion?: (error: E) => void
+): void {
+  expect(Either.isLeft(result)).toBe(true);
+  if (Either.isLeft(result) && assertion) {
+    assertion(result.left);
+  }
 }
 
 export { withRollback, testDb, type TestDb };

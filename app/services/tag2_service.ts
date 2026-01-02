@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { Tag2Id } from "@/app/schema/tag2";
 
 export class Tag2NotFound extends Data.TaggedError("Tag2NotFound")<{
-  message: string;
+  id: string;
 }> {}
 
 export class Tag2ParseError extends Data.TaggedError("Tag2ParseError")<{
@@ -56,9 +56,7 @@ export class Tag2Service extends Effect.Service<Tag2Service>()(
               new Tag2ServiceError({ message: `find failed: ${e}` }),
           });
           if (!tag) {
-            return yield* new Tag2NotFound({
-              message: `Tag2NotFound: ${id}`,
-            });
+            return yield* new Tag2NotFound({ id });
           }
           return tag;
         });
