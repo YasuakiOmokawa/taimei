@@ -105,8 +105,9 @@ WebSearch("Effect-TS service pattern testability");
 ### データアクセスとエラーハンドリングの原則
 
 1. **全データアクセスを Effect-TS サービス経由に統一**
-2. **エラーハンドリングは `Either` + `TaggedError._tag` で分岐**
-3. **try-catch 禁止**
+2. **Service が PgDrizzle を直接使用**（Repository 層は不要）
+3. **エラーハンドリングは `Either` + `TaggedError._tag` で分岐**
+4. **try-catch 禁止**
 
 ```typescript
 // ✅ 推奨: Server Action でのエラーハンドリング
@@ -123,7 +124,7 @@ export async function updateUser(id: string, formData: FormData) {
     switch (result.left._tag) {
       case "UserProfileNotFound":
         return { error: "プロフィールが見つかりません" };
-      case "UserProfileRepositoryError":
+      case "UserProfileServiceError":
         return { error: "データベースエラーが発生しました" };
       default:
         return { error: "予期しないエラーが発生しました" };
@@ -215,11 +216,11 @@ Effect.gen(function* () {
 
 ### Service Pattern
 
-**原則**: 外部依存はすべてサービス化する
+**原則**: 外部依存はすべてサービス化し、Service が PgDrizzle を直接使用する
 
 **サービス化すべき依存**:
 
-- データベース接続
+- データベース接続（PgDrizzle）
 - 外部 API 呼び出し
 - ファイルシステムアクセス
 - **グローバル変数（crypto.randomUUID など）**
@@ -229,6 +230,42 @@ Effect.gen(function* () {
 - テスタビリティの向上（モック不要）
 - 依存関係の明示化
 - 実装の差し替えが容易
+- Repository 層は冗長なため不要
+
+```typescript
+// ✅ 推奨: Service が PgDrizzle を直接使用
+import * as PgDrizzle from "@effect/sql-drizzle/Pg";
+import { Data, Effect } from "effect";
+import { users } from "@/db/drizzle/schema";
+import { eq } from "drizzle-orm";
+
+export class UserServiceError extends Data.TaggedError("UserServiceError")<{
+  message: string;
+}> {}
+
+export class UserService extends Effect.Service<UserService>()(
+  "services/UserService",
+  {
+    effect: Effect.gen(function* () {
+      const pgdrizzle = yield* PgDrizzle.PgDrizzle;
+
+      return {
+        findByEmail: (email: string) =>
+          Effect.tryPromise({
+            try: () =>
+              pgdrizzle
+                .select()
+                .from(users)
+                .where(eq(users.email, email))
+                .then((res) => res.at(0)),
+            catch: (e) =>
+              new UserServiceError({ message: `findByEmail failed: ${e}` }),
+          }),
+      } as const;
+    }),
+  }
+) {}
+```
 
 ### Effect.Tag vs Effect.Service の使い分け
 
@@ -316,6 +353,55 @@ const validateAccount = (email: string) =>
 ```
 
 **理由**: Effect 公式ドキュメントでは型推論に頼る例が多数
+
+### Service テストパターン
+
+**原則**: `withRollback` + `runServiceWithTx` で実 DB を使用したトランザクション分離テスト
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { Effect, Either } from "effect";
+import { UserService } from "../user-service";
+import {
+  withRollback,
+  useFactoryReset,
+  getFactory,
+  runServiceWithTx,
+} from "./db/test-helpers";
+
+describe("UserService", () => {
+  useFactoryReset();
+
+  it("ユーザーを取得できる", async () => {
+    await withRollback(async (tx) => {
+      // Factory でテストデータ作成
+      const f = getFactory(tx);
+      const user = await f.user.create({ email: "test@example.com" });
+
+      // Service 実行
+      const result = await runServiceWithTx(
+        tx,
+        Effect.gen(function* () {
+          const service = yield* UserService;
+          return yield* service.findByEmail("test@example.com");
+        })
+      );
+
+      // Either で結果検証
+      expect(Either.isRight(result)).toBe(true);
+      if (Either.isRight(result)) {
+        expect(result.right?.id).toBe(user.id);
+      }
+    });
+  });
+});
+```
+
+**ポイント**:
+- `withRollback`: テスト後に自動ロールバック（テスト間の分離）
+- `runServiceWithTx`: トランザクション内で Service Layer を構築
+- `getFactory`: トランザクション内でテストデータを作成
+- `useFactoryReset`: Factory のシーケンスをテストごとにリセット
 
 ### Effect.void vs 暗黙的な undefined
 

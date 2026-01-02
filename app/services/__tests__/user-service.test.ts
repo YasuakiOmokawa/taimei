@@ -1,224 +1,271 @@
 import { describe, it, expect } from "vitest";
-import { Effect, Either, Layer } from "effect";
+import { Effect, Either } from "effect";
 import { UserService, UserNotFound } from "../user-service";
-import { UserRepository } from "../user-repository";
-import { runWithLayer } from "./test-helpers";
-
-type User = {
-  id: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  image: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-const createMockRepository = (initialUsers: User[] = []) => {
-  const users = [...initialUsers];
-
-  return new UserRepository({
-    existsByEmail: (email: string) =>
-      Effect.succeed(users.some((u) => u.email === email)),
-
-    findByEmail: (email: string) =>
-      Effect.succeed(users.find((u) => u.email === email)),
-
-    findById: (id: string) => Effect.succeed(users.find((u) => u.id === id)),
-
-    update: (id: string, data: { name?: string; image?: string | null }) =>
-      Effect.succeed(
-        (() => {
-          const index = users.findIndex((u) => u.id === id);
-          if (index === -1) return undefined;
-          users[index] = {
-            ...users[index],
-            ...data,
-            updatedAt: new Date(),
-          };
-          return users[index];
-        })()
-      ),
-
-    delete: (id: string) =>
-      Effect.succeed(
-        (() => {
-          const index = users.findIndex((u) => u.id === id);
-          if (index === -1) return [];
-          return users.splice(index, 1);
-        })()
-      ),
-  });
-};
-
-const createTestLayer = (initialUsers: User[] = []) =>
-  UserService.Default.pipe(
-    Layer.provide(
-      Layer.succeed(UserRepository, createMockRepository(initialUsers))
-    )
-  );
-
-const createTestUser = (overrides: Partial<User> = {}): User => ({
-  id: "test-user-1",
-  name: "Test User",
-  email: "test@example.com",
-  emailVerified: true,
-  image: "https://example.com/avatar.png",
-  createdAt: new Date("2024-01-01"),
-  updatedAt: new Date("2024-01-01"),
-  ...overrides,
-});
+import {
+  withRollback,
+  getFactory,
+  useFactoryReset,
+  runServiceWithTx,
+} from "./db/test-helpers";
 
 describe("UserService", () => {
+  useFactoryReset();
+
   describe("update", () => {
     it("正常系: ユーザー名を更新できる", async () => {
-      const existingUser = createTestUser();
+      await withRollback(async (tx) => {
+        const f = getFactory(tx);
+        const created = await f.user.create();
 
-      const result = await runWithLayer(
-        Effect.gen(function* () {
-          const service = yield* UserService;
-          return yield* service.update("test-user-1", { name: "Updated Name" });
-        }),
-        createTestLayer([existingUser])
-      );
+        const result = await runServiceWithTx(
+          tx,
+          Effect.gen(function* () {
+            const service = yield* UserService;
+            return yield* service.update(created.id, { name: "Updated Name" });
+          })
+        );
 
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) {
-        expect(result.right.name).toBe("Updated Name");
-      }
+        expect(Either.isRight(result)).toBe(true);
+        if (Either.isRight(result)) {
+          expect(result.right.name).toBe("Updated Name");
+        }
+      });
     });
 
     it("正常系: ユーザー画像を更新できる", async () => {
-      const existingUser = createTestUser();
+      await withRollback(async (tx) => {
+        const f = getFactory(tx);
+        const created = await f.user.create();
 
-      const result = await runWithLayer(
-        Effect.gen(function* () {
-          const service = yield* UserService;
-          return yield* service.update("test-user-1", {
-            image: "https://example.com/new-avatar.png",
-          });
-        }),
-        createTestLayer([existingUser])
-      );
+        const result = await runServiceWithTx(
+          tx,
+          Effect.gen(function* () {
+            const service = yield* UserService;
+            return yield* service.update(created.id, {
+              image: "https://example.com/new-avatar.png",
+            });
+          })
+        );
 
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) {
-        expect(result.right.image).toBe("https://example.com/new-avatar.png");
-      }
+        expect(Either.isRight(result)).toBe(true);
+        if (Either.isRight(result)) {
+          expect(result.right.image).toBe("https://example.com/new-avatar.png");
+        }
+      });
     });
 
     it("異常系: 存在しないユーザーを更新しようとするとエラー", async () => {
-      const result = await runWithLayer(
-        Effect.gen(function* () {
-          const service = yield* UserService;
-          return yield* service.update("non-existent-id", { name: "New Name" });
-        }),
-        createTestLayer()
-      );
+      await withRollback(async (tx) => {
+        const result = await runServiceWithTx(
+          tx,
+          Effect.gen(function* () {
+            const service = yield* UserService;
+            return yield* service.update("non-existent-id", {
+              name: "New Name",
+            });
+          })
+        );
 
-      expect(Either.isLeft(result)).toBe(true);
-      if (Either.isLeft(result)) {
-        expect(result.left).toBeInstanceOf(UserNotFound);
-      }
+        expect(Either.isLeft(result)).toBe(true);
+        if (Either.isLeft(result)) {
+          expect(result.left).toBeInstanceOf(UserNotFound);
+        }
+      });
     });
   });
 
   describe("delete", () => {
     it("正常系: ユーザーを削除できる", async () => {
-      const existingUser = createTestUser();
+      await withRollback(async (tx) => {
+        const f = getFactory(tx);
+        const created = await f.user.create();
 
-      const result = await runWithLayer(
-        Effect.gen(function* () {
-          const service = yield* UserService;
-          return yield* service.delete("test-user-1");
-        }),
-        createTestLayer([existingUser])
-      );
+        const result = await runServiceWithTx(
+          tx,
+          Effect.gen(function* () {
+            const service = yield* UserService;
+            return yield* service.delete(created.id);
+          })
+        );
 
-      expect(Either.isRight(result)).toBe(true);
+        expect(Either.isRight(result)).toBe(true);
+      });
     });
 
     it("異常系: 存在しないユーザーを削除しようとするとエラー", async () => {
-      const result = await runWithLayer(
-        Effect.gen(function* () {
-          const service = yield* UserService;
-          return yield* service.delete("non-existent-id");
-        }),
-        createTestLayer()
-      );
+      await withRollback(async (tx) => {
+        const result = await runServiceWithTx(
+          tx,
+          Effect.gen(function* () {
+            const service = yield* UserService;
+            return yield* service.delete("non-existent-id");
+          })
+        );
 
-      expect(Either.isLeft(result)).toBe(true);
-      if (Either.isLeft(result)) {
-        expect(result.left).toBeInstanceOf(UserNotFound);
-      }
+        expect(Either.isLeft(result)).toBe(true);
+        if (Either.isLeft(result)) {
+          expect(result.left).toBeInstanceOf(UserNotFound);
+        }
+      });
     });
   });
 
   describe("clearImage", () => {
     it("正常系: ユーザー画像をクリアできる", async () => {
-      const existingUser = createTestUser();
+      await withRollback(async (tx) => {
+        const f = getFactory(tx);
+        const created = await f.user.create({
+          image: "https://example.com/avatar.png",
+        });
 
-      const result = await runWithLayer(
-        Effect.gen(function* () {
-          const service = yield* UserService;
-          return yield* service.clearImage("test-user-1");
-        }),
-        createTestLayer([existingUser])
-      );
+        const result = await runServiceWithTx(
+          tx,
+          Effect.gen(function* () {
+            const service = yield* UserService;
+            return yield* service.clearImage(created.id);
+          })
+        );
 
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) {
-        expect(result.right.image).toBeNull();
-      }
+        expect(Either.isRight(result)).toBe(true);
+        if (Either.isRight(result)) {
+          expect(result.right.image).toBeNull();
+        }
+      });
     });
 
     it("異常系: 存在しないユーザーの画像をクリアしようとするとエラー", async () => {
-      const result = await runWithLayer(
-        Effect.gen(function* () {
-          const service = yield* UserService;
-          return yield* service.clearImage("non-existent-id");
-        }),
-        createTestLayer()
-      );
+      await withRollback(async (tx) => {
+        const result = await runServiceWithTx(
+          tx,
+          Effect.gen(function* () {
+            const service = yield* UserService;
+            return yield* service.clearImage("non-existent-id");
+          })
+        );
 
-      expect(Either.isLeft(result)).toBe(true);
-      if (Either.isLeft(result)) {
-        expect(result.left).toBeInstanceOf(UserNotFound);
-      }
+        expect(Either.isLeft(result)).toBe(true);
+        if (Either.isLeft(result)) {
+          expect(result.left).toBeInstanceOf(UserNotFound);
+        }
+      });
     });
   });
 
   describe("existsByEmail", () => {
     it("正常系: 存在するメールアドレスで true を返す", async () => {
-      const existingUser = createTestUser();
+      await withRollback(async (tx) => {
+        const f = getFactory(tx);
+        await f.user.create({ email: "test@example.com" });
 
-      const result = await runWithLayer(
-        Effect.gen(function* () {
-          const service = yield* UserService;
-          return yield* service.existsByEmail("test@example.com");
-        }),
-        createTestLayer([existingUser])
-      );
+        const result = await runServiceWithTx(
+          tx,
+          Effect.gen(function* () {
+            const service = yield* UserService;
+            return yield* service.existsByEmail("test@example.com");
+          })
+        );
 
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) {
-        expect(result.right).toBe(true);
-      }
+        expect(Either.isRight(result)).toBe(true);
+        if (Either.isRight(result)) {
+          expect(result.right).toBe(true);
+        }
+      });
     });
 
     it("正常系: 存在しないメールアドレスで false を返す", async () => {
-      const result = await runWithLayer(
-        Effect.gen(function* () {
-          const service = yield* UserService;
-          return yield* service.existsByEmail("nonexistent@example.com");
-        }),
-        createTestLayer()
-      );
+      await withRollback(async (tx) => {
+        const result = await runServiceWithTx(
+          tx,
+          Effect.gen(function* () {
+            const service = yield* UserService;
+            return yield* service.existsByEmail("nonexistent@example.com");
+          })
+        );
 
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) {
-        expect(result.right).toBe(false);
-      }
+        expect(Either.isRight(result)).toBe(true);
+        if (Either.isRight(result)) {
+          expect(result.right).toBe(false);
+        }
+      });
+    });
+  });
+
+  describe("findByEmail", () => {
+    it("正常系: メールアドレスでユーザーを検索できる", async () => {
+      await withRollback(async (tx) => {
+        const f = getFactory(tx);
+        const created = await f.user.create({ email: "test@example.com" });
+
+        const result = await runServiceWithTx(
+          tx,
+          Effect.gen(function* () {
+            const service = yield* UserService;
+            return yield* service.findByEmail("test@example.com");
+          })
+        );
+
+        expect(Either.isRight(result)).toBe(true);
+        if (Either.isRight(result)) {
+          expect(result.right?.id).toBe(created.id);
+          expect(result.right?.email).toBe("test@example.com");
+        }
+      });
+    });
+
+    it("正常系: 存在しないメールアドレスでundefinedを返す", async () => {
+      await withRollback(async (tx) => {
+        const result = await runServiceWithTx(
+          tx,
+          Effect.gen(function* () {
+            const service = yield* UserService;
+            return yield* service.findByEmail("nonexistent@example.com");
+          })
+        );
+
+        expect(Either.isRight(result)).toBe(true);
+        if (Either.isRight(result)) {
+          expect(result.right).toBeUndefined();
+        }
+      });
+    });
+  });
+
+  describe("findById", () => {
+    it("正常系: IDでユーザーを検索できる", async () => {
+      await withRollback(async (tx) => {
+        const f = getFactory(tx);
+        const created = await f.user.create();
+
+        const result = await runServiceWithTx(
+          tx,
+          Effect.gen(function* () {
+            const service = yield* UserService;
+            return yield* service.findById(created.id);
+          })
+        );
+
+        expect(Either.isRight(result)).toBe(true);
+        if (Either.isRight(result)) {
+          expect(result.right?.id).toBe(created.id);
+        }
+      });
+    });
+
+    it("正常系: 存在しないIDでundefinedを返す", async () => {
+      await withRollback(async (tx) => {
+        const result = await runServiceWithTx(
+          tx,
+          Effect.gen(function* () {
+            const service = yield* UserService;
+            return yield* service.findById("non-existent-id");
+          })
+        );
+
+        expect(Either.isRight(result)).toBe(true);
+        if (Either.isRight(result)) {
+          expect(result.right).toBeUndefined();
+        }
+      });
     });
   });
 });

@@ -1,9 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { Effect, Either } from "effect";
 import type { Session } from "@/lib/auth";
-import { AuthService } from "../auth-service";
+import { AuthService, AuthServiceError } from "../auth-service";
 import { MagicLinkError, SignOutError } from "../auth-errors";
-import { AuthRepositoryError } from "../auth-repository";
 
 // Layer DI を利用したモック実装
 // テストでは providerId のみ使用するため、必要最小限の型定義
@@ -34,7 +33,7 @@ const createMockAuthService = (options: {
     findAccountByUserId: (_userId: string): any =>
       options.accountQueryError
         ? Effect.fail(
-            new AuthRepositoryError({ message: "Account query failed" })
+            new AuthServiceError({ message: "Account query failed" })
           )
         : Effect.succeed(options.account ?? undefined),
   });
@@ -210,7 +209,7 @@ describe("AuthService", () => {
       }
     });
 
-    it("異常系: アカウント検索に失敗した場合、AuthRepositoryError を返す", async () => {
+    it("異常系: アカウント検索に失敗した場合、AuthServiceError を返す", async () => {
       const mock = createMockAuthService({ accountQueryError: true });
 
       const result = await runWithMock(
@@ -223,8 +222,8 @@ describe("AuthService", () => {
 
       expect(Either.isLeft(result)).toBe(true);
       if (Either.isLeft(result)) {
-        expect(result.left).toBeInstanceOf(AuthRepositoryError);
-        expect(result.left._tag).toBe("AuthRepositoryError");
+        expect(result.left).toBeInstanceOf(AuthServiceError);
+        expect(result.left._tag).toBe("AuthServiceError");
       }
     });
   });

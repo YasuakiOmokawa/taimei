@@ -1,20 +1,65 @@
+import * as PgDrizzle from "@effect/sql-drizzle/Pg";
 import { Data, Effect } from "effect";
-import { UserRepository } from "./user-repository";
+import { user } from "@/db/drizzle/schema";
+import { eq, sql } from "drizzle-orm";
 
 export class UserService extends Effect.Service<UserService>()(
   "services/UserService",
   {
     effect: Effect.gen(function* () {
-      const repository = yield* UserRepository;
+      const pgdrizzle = yield* PgDrizzle.PgDrizzle;
 
       return {
-        existsByEmail: (email: string) => repository.existsByEmail(email),
-        findByEmail: (email: string) => repository.findByEmail(email),
-        findById: (id: string) => repository.findById(id),
+        existsByEmail: (email: string) =>
+          Effect.tryPromise({
+            try: async () => {
+              const result = await pgdrizzle
+                .select({ count: sql<number>`count(*)` })
+                .from(user)
+                .where(eq(user.email, email));
+              return Number(result[0].count) > 0;
+            },
+            catch: (e) =>
+              new UserServiceError({ message: `existsByEmail failed: ${e}` }),
+          }),
+
+        findByEmail: (email: string) =>
+          Effect.tryPromise({
+            try: () =>
+              pgdrizzle
+                .select()
+                .from(user)
+                .where(eq(user.email, email))
+                .then((res) => res.at(0)),
+            catch: (e) =>
+              new UserServiceError({ message: `findByEmail failed: ${e}` }),
+          }),
+
+        findById: (id: string) =>
+          Effect.tryPromise({
+            try: () =>
+              pgdrizzle
+                .select()
+                .from(user)
+                .where(eq(user.id, id))
+                .then((res) => res.at(0)),
+            catch: (e) =>
+              new UserServiceError({ message: `findById failed: ${e}` }),
+          }),
 
         update: (id: string, data: { name?: string; image?: string | null }) =>
           Effect.gen(function* () {
-            const result = yield* repository.update(id, data);
+            const result = yield* Effect.tryPromise({
+              try: () =>
+                pgdrizzle
+                  .update(user)
+                  .set(data)
+                  .where(eq(user.id, id))
+                  .returning()
+                  .then((res) => res.at(0)),
+              catch: (e) =>
+                new UserServiceError({ message: `update failed: ${e}` }),
+            });
             if (!result) {
               return yield* new UserNotFound({ id });
             }
@@ -23,16 +68,40 @@ export class UserService extends Effect.Service<UserService>()(
 
         delete: (id: string) =>
           Effect.gen(function* () {
-            const existing = yield* repository.findById(id);
+            const existing = yield* Effect.tryPromise({
+              try: () =>
+                pgdrizzle
+                  .select()
+                  .from(user)
+                  .where(eq(user.id, id))
+                  .then((res) => res.at(0)),
+              catch: (e) =>
+                new UserServiceError({ message: `delete findById failed: ${e}` }),
+            });
             if (!existing) {
               return yield* new UserNotFound({ id });
             }
-            yield* repository.delete(id);
+            yield* Effect.tryPromise({
+              try: () =>
+                pgdrizzle.delete(user).where(eq(user.id, id)).returning(),
+              catch: (e) =>
+                new UserServiceError({ message: `delete failed: ${e}` }),
+            });
           }),
 
         clearImage: (id: string) =>
           Effect.gen(function* () {
-            const result = yield* repository.update(id, { image: null });
+            const result = yield* Effect.tryPromise({
+              try: () =>
+                pgdrizzle
+                  .update(user)
+                  .set({ image: null })
+                  .where(eq(user.id, id))
+                  .returning()
+                  .then((res) => res.at(0)),
+              catch: (e) =>
+                new UserServiceError({ message: `clearImage failed: ${e}` }),
+            });
             if (!result) {
               return yield* new UserNotFound({ id });
             }
@@ -45,4 +114,8 @@ export class UserService extends Effect.Service<UserService>()(
 
 export class UserNotFound extends Data.TaggedError("UserNotFound")<{
   id: string;
+}> {}
+
+export class UserServiceError extends Data.TaggedError("UserServiceError")<{
+  message: string;
 }> {}
