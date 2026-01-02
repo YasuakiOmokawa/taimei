@@ -65,6 +65,7 @@
   "devDependencies": {
     "@chromatic-com/storybook": "^3",
     "@effect/language-service": "^0.63.0",
+    "@effect/vitest": "^0.27.0",
     "@praha/drizzle-factory": "^1.4.2",
     "@react-email/preview-server": "5.1.0",
     "@storybook/addon-essentials": "^8.6.14",
