@@ -2,7 +2,6 @@ import { ConformAccountRegistrationService } from "./conform-account-registratio
 import { Tag2Service } from "./tag2_service";
 import { PgDrizzleLive } from "../layers/lives/pg_drizzle_live";
 import { Effect, Layer, ManagedRuntime } from "effect";
-import { Tag2Repository } from "./tag2_repository";
 import { UserService } from "./user-service";
 import { UserProfileService } from "./user-profile-service";
 import { IdGenerator } from "./id-generator-service";
@@ -46,10 +45,7 @@ export {
 // すべてのサービスの依存関係を一箇所で解決するため Layer.mergeAll で統合
 // Effect.Service は .Default、Effect.Tag は .Live を使用
 export const Live = Layer.mergeAll(
-  Tag2Service.Default.pipe(
-    Layer.provide(Tag2Repository.Default),
-    Layer.provide(PgDrizzleLive)
-  ),
+  Tag2Service.Default.pipe(Layer.provide(PgDrizzleLive)),
   UserService.Default.pipe(Layer.provide(PgDrizzleLive)),
   UserProfileService.Default.pipe(
     Layer.provide(IdGenerator.Live),
