@@ -10,7 +10,6 @@ import { DashboardService } from "./dashboard-service";
 import { InvoiceService } from "./invoice-service";
 import { CustomerService } from "./customer-service";
 import { AuthService } from "./auth-service";
-import { AuthRepository } from "./auth-repository";
 
 // 外部から直接 import できるようにエクスポート（パス簡略化のため）
 export { IdGenerator } from "./id-generator-service";
@@ -35,8 +34,7 @@ export {
   type UpdateInvoiceInput,
 } from "./invoice-service";
 export { CustomerService, CustomerServiceError } from "./customer-service";
-export { AuthService } from "./auth-service";
-export { AuthRepositoryError } from "./auth-repository";
+export { AuthService, AuthServiceError } from "./auth-service";
 export {
   MagicLinkError,
   SessionError,
@@ -61,10 +59,7 @@ export const Live = Layer.mergeAll(
   InvoiceService.Default.pipe(Layer.provide(PgDrizzleLive)),
   CustomerService.Default.pipe(Layer.provide(PgDrizzleLive)),
   ConformAccountRegistrationService.Default.pipe(Layer.provide(IdGenerator.Live)),
-  AuthService.Default.pipe(
-    Layer.provide(AuthRepository.Default),
-    Layer.provide(PgDrizzleLive)
-  )
+  AuthService.Default.pipe(Layer.provide(PgDrizzleLive))
 );
 
 // Next.js の Server Actions から Effect を実行するため、
