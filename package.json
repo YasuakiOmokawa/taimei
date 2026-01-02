@@ -5,7 +5,7 @@
     "dev": "next dev --turbopack",
     "start": "next start",
     "test": "vitest",
-    "test:services": "vitest run app/services/__tests__/",
+    "test:db": "docker compose up -d test_db --wait && vitest run; EXIT_CODE=$?; docker compose stop test_db; exit $EXIT_CODE",
     "lint": "next lint",
     "deployable-test": "next build --turbopack",
     "storybook": "storybook dev -p 6006",
@@ -65,6 +65,7 @@
   "devDependencies": {
     "@chromatic-com/storybook": "^3",
     "@effect/language-service": "^0.63.0",
+    "@praha/drizzle-factory": "^1.4.2",
     "@react-email/preview-server": "5.1.0",
     "@storybook/addon-essentials": "^8.6.14",
     "@storybook/addon-onboarding": "^8.6.14",
