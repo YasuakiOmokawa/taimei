@@ -33,24 +33,44 @@ globs:
 
 ## Effect-TS サービスのテスト
 
-Layer DI を活用し、モックを最小化する。
+### API の使い分け
+
+| テスト種別 | 使用 API | 用途 |
+|-----------|----------|------|
+| DB 統合テスト | `dbEffect` | Service + DB アクセスのテスト |
+| 純粋 Layer テスト | `it.effect` (@effect/vitest) | DB 不要のテスト（IdGenerator 等） |
+
+### DB 統合テスト（dbEffect）
+
+`withRollback` + Factory + Service Layer を自動提供。
 
 ```typescript
-// テスト用 Layer を提供
-const TestLayer = Layer.mergeAll(
-  UserRepositoryTest,
-  SomeServiceTest,
-)
+import { dbEffect } from "./db/effect-test-helpers";
 
-test('ユーザー作成', () =>
+dbEffect("正常系: ユーザーを更新できる", ({ factory: f }) =>
   Effect.gen(function* () {
-    const service = yield* UserService
-    const result = yield* service.create({ name: 'test' })
-    expect(result.name).toBe('test')
-  }).pipe(
-    Effect.provide(TestLayer),
-    Effect.runPromise,
-  ))
+    const user = yield* Effect.promise(() => f.user.create());
+    const service = yield* UserService;
+    const updated = yield* service.update(user.id, { name: "New" });
+    expect(updated.name).toBe("New");
+  })
+);
+```
+
+### 純粋 Layer テスト（it.effect）
+
+DB 不要のサービス（IdGenerator 等）は `@effect/vitest` の `it.effect` を使用。
+
+```typescript
+import { it } from "@effect/vitest";
+
+it.effect("UUID を生成する", () =>
+  Effect.gen(function* () {
+    const idGen = yield* IdGenerator;
+    const id = yield* idGen.generate;
+    expect(id).toMatch(/^[0-9a-f-]+$/);
+  }).pipe(Effect.provide(IdGenerator.Live))
+);
 ```
 
 ## 薄いラッパー層のテスト
