@@ -7,6 +7,7 @@ import { UserService } from "../../user-service";
 import { UserProfileService } from "../../user-profile-service";
 import { CustomerService } from "../../customer-service";
 import { InvoiceService } from "../../invoice-service";
+import { DashboardService } from "../../dashboard-service";
 import { IdGenerator } from "../../id-generator-service";
 import type { PgRemoteDatabase } from "drizzle-orm/pg-proxy";
 
@@ -42,7 +43,11 @@ export function runServiceWithTx<A, E>(
   effect: Effect.Effect<
     A,
     E,
-    UserService | UserProfileService | CustomerService | InvoiceService
+    | UserService
+    | UserProfileService
+    | CustomerService
+    | InvoiceService
+    | DashboardService
   >
 ): Promise<Either.Either<A, E>> {
   const TestPgDrizzleLayer = Layer.succeed(
@@ -54,7 +59,8 @@ export function runServiceWithTx<A, E>(
     UserService.Default,
     UserProfileService.Default.pipe(Layer.provide(IdGenerator.TestSequence)),
     CustomerService.Default,
-    InvoiceService.Default
+    InvoiceService.Default,
+    DashboardService.Default
   ).pipe(Layer.provide(TestPgDrizzleLayer));
 
   return effect.pipe(

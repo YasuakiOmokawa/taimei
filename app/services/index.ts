@@ -7,7 +7,6 @@ import { UserService } from "./user-service";
 import { UserProfileService } from "./user-profile-service";
 import { IdGenerator } from "./id-generator-service";
 import { DashboardService } from "./dashboard-service";
-import { DashboardRepository } from "./dashboard-repository";
 import { InvoiceService } from "./invoice-service";
 import { CustomerService } from "./customer-service";
 import { AuthService } from "./auth-service";
@@ -27,8 +26,7 @@ export {
   UserProfileNotFound,
   UserProfileServiceError,
 } from "./user-profile-service";
-export { DashboardService, type Revenue, type LatestInvoice, type CardData } from "./dashboard-service";
-export { DashboardRepositoryError } from "./dashboard-repository";
+export { DashboardService, DashboardServiceError, type Revenue, type LatestInvoice, type CardData } from "./dashboard-service";
 export {
   InvoiceService,
   InvoiceNotFound,
@@ -59,10 +57,7 @@ export const Live = Layer.mergeAll(
     Layer.provide(IdGenerator.Live),
     Layer.provide(PgDrizzleLive)
   ),
-  DashboardService.Default.pipe(
-    Layer.provide(DashboardRepository.Default),
-    Layer.provide(PgDrizzleLive)
-  ),
+  DashboardService.Default.pipe(Layer.provide(PgDrizzleLive)),
   InvoiceService.Default.pipe(Layer.provide(PgDrizzleLive)),
   CustomerService.Default.pipe(Layer.provide(PgDrizzleLive)),
   ConformAccountRegistrationService.Default.pipe(Layer.provide(IdGenerator.Live)),
