@@ -3,6 +3,7 @@ import { Effect, Either } from "effect";
 import type { Session } from "@/lib/auth";
 import { AuthService, AuthServiceError } from "../auth-service";
 import { MagicLinkError, SignOutError } from "../auth-errors";
+import { Email } from "@/app/domain/email";
 
 // Layer DI を利用したモック実装
 // テストでは providerId のみ使用するため、必要最小限の型定義
@@ -23,7 +24,7 @@ const createMockAuthService = (options: {
         ? Effect.fail(new SignOutError({ cause: new Error("Sign out failed") }))
         : Effect.succeed(undefined as void),
 
-    sendMagicLink: (_email: string, _callbackURL: string) =>
+    sendMagicLink: (_email: Email, _callbackURL: string) =>
       options.magicLinkError
         ? Effect.fail(new MagicLinkError({ cause: new Error("Magic link failed") }))
         : Effect.succeed(undefined as void),
@@ -146,7 +147,10 @@ describe("AuthService", () => {
       const result = await runWithMock(
         Effect.gen(function* () {
           const service = yield* AuthService;
-          return yield* service.sendMagicLink("test@example.com", "/dashboard");
+          return yield* service.sendMagicLink(
+            Email.makeSync("test@example.com"),
+            "/dashboard"
+          );
         }),
         mock
       );
@@ -160,7 +164,10 @@ describe("AuthService", () => {
       const result = await runWithMock(
         Effect.gen(function* () {
           const service = yield* AuthService;
-          return yield* service.sendMagicLink("test@example.com", "/dashboard");
+          return yield* service.sendMagicLink(
+            Email.makeSync("test@example.com"),
+            "/dashboard"
+          );
         }),
         mock
       );

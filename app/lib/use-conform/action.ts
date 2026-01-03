@@ -5,9 +5,9 @@ import { schema } from "./schema";
 import { redirect } from "next/navigation";
 import { runService } from "@/app/services";
 import {
-  ConformAccountRegistrationService,
+  AccountValidationService,
   AccountAlreadyExists,
-} from "@/app/services/conform-account-registration-service";
+} from "@/app/services/account-validation-service";
 import { Effect, Either } from "effect";
 import { setFlash } from "@/lib/flash-toaster";
 
@@ -20,15 +20,18 @@ export async function createData(_prevState: unknown, formData: FormData) {
     return submission.reply();
   }
 
-  const accountOrError = await runService(() =>
+  const validatedOrError = await runService(() =>
     Effect.gen(function* () {
-      const service = yield* ConformAccountRegistrationService;
-      return yield* service.execute(submission.value);
+      const service = yield* AccountValidationService;
+      return yield* service.validate({
+        email: submission.value.email,
+        name: submission.value.name,
+      });
     })
   );
 
-  if (Either.isLeft(accountOrError)) {
-    const err = accountOrError.left;
+  if (Either.isLeft(validatedOrError)) {
+    const err = validatedOrError.left;
     if (err instanceof AccountAlreadyExists) {
       return submission.reply({
         fieldErrors: {
