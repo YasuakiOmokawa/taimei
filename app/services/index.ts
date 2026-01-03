@@ -1,4 +1,4 @@
-import { ConformAccountRegistrationService } from "./conform-account-registration-service";
+import { AccountValidationService } from "./account-validation-service";
 import { Tag2Service } from "./tag2_service";
 import { PgDrizzleLive } from "../layers/lives/pg_drizzle_live";
 import { Effect, Layer, ManagedRuntime } from "effect";
@@ -13,11 +13,10 @@ import { AuthService } from "./auth-service";
 // 外部から直接 import できるようにエクスポート（パス簡略化のため）
 export { IdGenerator } from "./id-generator-service";
 export {
-  ConformAccountRegistrationService,
+  AccountValidationService,
   AccountAlreadyExists,
-  type Account,
-  type CreateAccountInput,
-} from "./conform-account-registration-service";
+  type AccountInput,
+} from "./account-validation-service";
 export { UserService, UserNotFound, UserServiceError } from "./user-service";
 export {
   UserProfileService,
@@ -54,7 +53,9 @@ export const Live = Layer.mergeAll(
   DashboardService.Default.pipe(Layer.provide(PgDrizzleLive)),
   InvoiceService.Default.pipe(Layer.provide(PgDrizzleLive)),
   CustomerService.Default.pipe(Layer.provide(PgDrizzleLive)),
-  ConformAccountRegistrationService.Default.pipe(Layer.provide(IdGenerator.Live)),
+  AccountValidationService.Default.pipe(
+    Layer.provide(UserService.Default.pipe(Layer.provide(PgDrizzleLive)))
+  ),
   AuthService.Default.pipe(Layer.provide(PgDrizzleLive))
 );
 
