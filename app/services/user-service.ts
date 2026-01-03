@@ -2,6 +2,7 @@ import * as PgDrizzle from "@effect/sql-drizzle/Pg";
 import { Data, Effect } from "effect";
 import { user } from "@/db/drizzle/schema";
 import { eq, sql } from "drizzle-orm";
+import { Email } from "@/app/domain/email";
 
 export class UserService extends Effect.Service<UserService>()(
   "services/UserService",
@@ -10,7 +11,7 @@ export class UserService extends Effect.Service<UserService>()(
       const pgdrizzle = yield* PgDrizzle.PgDrizzle;
 
       return {
-        existsByEmail: (email: string) =>
+        existsByEmail: (email: Email) =>
           Effect.tryPromise({
             try: async () => {
               const result = await pgdrizzle
@@ -23,7 +24,7 @@ export class UserService extends Effect.Service<UserService>()(
               new UserServiceError({ message: `existsByEmail failed: ${e}` }),
           }),
 
-        findByEmail: (email: string) =>
+        findByEmail: (email: Email) =>
           Effect.tryPromise({
             try: () =>
               pgdrizzle

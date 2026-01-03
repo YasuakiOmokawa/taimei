@@ -3,6 +3,7 @@ import { expect } from "@effect/vitest";
 import { Effect, Either } from "effect";
 import { UserService, UserNotFound } from "../user-service";
 import { dbEffect } from "./db/effect-test-helpers";
+import { Email } from "@/app/domain/email";
 
 describe("UserService", () => {
   describe("update", () => {
@@ -111,7 +112,9 @@ describe("UserService", () => {
         );
 
         const service = yield* UserService;
-        const exists = yield* service.existsByEmail("test@example.com");
+        const exists = yield* service.existsByEmail(
+          Email.makeSync("test@example.com")
+        );
 
         expect(exists).toBe(true);
       })
@@ -120,7 +123,9 @@ describe("UserService", () => {
     dbEffect("正常系: 存在しないメールアドレスで false を返す", () =>
       Effect.gen(function* () {
         const service = yield* UserService;
-        const exists = yield* service.existsByEmail("nonexistent@example.com");
+        const exists = yield* service.existsByEmail(
+          Email.makeSync("nonexistent@example.com")
+        );
 
         expect(exists).toBe(false);
       })
@@ -137,7 +142,9 @@ describe("UserService", () => {
           );
 
           const service = yield* UserService;
-          const user = yield* service.findByEmail("test@example.com");
+          const user = yield* service.findByEmail(
+            Email.makeSync("test@example.com")
+          );
 
           expect(user?.id).toBe(created.id);
           expect(user?.email).toBe("test@example.com");
@@ -147,7 +154,9 @@ describe("UserService", () => {
     dbEffect("正常系: 存在しないメールアドレスでundefinedを返す", () =>
       Effect.gen(function* () {
         const service = yield* UserService;
-        const user = yield* service.findByEmail("nonexistent@example.com");
+        const user = yield* service.findByEmail(
+          Email.makeSync("nonexistent@example.com")
+        );
 
         expect(user).toBeUndefined();
       })
