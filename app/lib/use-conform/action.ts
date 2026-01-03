@@ -10,6 +10,7 @@ import {
 } from "@/app/services/account-validation-service";
 import { Effect, Either } from "effect";
 import { setFlash } from "@/lib/flash-toaster";
+import { Email } from "@/app/domain/email";
 
 export async function createData(_prevState: unknown, formData: FormData) {
   const submission = parseWithZod(formData, {
@@ -20,11 +21,18 @@ export async function createData(_prevState: unknown, formData: FormData) {
     return submission.reply();
   }
 
+  const emailOrError = Email.make(submission.value.email);
+  if (Either.isLeft(emailOrError)) {
+    return submission.reply({
+      fieldErrors: { email: ["メールアドレスの形式が正しくありません"] },
+    });
+  }
+
   const validatedOrError = await runService(() =>
     Effect.gen(function* () {
       const service = yield* AccountValidationService;
       return yield* service.validate({
-        email: submission.value.email,
+        email: emailOrError.right,
         name: submission.value.name,
       });
     })
