@@ -15,6 +15,7 @@ import {
   InvoiceService,
   AuthService,
 } from "@/app/services";
+import { Email } from "@/app/domain/email";
 import {
   AuthErrorCode,
   AuthSuccessCode,
@@ -72,10 +73,17 @@ export async function sendAuthEmailLink(
     return submission.reply();
   }
 
+  const emailOrError = Email.make(submission.value.email);
+  if (Either.isLeft(emailOrError)) {
+    return submission.reply({
+      fieldErrors: { email: ["メールアドレスの形式が正しくありません"] },
+    });
+  }
+
   const result = await runService(() =>
     Effect.gen(function* () {
       const service = yield* AuthService;
-      yield* service.sendMagicLink(submission.value.email, redirectPath);
+      yield* service.sendMagicLink(emailOrError.right, redirectPath);
     })
   );
 

@@ -33,18 +33,34 @@ export const Xxx = {
 } as const;
 ```
 
+## ドメイン型の使用パターン
+
+| ユースケース | API | 検証担当 |
+|-------------|-----|---------|
+| フォーム入力 | `make()` | Effect.Schema（Zodバリデーション後に変換） |
+| テスト | `makeSync()` | Effect.Schema |
+| DB取得値 | `unsafeFrom()` | なし（バリデーション済み前提） |
+
+**注意**: Zod スキーマ内での `.transform()` + `unsafeFrom()` は、Next.js SSG + Bun 環境で互換性問題が発生するため使用しない。Server Action 内で `Email.make()` を使用すること。
+
 ## 使用例
 
 ```typescript
-// フォーム入力 → Zod
+// フォーム入力 → Zod でバリデーション後、Server Action で Email.make() を使用
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
 });
 
-// ドメイン型 → Effect.Schema
+// Server Action 内
+const emailOrError = Email.make(submission.value.email);
+if (Either.isLeft(emailOrError)) {
+  return submission.reply({ fieldErrors: { email: ["..."] } });
+}
+
+// テスト → Effect.Schema で検証
 const email = Email.makeSync("test@example.com");
 userService.findByEmail(email);
 
-// DB取得値 → unsafeFrom
+// DB取得値 → unsafeFrom（バリデーション済み前提）
 const email = Email.unsafeFrom(user.email);
 ```

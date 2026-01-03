@@ -9,6 +9,7 @@ import { UserProfileService } from "../../user-profile-service";
 import { CustomerService } from "../../customer-service";
 import { InvoiceService } from "../../invoice-service";
 import { DashboardService } from "../../dashboard-service";
+import { AccountValidationService } from "../../account-validation-service";
 import { IdGenerator } from "../../id-generator-service";
 
 export type TestFactory = ReturnType<typeof factory>;
@@ -23,7 +24,8 @@ type ServiceLayer =
   | UserProfileService
   | CustomerService
   | InvoiceService
-  | DashboardService;
+  | DashboardService
+  | AccountValidationService;
 
 const createTestServiceLayer = (tx: TestDb) => {
   const TestPgDrizzleLayer = Layer.succeed(
@@ -31,12 +33,17 @@ const createTestServiceLayer = (tx: TestDb) => {
     tx as unknown as PgRemoteDatabase<Record<string, never>>
   );
 
+  const UserServiceLayer = UserService.Default.pipe(
+    Layer.provide(TestPgDrizzleLayer)
+  );
+
   return Layer.mergeAll(
-    UserService.Default,
+    UserServiceLayer,
     UserProfileService.Default.pipe(Layer.provide(IdGenerator.TestSequence)),
     CustomerService.Default,
     InvoiceService.Default,
-    DashboardService.Default
+    DashboardService.Default,
+    AccountValidationService.Default.pipe(Layer.provide(UserServiceLayer))
   ).pipe(Layer.provide(TestPgDrizzleLayer));
 };
 

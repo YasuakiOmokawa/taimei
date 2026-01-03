@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { account } from "@/db/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { MagicLinkError, SessionError, SignOutError } from "./auth-errors";
+import { Email } from "@/app/domain/email";
 
 export class AuthServiceError extends Data.TaggedError("AuthServiceError")<{
   message: string;
@@ -35,12 +36,12 @@ export class AuthService extends Effect.Service<AuthService>()(
             catch: (e) => new SignOutError({ cause: e }),
           }),
 
-        sendMagicLink: (email: string, callbackURL: string) =>
+        sendMagicLink: (email: Email, callbackURL: string) =>
           Effect.tryPromise({
             try: async () => {
               const h = await headers();
               await auth.api.signInMagicLink({
-                body: { email, callbackURL },
+                body: { email: email as string, callbackURL },
                 headers: h,
               });
             },

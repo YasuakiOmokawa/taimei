@@ -5,11 +5,12 @@ import { schema } from "./schema";
 import { redirect } from "next/navigation";
 import { runService } from "@/app/services";
 import {
-  ConformAccountRegistrationService,
+  AccountValidationService,
   AccountAlreadyExists,
-} from "@/app/services/conform-account-registration-service";
+} from "@/app/services/account-validation-service";
 import { Effect, Either } from "effect";
 import { setFlash } from "@/lib/flash-toaster";
+import { Email } from "@/app/domain/email";
 
 export async function createData(_prevState: unknown, formData: FormData) {
   const submission = parseWithZod(formData, {
@@ -20,15 +21,25 @@ export async function createData(_prevState: unknown, formData: FormData) {
     return submission.reply();
   }
 
-  const accountOrError = await runService(() =>
+  const emailOrError = Email.make(submission.value.email);
+  if (Either.isLeft(emailOrError)) {
+    return submission.reply({
+      fieldErrors: { email: ["メールアドレスの形式が正しくありません"] },
+    });
+  }
+
+  const validatedOrError = await runService(() =>
     Effect.gen(function* () {
-      const service = yield* ConformAccountRegistrationService;
-      return yield* service.execute(submission.value);
+      const service = yield* AccountValidationService;
+      return yield* service.validate({
+        email: emailOrError.right,
+        name: submission.value.name,
+      });
     })
   );
 
-  if (Either.isLeft(accountOrError)) {
-    const err = accountOrError.left;
+  if (Either.isLeft(validatedOrError)) {
+    const err = validatedOrError.left;
     if (err instanceof AccountAlreadyExists) {
       return submission.reply({
         fieldErrors: {

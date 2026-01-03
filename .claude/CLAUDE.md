@@ -55,6 +55,7 @@ app/
 │   ├── *-service.ts    # サービス（ビジネスロジック + DB アクセス）
 │   ├── *-errors.ts     # TaggedError 定義
 │   └── index.ts        # サービスのエクスポート + Layer 統合
+├── domain/             # ドメイン型（Effect.Schema Brand型）
 ├── layers/lives/       # Effect-TS Layer 実装（DI 設定）
 ├── lib/                # アプリ固有ユーティリティ
 │   ├── actions.ts      # Server Actions
