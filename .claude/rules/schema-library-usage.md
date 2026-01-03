@@ -33,18 +33,27 @@ export const Xxx = {
 } as const;
 ```
 
+## ドメイン型の使用パターン
+
+| ユースケース | API | 検証担当 |
+|-------------|-----|---------|
+| フォーム入力 | Zod `.transform()` + `unsafeFrom()` | Zod |
+| テスト | `makeSync()` | Effect.Schema |
+| DB取得値 | `unsafeFrom()` | なし（バリデーション済み前提） |
+
 ## 使用例
 
 ```typescript
-// フォーム入力 → Zod
+// フォーム入力 → Zod + transform でドメイン型に変換
+// Zod がバリデーション済みなので unsafeFrom で変換
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.email().transform((s) => Email.unsafeFrom(s)),
 });
 
-// ドメイン型 → Effect.Schema
+// テスト → Effect.Schema で検証
 const email = Email.makeSync("test@example.com");
 userService.findByEmail(email);
 
-// DB取得値 → unsafeFrom
+// DB取得値 → unsafeFrom（バリデーション済み前提）
 const email = Email.unsafeFrom(user.email);
 ```
