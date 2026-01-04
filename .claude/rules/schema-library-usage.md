@@ -1,11 +1,12 @@
-# スキーマライブラリの使い分け
+# ドメイン型の設計
 
-## ルール
+## ライブラリの使い分け
 
 | 用途 | ライブラリ | 配置場所 |
 |------|-----------|---------|
 | フォーム入力（Conform連携） | Zod | `app/lib/schema/`, `app/schema/` |
-| ドメイン型（Brand型） | Effect.Schema | `app/domain/` |
+| 単一値ドメイン型（Brand型） | Effect.Schema | `app/domain/` |
+| 複合オブジェクト | Data.case | `app/domain/` |
 
 ## 理由
 
@@ -64,4 +65,77 @@ userService.findByEmail(email);
 
 // DB取得値 → fromTrusted（バリデーション済み前提）
 const email = Email.fromTrusted(user.email);
+```
+
+## 複合オブジェクト（Data.case）
+
+複数のフィールドを持つ値オブジェクトには `Data.case` を使用する。
+
+### なぜ Data.case か
+
+- **Data.Class はメソッドを持てるが、ミュータブルな実装が可能になる危険性がある**
+- Data.case はデータのみを持ち、振る舞いは別関数として分離（関数型スタイル）
+- 構造的等価性（`Equal.equals`）をサポート
+
+### 実装パターン
+
+```typescript
+// app/domain/shipping-address.ts
+import { Data } from "effect";
+import type { Email } from "./email";
+
+interface ShippingAddressFields {
+  readonly email: Email;
+  readonly postalCode: string;
+  readonly city: string;
+  readonly street: string;
+}
+
+const ShippingAddress = Data.case<ShippingAddressFields>();
+type ShippingAddress = Data.Data<ShippingAddressFields>;
+
+export { ShippingAddress, type ShippingAddressFields };
+```
+
+### 使用例
+
+```typescript
+import { Equal } from "effect";
+import { ShippingAddress } from "@/app/domain/shipping-address";
+import { Email } from "@/app/domain/email";
+
+// 生成
+const address = ShippingAddress({
+  email: Email.fromTrusted("test@example.com"),
+  postalCode: "123-4567",
+  city: "東京都",
+  street: "渋谷区1-2-3",
+});
+
+// 更新（常に新しいオブジェクトを返す）
+const updated = ShippingAddress({ ...address, city: "大阪府" });
+
+// 構造的等価性
+const same = ShippingAddress({
+  email: Email.fromTrusted("test@example.com"),
+  postalCode: "123-4567",
+  city: "東京都",
+  street: "渋谷区1-2-3",
+});
+Equal.equals(address, same); // true
+```
+
+### Brand 型との組み合わせ
+
+複合オブジェクト内のフィールドには Brand 型を使用し、型安全性を確保する:
+
+```typescript
+interface OrderFields {
+  readonly id: OrderId;           // Brand 型
+  readonly customerEmail: Email;  // Brand 型
+  readonly amount: Money;         // Brand 型
+  readonly shippingAddress: ShippingAddress; // 複合オブジェクト
+}
+
+const Order = Data.case<OrderFields>();
 ```
