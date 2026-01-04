@@ -21,13 +21,11 @@ export async function createData(_prevState: unknown, formData: FormData) {
     return submission.reply();
   }
 
-  const email = Email.fromTrusted(submission.value.email);
-
   const validatedOrError = await runService(() =>
     Effect.gen(function* () {
       const service = yield* AccountValidationService;
       return yield* service.validate({
-        email,
+        email: Email.fromTrusted(submission.value.email),
         name: submission.value.name,
       });
     })

@@ -73,12 +73,13 @@ export async function sendAuthEmailLink(
     return submission.reply();
   }
 
-  const email = Email.fromTrusted(submission.value.email);
-
   const result = await runService(() =>
     Effect.gen(function* () {
       const service = yield* AuthService;
-      yield* service.sendMagicLink(email, redirectPath);
+      yield* service.sendMagicLink(
+        Email.fromTrusted(submission.value.email),
+        redirectPath
+      );
     })
   );
 
