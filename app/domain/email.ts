@@ -18,5 +18,5 @@ export const Email = {
   Schema: EmailSchema,
   make: Schema.decodeEither(EmailSchema),
   makeSync: Schema.decodeSync(EmailSchema),
-  unsafeFrom: (value: string): Email => value as Email,
+  fromTrusted: (value: string): Email => value as Email,
 } as const;

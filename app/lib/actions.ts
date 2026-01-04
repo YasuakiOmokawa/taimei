@@ -73,17 +73,12 @@ export async function sendAuthEmailLink(
     return submission.reply();
   }
 
-  const emailOrError = Email.make(submission.value.email);
-  if (Either.isLeft(emailOrError)) {
-    return submission.reply({
-      fieldErrors: { email: ["メールアドレスの形式が正しくありません"] },
-    });
-  }
+  const email = Email.fromTrusted(submission.value.email);
 
   const result = await runService(() =>
     Effect.gen(function* () {
       const service = yield* AuthService;
-      yield* service.sendMagicLink(emailOrError.right, redirectPath);
+      yield* service.sendMagicLink(email, redirectPath);
     })
   );
 

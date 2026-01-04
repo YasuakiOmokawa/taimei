@@ -80,9 +80,9 @@ describe("Email", () => {
     });
   });
 
-  describe("unsafeFrom", () => {
+  describe("fromTrusted", () => {
     it("バリデーションなしで Email 型を生成する", () => {
-      const email = Email.unsafeFrom("test@example.com");
+      const email = Email.fromTrusted("test@example.com");
 
       expect(email).toBe("test@example.com");
     });

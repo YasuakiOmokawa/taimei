@@ -21,18 +21,13 @@ export async function createData(_prevState: unknown, formData: FormData) {
     return submission.reply();
   }
 
-  const emailOrError = Email.make(submission.value.email);
-  if (Either.isLeft(emailOrError)) {
-    return submission.reply({
-      fieldErrors: { email: ["メールアドレスの形式が正しくありません"] },
-    });
-  }
+  const email = Email.fromTrusted(submission.value.email);
 
   const validatedOrError = await runService(() =>
     Effect.gen(function* () {
       const service = yield* AccountValidationService;
       return yield* service.validate({
-        email: emailOrError.right,
+        email,
         name: submission.value.name,
       });
     })
