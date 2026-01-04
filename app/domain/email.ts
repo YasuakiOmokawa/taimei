@@ -1,14 +1,12 @@
 import { Schema } from "effect";
+import { z } from "zod";
 
-// HTML5 email input 準拠
-// ref: https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address
-const EMAIL_REGEX =
-  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+const zodEmail = z.string().email();
 
 const EmailSchema = Schema.String.pipe(
-  Schema.filter((s) => EMAIL_REGEX.test(s), {
-    message: () => "無効なメールアドレス形式です",
-  }),
+  Schema.filter(
+    (s) => (zodEmail.safeParse(s).success ? undefined : "無効なメールアドレス形式です")
+  ),
   Schema.brand("Email")
 );
 
