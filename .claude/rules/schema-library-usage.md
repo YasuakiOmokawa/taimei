@@ -27,8 +27,8 @@ export type Xxx = typeof XxxSchema.Type;
 
 export const Xxx = {
   Schema: XxxSchema,
-  make: Schema.decodeEither(XxxSchema),    // Either を返す（本番用）
-  makeSync: Schema.decodeSync(XxxSchema),  // 例外を投げる（テスト用）
+  make: Schema.decodeUnknownEither(XxxSchema),    // Either を返す（未検証の外部入力用）
+  makeSync: Schema.decodeUnknownSync(XxxSchema),  // 例外を投げる（テスト用）
   fromTrusted: (value: string): Xxx => ..., // 検証済み値用（Zod検証後、DB取得値）
 } as const;
 ```
