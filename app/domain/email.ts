@@ -1,7 +1,8 @@
 import { Schema } from "effect";
 import { z } from "zod";
 
-const zodEmail = z.string().email();
+// Effect.Schemaには組み込みemail検証がないためZodに委譲
+const zodEmail = z.email();
 
 const EmailSchema = Schema.String.pipe(
   Schema.filter(
