@@ -27,9 +27,9 @@ export type Xxx = typeof XxxSchema.Type;
 
 export const Xxx = {
   Schema: XxxSchema,
-  make: Schema.decodeEither(XxxSchema),    // Either を返す（本番用）
-  makeSync: Schema.decodeSync(XxxSchema),  // 例外を投げる（テスト用）
-  unsafeFrom: (value: string): Xxx => ..., // DB取得値用（バリデーション済み前提）
+  make: Schema.decodeUnknownEither(XxxSchema),    // Either を返す（未検証の外部入力用）
+  makeSync: Schema.decodeUnknownSync(XxxSchema),  // 例外を投げる（テスト用）
+  fromTrusted: (value: string): Xxx => ..., // 検証済み値用（Zod検証後、DB取得値）
 } as const;
 ```
 
@@ -37,30 +37,31 @@ export const Xxx = {
 
 | ユースケース | API | 検証担当 |
 |-------------|-----|---------|
-| フォーム入力 | `make()` | Effect.Schema（Zodバリデーション後に変換） |
+| Zod 検証後（Server Action） | `fromTrusted()` | Zod（Effect.Schema での再検証不要） |
 | テスト | `makeSync()` | Effect.Schema |
-| DB取得値 | `unsafeFrom()` | なし（バリデーション済み前提） |
+| DB取得値 | `fromTrusted()` | なし（バリデーション済み前提） |
+| 未検証の値 | `make()` | Effect.Schema |
 
-**注意**: Zod スキーマ内での `.transform()` + `unsafeFrom()` は、Next.js SSG + Bun 環境で互換性問題が発生するため使用しない。Server Action 内で `Email.make()` を使用すること。
+**注意**: Zod スキーマ内での `.transform()` + `fromTrusted()` は、Next.js SSG + Bun 環境で互換性問題が発生するため使用しない。Server Action 内で Conform 検証後に `fromTrusted()` を使用すること。
 
 ## 使用例
 
 ```typescript
-// フォーム入力 → Zod でバリデーション後、Server Action で Email.make() を使用
+// Server Action 内 → Zod 検証後は fromTrusted を使用
 const loginSchema = z.object({
   email: z.email(),
 });
 
-// Server Action 内
-const emailOrError = Email.make(submission.value.email);
-if (Either.isLeft(emailOrError)) {
-  return submission.reply({ fieldErrors: { email: ["..."] } });
+// Conform で検証後
+if (submission.status !== "success") {
+  return submission.reply();
 }
+const email = Email.fromTrusted(submission.value.email);
 
 // テスト → Effect.Schema で検証
 const email = Email.makeSync("test@example.com");
 userService.findByEmail(email);
 
-// DB取得値 → unsafeFrom（バリデーション済み前提）
-const email = Email.unsafeFrom(user.email);
+// DB取得値 → fromTrusted（バリデーション済み前提）
+const email = Email.fromTrusted(user.email);
 ```

@@ -16,7 +16,7 @@ export type Email = typeof EmailSchema.Type;
 
 export const Email = {
   Schema: EmailSchema,
-  make: Schema.decodeEither(EmailSchema),
-  makeSync: Schema.decodeSync(EmailSchema),
-  unsafeFrom: (value: string): Email => value as Email,
+  make: Schema.decodeUnknownEither(EmailSchema),
+  makeSync: Schema.decodeUnknownSync(EmailSchema),
+  fromTrusted: (value: string): Email => value as Email,
 } as const;
