@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { validatesCreateInvoice, validatesUpdateInvoice } from "./validates";
 import { parseWithZod } from "@conform-to/zod/v4";
 import { emailLinkLoginSchema } from "./schema/login/schema";
+import { invoiceSchema } from "./schema/invoice/schema";
 import { setFlash } from "@/lib/flash-toaster";
 import { deleteUserSchema } from "../setting/profile/schema";
 import { fetchCurrentUser } from "./data";
@@ -23,19 +23,6 @@ import {
   AUTH_SUCCESS_MESSAGES,
 } from "@/lib/auth/messages/auth-messages";
 
-export type State = {
-  errors?: {
-    customerId?: string[];
-    amount?: string[];
-    status?: string[];
-  };
-  message?: string | null;
-  formData?: {
-    customerId?: string;
-    amount?: number;
-    status?: string;
-  };
-};
 
 export async function signOut() {
   const result = await runService(() =>
@@ -97,26 +84,15 @@ export async function sendAuthEmailLink(
   return submission.reply();
 }
 
-export async function createInvoice(_prevState: State, formData: FormData) {
-  const rawFormData = Object.fromEntries(formData.entries());
-  const validatedFields = validatesCreateInvoice(rawFormData);
+export async function createInvoice(_prevState: unknown, formData: FormData) {
+  const submission = parseWithZod(formData, { schema: invoiceSchema });
 
-  if (!validatedFields.success) {
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: "Invalid. Failed to Create Invoice.",
-      formData: {
-        customerId: rawFormData?.customerId
-          ? String(rawFormData.customerId)
-          : undefined,
-        amount: rawFormData?.amount ? Number(rawFormData.amount) : undefined,
-        status: rawFormData?.status ? String(rawFormData.status) : undefined,
-      },
-    };
+  if (submission.status !== "success") {
+    return submission.reply();
   }
 
-  const { amount, status, customerId } = validatedFields.data;
-  const amountInCents = amount * 100;
+  const { amount, status, customerId } = submission.value;
+  const amountInCents = Math.round(amount * 100);
 
   const result = await runService(() =>
     Effect.gen(function* () {
@@ -130,14 +106,9 @@ export async function createInvoice(_prevState: State, formData: FormData) {
   );
 
   if (Either.isLeft(result)) {
-    return {
-      message: `Failed to create invoice: ${result.left._tag}`,
-      formData: {
-        customerId,
-        amount,
-        status,
-      },
-    };
+    return submission.reply({
+      formErrors: [`請求書の作成に失敗しました: ${result.left._tag}`],
+    });
   }
 
   revalidatePath("/dashboard/invoices");
@@ -146,28 +117,17 @@ export async function createInvoice(_prevState: State, formData: FormData) {
 
 export async function updateInvoice(
   id: string,
-  _prevState: State,
+  _prevState: unknown,
   formData: FormData
 ) {
-  const rawFormData = Object.fromEntries(formData.entries());
-  const validatedFields = validatesUpdateInvoice(rawFormData);
+  const submission = parseWithZod(formData, { schema: invoiceSchema });
 
-  if (!validatedFields.success) {
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: "Invalid. Failed to Update Invoice.",
-      formData: {
-        customerId: rawFormData?.customerId
-          ? String(rawFormData.customerId)
-          : undefined,
-        amount: rawFormData?.amount ? Number(rawFormData.amount) : undefined,
-        status: rawFormData?.status ? String(rawFormData.status) : undefined,
-      },
-    };
+  if (submission.status !== "success") {
+    return submission.reply();
   }
 
-  const { amount, status, customerId } = validatedFields.data;
-  const amountInCents = amount * 100;
+  const { amount, status, customerId } = submission.value;
+  const amountInCents = Math.round(amount * 100);
 
   const result = await runService(() =>
     Effect.gen(function* () {
@@ -184,15 +144,13 @@ export async function updateInvoice(
   if (Either.isLeft(result)) {
     switch (result.left._tag) {
       case "InvoiceNotFound":
-        return {
-          message: "Invoice not found.",
-          formData: { customerId, amount, status },
-        };
+        return submission.reply({
+          formErrors: ["請求書が見つかりません"],
+        });
       default:
-        return {
-          message: `Failed to update invoice: ${result.left._tag}`,
-          formData: { customerId, amount, status },
-        };
+        return submission.reply({
+          formErrors: [`請求書の更新に失敗しました: ${result.left._tag}`],
+        });
     }
   }
 
