@@ -4,10 +4,7 @@ import { parseWithZod } from "@conform-to/zod/v4";
 import { schema } from "./schema";
 import { redirect } from "next/navigation";
 import { runService } from "@/app/services";
-import {
-  AccountValidationService,
-  AccountAlreadyExists,
-} from "@/app/services/account-validation-service";
+import { AccountValidationService } from "@/app/services/account-validation-service";
 import { Effect, Either } from "effect";
 import { setFlash } from "@/lib/flash-toaster";
 import { Email } from "@/app/domain/email";
@@ -21,7 +18,7 @@ export async function createData(_prevState: unknown, formData: FormData) {
     return submission.reply();
   }
 
-  const validatedOrError = await runService(() =>
+  const result = await runService(() =>
     Effect.gen(function* () {
       const service = yield* AccountValidationService;
       return yield* service.validate({
@@ -31,21 +28,22 @@ export async function createData(_prevState: unknown, formData: FormData) {
     })
   );
 
-  if (Either.isLeft(validatedOrError)) {
-    const err = validatedOrError.left;
-    if (err instanceof AccountAlreadyExists) {
-      return submission.reply({
-        fieldErrors: {
-          email: [err.message],
-        },
-        formErrors: ["データの作成に失敗しました"],
-      });
+  if (Either.isLeft(result)) {
+    switch (result.left._tag) {
+      case "AccountAlreadyExists":
+        return submission.reply({
+          fieldErrors: {
+            email: [result.left.message],
+          },
+          formErrors: ["データの作成に失敗しました"],
+        });
+      default:
+        return submission.reply({
+          formErrors: [
+            "システムエラーが発生しました。しばらくしてから再度お試しください。",
+          ],
+        });
     }
-    return submission.reply({
-      formErrors: [
-        "システムエラーが発生しました。しばらくしてから再度お試しください。",
-      ],
-    });
   }
 
   await setFlash({ type: "success", message: "データの作成に成功しました。" });
