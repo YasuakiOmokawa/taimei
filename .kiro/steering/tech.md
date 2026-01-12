@@ -52,12 +52,12 @@ Next.js App Router ベースのフルスタックアプリケーション。Effe
 docker compose up --build --watch
 
 # Test
-yarn test                    # 全テスト
-yarn test:services           # サービス層のみ
+bun run test:db              # DB起動→全テスト→DB停止（推奨）
+bun vitest run <file>        # 特定ファイル（test_db起動済み前提）
 
 # Lint
-yarn lint                    # ESLint
-npx tsc --noEmit             # 型チェック
+bun eslint .                 # ESLint
+bun tsc --noEmit             # 型チェック
 ```
 
 ## Key Technical Decisions
