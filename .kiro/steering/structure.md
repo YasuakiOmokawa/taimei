@@ -9,15 +9,24 @@
 ### App Router Pages
 **Location**: `app/[route]/`
 **Purpose**: ページコンポーネント、レイアウト
-**Example**: `app/dashboard/page.tsx`, `app/login/page.tsx`
+**Example**: `app/dashboard/page.tsx`, `app/auth/page.tsx`
 
 ### Services (ビジネスロジック)
 **Location**: `app/services/`
-**Purpose**: Effect-TS サービス・リポジトリ
+**Purpose**: Effect-TS サービス（ビジネスロジック + DB アクセス）
 **Pattern**:
-- `*-service.ts`: ビジネスロジック
-- `*-repository.ts`: データアクセス
+- `*-service.ts`: ビジネスロジック（PgDrizzle を直接使用）
+- `*-errors.ts`: TaggedError 定義
 - `__tests__/`: ユニットテスト
+
+> Repository 層は不要。Service が PgDrizzle を直接使用する。
+
+### Domain (Brand 型)
+**Location**: `app/domain/`
+**Purpose**: Effect.Schema による Brand 型（Email 等）
+**Pattern**:
+- `Xxx.Schema`, `Xxx.make()`, `Xxx.fromTrusted()`
+- Zod 検証後は `fromTrusted()` を使用
 
 ### Layers (DI設定)
 **Location**: `app/layers/`
