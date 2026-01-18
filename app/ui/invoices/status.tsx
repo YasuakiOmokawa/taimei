@@ -1,4 +1,4 @@
-import { CheckIcon, ClockIcon } from "@heroicons/react/24/outline";
+import { Check, Clock } from "lucide-react";
 import clsx from "clsx";
 
 export default function InvoiceStatus({ status }: { status: string }) {
@@ -15,13 +15,13 @@ export default function InvoiceStatus({ status }: { status: string }) {
       {status === "pending" ? (
         <>
           Pending
-          <ClockIcon className="ml-1 w-4 text-gray-500" />
+          <Clock className="ml-1 w-4 text-gray-500" />
         </>
       ) : null}
       {status === "paid" ? (
         <>
           Paid
-          <CheckIcon className="ml-1 w-4 text-white" />
+          <Check className="ml-1 w-4 text-white" />
         </>
       ) : null}
     </span>
