@@ -1,6 +1,6 @@
 "use client";
 
-import { emailAtom, nameAtom } from "@/app/lib/atoms/atoms";
+import { emailAtom, nameAtom } from "@/app/atoms/form";
 import { useSetAtom } from "jotai/react";
 import { RESET } from "jotai/utils";
 

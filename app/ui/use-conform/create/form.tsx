@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { emailAtom, nameAtom } from "@/app/lib/atoms/atoms";
+import { emailAtom, nameAtom } from "@/app/atoms/form";
 import { useAtom } from "jotai/react";
 
 export default function Form() {
