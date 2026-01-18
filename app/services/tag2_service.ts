@@ -2,7 +2,7 @@ import * as PgDrizzle from "@effect/sql-drizzle/Pg";
 import { Data, Effect, Schema } from "effect";
 import { tags2 } from "@/db/drizzle/schema";
 import { eq } from "drizzle-orm";
-import { Tag2Id } from "@/app/schema/tag2";
+import { Tag2Id } from "@/app/domain/tag2";
 
 export class Tag2NotFound extends Data.TaggedError("Tag2NotFound")<{
   id: string;
