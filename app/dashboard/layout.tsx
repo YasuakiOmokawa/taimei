@@ -9,9 +9,10 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
-  await verifySession({ returnTo: "/dashboard" });
-
-  const currentUser = await fetchCurrentUser();
+  const [, currentUser] = await Promise.all([
+    verifySession({ returnTo: "/dashboard" }),
+    fetchCurrentUser(),
+  ]);
 
   return (
     <div className="[--header-height:calc(theme(spacing.14))]">
