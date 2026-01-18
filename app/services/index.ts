@@ -1,5 +1,5 @@
 import { AccountValidationService } from "./account-validation-service";
-import { Tag2Service } from "./tag2_service";
+import { Tag2Service } from "./tag2-service";
 import { PgDrizzleLive } from "../layers/lives/pg_drizzle_live";
 import { Effect, Layer, ManagedRuntime } from "effect";
 import { UserService } from "./user-service";
