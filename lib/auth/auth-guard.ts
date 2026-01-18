@@ -3,7 +3,7 @@ import 'server-only'
 import { cache } from 'react'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { auth } from '@/lib/auth'
+import { auth } from './auth'
 
 // cache() で同一リクエスト内のDB問い合わせを1回に抑制（layout/page で複数回呼んでも効率的）
 export const verifySession = cache(

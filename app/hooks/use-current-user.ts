@@ -1,6 +1,6 @@
 "use client";
 
-import { authClient } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth/auth-client";
 import { CurrentUser } from "@/app/data/auth";
 
 export function useCurrentUser(): CurrentUser {
