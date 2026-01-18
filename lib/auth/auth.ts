@@ -9,16 +9,16 @@ import * as schema from "@/db/drizzle/schema";
 import {
   isJustSignedUp,
   getAuthSuccessMessage,
-} from "./auth/hooks/session-flash-hook";
-import { sendWelcomeEmail } from "./email/send-welcome";
+} from "./hooks/session-flash-hook";
+import { sendWelcomeEmail } from "@/lib/email/send-welcome";
 import { setFlash } from "@/lib/flash-toaster";
 import {
   getResendClient,
   getMagicLinkFromEmail,
   getAppName,
   isTestEnvironment,
-} from "./email/client";
-import MagicLinkEmail from "./email/magic-link";
+} from "@/lib/email/client";
+import MagicLinkEmail from "@/lib/email/magic-link";
 
 export const auth = betterAuth({
   baseURL: process.env.NEXT_PUBLIC_APP_URL,

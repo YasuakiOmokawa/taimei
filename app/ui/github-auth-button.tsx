@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import githubIcon from "@/app/ui/icons/github-mark.png";
 import Image from "next/image";
-import { authClient } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth/auth-client";
 import { BProgress } from "@bprogress/core";
 import { useRedirectPath } from "@/app/hooks/use-redirect-path";
 

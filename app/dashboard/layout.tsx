@@ -2,7 +2,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { fetchCurrentUser } from "@/app/data/auth";
-import { verifySession } from "@/app/lib/auth-guard";
+import { verifySession } from "@/lib/auth/auth-guard";
 
 export default async function Layout({
   children,

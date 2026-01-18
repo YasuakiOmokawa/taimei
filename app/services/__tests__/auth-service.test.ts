@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Effect, Either } from "effect";
-import type { Session } from "@/lib/auth";
+import type { Session } from "@/lib/auth/auth";
 import { AuthService, AuthServiceError } from "../auth-service";
 import { MagicLinkError, SignOutError } from "../auth-errors";
 import { Email } from "@/app/domain/email";

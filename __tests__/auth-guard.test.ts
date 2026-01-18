@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
-import { auth } from '@/lib/auth'
+import { auth } from '@/lib/auth/auth'
 
 vi.mock('next/navigation', () => ({
   redirect: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock('next/headers', () => ({
   headers: vi.fn(),
 }))
 
-vi.mock('@/lib/auth', () => ({
+vi.mock('@/lib/auth/auth', () => ({
   auth: {
     api: {
       getSession: vi.fn(),
@@ -49,7 +49,7 @@ describe('auth-guard', () => {
     test('未認証の場合、/auth へリダイレクト（デフォルト callbackUrl=/dashboard）', async () => {
       vi.mocked(auth.api.getSession).mockResolvedValue(null)
 
-      const { verifySession } = await import('@/app/lib/auth-guard')
+      const { verifySession } = await import('@/lib/auth/auth-guard')
       await verifySession()
 
       expect(redirect).toHaveBeenCalledWith('/auth?callbackUrl=%2Fdashboard')
@@ -58,7 +58,7 @@ describe('auth-guard', () => {
     test('未認証の場合、カスタム returnTo を callbackUrl に設定', async () => {
       vi.mocked(auth.api.getSession).mockResolvedValue(null)
 
-      const { verifySession } = await import('@/app/lib/auth-guard')
+      const { verifySession } = await import('@/lib/auth/auth-guard')
       await verifySession({ returnTo: '/settings/profile' })
 
       expect(redirect).toHaveBeenCalledWith(
@@ -69,7 +69,7 @@ describe('auth-guard', () => {
     test('認証済みの場合、セッションを返す', async () => {
       vi.mocked(auth.api.getSession).mockResolvedValue(mockSession)
 
-      const { verifySession } = await import('@/app/lib/auth-guard')
+      const { verifySession } = await import('@/lib/auth/auth-guard')
       const result = await verifySession()
 
       expect(redirect).not.toHaveBeenCalled()
@@ -81,7 +81,7 @@ describe('auth-guard', () => {
     test('未認証の場合、null を返す（リダイレクトなし）', async () => {
       vi.mocked(auth.api.getSession).mockResolvedValue(null)
 
-      const { getSession } = await import('@/app/lib/auth-guard')
+      const { getSession } = await import('@/lib/auth/auth-guard')
       const result = await getSession()
 
       expect(redirect).not.toHaveBeenCalled()
@@ -91,7 +91,7 @@ describe('auth-guard', () => {
     test('認証済みの場合、セッションを返す', async () => {
       vi.mocked(auth.api.getSession).mockResolvedValue(mockSession)
 
-      const { getSession } = await import('@/app/lib/auth-guard')
+      const { getSession } = await import('@/lib/auth/auth-guard')
       const result = await getSession()
 
       expect(result).toEqual(mockSession)

@@ -1,7 +1,7 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
 import { Data, Effect } from "effect";
 import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/auth";
 import { account } from "@/db/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { MagicLinkError, SessionError, SignOutError } from "./auth-errors";
