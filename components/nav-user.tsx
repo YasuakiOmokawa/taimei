@@ -24,7 +24,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { signOut } from "@/app/lib/actions";
+import { signOut } from "@/app/actions/auth";
 import Link from "next/link";
 import { BProgress } from "@bprogress/core";
 import { getInitials } from "@/app/setting/profile/utils";
