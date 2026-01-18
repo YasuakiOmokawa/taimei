@@ -1,6 +1,6 @@
 "use client";
 
-import { deleteUser } from "@/app/lib/actions";
+import { deleteUser } from "@/app/actions/user";
 import { Button } from "@/components/ui/button";
 import { withCallbacks } from "@/lib/with-callbacks";
 import { useActionState } from "react";

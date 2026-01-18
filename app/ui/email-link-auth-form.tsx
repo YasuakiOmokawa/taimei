@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useActionState } from "react";
-import { sendAuthEmailLink } from "@/app/lib/actions";
+import { sendAuthEmailLink } from "@/app/actions/auth";
 import { useRedirectPath } from "@/app/lib/hooks/login/useRedirectPath";
 import { useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod/v4";
