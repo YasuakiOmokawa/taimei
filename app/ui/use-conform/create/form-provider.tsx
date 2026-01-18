@@ -9,7 +9,7 @@ import { parseWithZod } from "@conform-to/zod/v4";
 import { schema } from "@/app/lib/use-conform/schema";
 import { getZodConstraint } from "@conform-to/zod/v4";
 import { useRouter } from "next/navigation";
-import { createData } from "@/app/lib/use-conform/action";
+import { createData } from "@/app/actions/use-conform";
 import { withCallbacks } from "@/lib/with-callbacks";
 import { toast } from "sonner";
 
