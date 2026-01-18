@@ -92,7 +92,6 @@ e2e/                    # E2Eテスト（Playwright）
 .kiro/                  # Spec-driven development
 ├── steering/           # プロジェクトガイド
 └── specs/              # 機能仕様
-hooks/                  # グローバルカスタムフック
 middlewares/            # Next.js ミドルウェア
 scripts/                # ユーティリティスクリプト
 stories/                # Storybook ストーリー
