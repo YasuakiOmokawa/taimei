@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button";
 import { useCallback } from "react";
 import { StepKey, useContent } from "./useContent";
 
+const STEPS: { key: StepKey; label: string }[] = [
+  { key: "one", label: "ステップ1" },
+  { key: "two", label: "ステップ2" },
+  { key: "three", label: "ステップ3" },
+];
+
 export default function StepForm() {
   const { handleClickStep, getStepProgress, isInactiveStep } = useContent();
 
@@ -32,24 +38,14 @@ export default function StepForm() {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>ステップ1</CardTitle>
-        </CardHeader>
-        <CardFooter>{renderStepButton("one")} </CardFooter>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>ステップ2</CardTitle>
-        </CardHeader>
-        <CardFooter>{renderStepButton("two")} </CardFooter>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>ステップ3</CardTitle>
-        </CardHeader>
-        <CardFooter>{renderStepButton("three")} </CardFooter>
-      </Card>
+      {STEPS.map(({ key, label }) => (
+        <Card key={key}>
+          <CardHeader>
+            <CardTitle>{label}</CardTitle>
+          </CardHeader>
+          <CardFooter>{renderStepButton(key)}</CardFooter>
+        </Card>
+      ))}
     </>
   );
 }

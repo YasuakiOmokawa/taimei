@@ -109,7 +109,7 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
               <div className="flex items-center">
                 <input
                   id="pending"
-                  key={fields.status.key}
+                  key="pending"
                   name={fields.status.name}
                   type="radio"
                   value="pending"
@@ -127,7 +127,7 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
               <div className="flex items-center">
                 <input
                   id="paid"
-                  key={fields.status.key}
+                  key="paid"
                   name={fields.status.name}
                   type="radio"
                   value="paid"
