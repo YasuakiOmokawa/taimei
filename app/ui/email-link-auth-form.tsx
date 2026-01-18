@@ -8,7 +8,7 @@ import { sendAuthEmailLink } from "@/app/actions/auth";
 import { useRedirectPath } from "@/app/lib/hooks/login/useRedirectPath";
 import { useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod/v4";
-import { emailLinkLoginSchema } from "@/app/lib/schema/login/schema";
+import { emailLinkLoginSchema } from "@/app/schema/login";
 import { ExclamationCircleIcon } from "@heroicons/react/24/outline";
 
 export default function EmailLinkAuthForm() {

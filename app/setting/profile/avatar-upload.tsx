@@ -9,7 +9,7 @@ import { FieldMetadata } from "@conform-to/react";
 import { useAvatar } from "./useAvatar";
 import { getInitials } from "./utils";
 import { CropModal } from "./crop-modal";
-import { FILE_SIZE_PREFIX } from "./schema";
+import { FILE_SIZE_PREFIX } from "@/app/schema/profile";
 
 interface Props {
   avatarUrl: string;
