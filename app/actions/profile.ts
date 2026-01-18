@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { parseWithZod } from "@conform-to/zod/v4";
 import { fetchCurrentUser } from "@/app/lib/data";
 import { del, put } from "@vercel/blob";
-import { userSchema } from "@/app/setting/profile/schema";
+import { userSchema } from "@/app/schema/profile";
 import { Effect, Either } from "effect";
 import { runService, UserProfileService, UserService } from "@/app/services";
 

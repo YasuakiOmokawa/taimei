@@ -6,7 +6,7 @@ import {
   useForm,
 } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod/v4";
-import { schema } from "@/app/lib/use-conform/schema";
+import { schema } from "@/app/schema/use-conform";
 import { getZodConstraint } from "@conform-to/zod/v4";
 import { useRouter } from "next/navigation";
 import { createData } from "@/app/actions/use-conform";

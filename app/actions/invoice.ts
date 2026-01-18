@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseWithZod } from "@conform-to/zod/v4";
-import { invoiceSchema } from "@/app/lib/schema/invoice/schema";
+import { invoiceSchema } from "@/app/schema/invoice";
 import { setFlash } from "@/lib/flash-toaster";
 import { Effect, Either } from "effect";
 import { runService, InvoiceService } from "@/app/services";
