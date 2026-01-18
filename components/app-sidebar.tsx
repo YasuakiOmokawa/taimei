@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Command } from "lucide-react";
-import { BanknotesIcon } from "@heroicons/react/24/outline";
+import { Banknote, Command } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
@@ -28,7 +27,7 @@ export function AppSidebar({ currentUser, ...props }: Props) {
       {
         title: "ダッシュボード",
         url: "/dashboard",
-        icon: BanknotesIcon,
+        icon: Banknote,
         isActive: true,
         items: [
           {

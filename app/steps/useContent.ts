@@ -36,7 +36,7 @@ export const useContent = () => {
     [stepProgresses]
   );
 
-  // 前段のステップがすべて終わってなければ完了ボタンを押せないようにしたい
+  // ステップを順序通りに完了させるため、未完了の前段ステップがある場合は非活性化
   const isInactiveStep = useCallback(
     (currentStep: StepKey) => {
       const currentStepIndex = stepProgresses.findIndex(

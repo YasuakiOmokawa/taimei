@@ -9,7 +9,7 @@ import { useRedirectPath } from "@/app/lib/hooks/login/useRedirectPath";
 import { useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod/v4";
 import { emailLinkLoginSchema } from "@/app/schema/login";
-import { ExclamationCircleIcon } from "@heroicons/react/24/outline";
+import { CircleAlert } from "lucide-react";
 
 export default function EmailLinkAuthForm() {
   const [lastResult, action] = useActionState(
@@ -53,7 +53,7 @@ export default function EmailLinkAuthForm() {
             aria-atomic="true"
             className="flex justify-center items-center space-x-1"
           >
-            <ExclamationCircleIcon className="w-5 text-red-500" />
+            <CircleAlert className="w-5 text-red-500" />
             <p className="text-sm text-red-500">{form.errors}</p>
           </div>
         )}

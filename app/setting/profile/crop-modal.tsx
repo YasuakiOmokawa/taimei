@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import type { Point } from "react-easy-crop";
 import Cropper from "react-easy-crop";
 import {
@@ -34,14 +34,6 @@ export function CropModal({
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
 
-  const onCropChange = useCallback((crop: Point) => {
-    setCrop(crop);
-  }, []);
-
-  const onZoomChange = useCallback((zoom: number) => {
-    setZoom(zoom);
-  }, []);
-
   const handleClickApply = async () => {
     BProgress.start();
     await onCropApply(image);
@@ -62,9 +54,9 @@ export function CropModal({
             aspect={1}
             cropShape="round"
             showGrid={false}
-            onCropChange={onCropChange}
+            onCropChange={setCrop}
             onCropComplete={onCropCompleteCallback}
-            onZoomChange={onZoomChange}
+            onZoomChange={setZoom}
           />
         </div>
         <div className="space-y-2">
