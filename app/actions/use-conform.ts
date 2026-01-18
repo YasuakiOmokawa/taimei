@@ -1,7 +1,7 @@
 "use server";
 
 import { parseWithZod } from "@conform-to/zod/v4";
-import { schema } from "./schema";
+import { schema } from "@/app/lib/use-conform/schema";
 import { redirect } from "next/navigation";
 import { runService } from "@/app/services";
 import { AccountValidationService } from "@/app/services/account-validation-service";

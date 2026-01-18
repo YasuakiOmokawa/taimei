@@ -3,7 +3,7 @@
 import React from "react";
 import { toast } from "sonner";
 import { BProgress } from "@bprogress/core";
-import { deleteAvatar } from "./actions";
+import { deleteAvatar } from "@/app/actions/profile";
 import type { Area } from "react-easy-crop";
 import { getCroppedImage, setFileFromCroppedImage } from "./cropUtils";
 
