@@ -9,11 +9,11 @@ export function useAuthMessage() {
   const searchParams = useSearchParams();
   const hasShown = useRef(false);
 
+  const errorCode = searchParams.get("error");
+  const successCode = searchParams.get("success");
+
   useEffect(() => {
     if (hasShown.current) return;
-
-    const errorCode = searchParams.get("error");
-    const successCode = searchParams.get("success");
 
     // エラーを優先、次に成功メッセージを処理
     const message = errorCode
@@ -29,5 +29,5 @@ export function useAuthMessage() {
       // URL からクエリパラメータを削除し、ブラウザ履歴に不要な状態を残さない
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, [searchParams]);
+  }, [errorCode, successCode]);
 }

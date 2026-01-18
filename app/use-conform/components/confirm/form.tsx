@@ -24,7 +24,7 @@ export default function Form() {
     if (form.status === "error") {
       replace("/use-conform/create");
     }
-  });
+  }, [form.status, replace]);
 
   return (
     <Card className="w-[350px]">
