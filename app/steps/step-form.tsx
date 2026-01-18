@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/app/ui/button";
+import { Button } from "@/components/ui/button";
 import { useCallback } from "react";
 import { StepKey, useContent } from "./useContent";
 
