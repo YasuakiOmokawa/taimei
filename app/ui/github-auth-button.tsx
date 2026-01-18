@@ -5,7 +5,7 @@ import githubIcon from "@/app/ui/icons/github-mark.png";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
 import { BProgress } from "@bprogress/core";
-import { useRedirectPath } from "@/app/lib/hooks/login/useRedirectPath";
+import { useRedirectPath } from "@/app/hooks/use-redirect-path";
 
 export default function GithubAuthButton() {
   const redirectPath = useRedirectPath();

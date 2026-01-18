@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useActionState } from "react";
 import { sendAuthEmailLink } from "@/app/actions/auth";
-import { useRedirectPath } from "@/app/lib/hooks/login/useRedirectPath";
+import { useRedirectPath } from "@/app/hooks/use-redirect-path";
 import { useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod/v4";
 import { emailLinkLoginSchema } from "@/app/schema/login";
