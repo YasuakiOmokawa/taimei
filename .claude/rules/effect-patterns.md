@@ -114,6 +114,28 @@ Effect.gen(function* () {
 
 **理由**: 公式ドキュメントで推奨されており、より簡潔
 
+### サービスファイル命名規約
+
+**ファイル名**: kebab-case + `-service.ts` サフィックス
+
+| ファイル種別 | 命名パターン | 例 |
+|-------------|-------------|-----|
+| サービス本体 | `{domain}-service.ts` | `auth-service.ts`, `user-profile-service.ts` |
+| エラー定義 | `{domain}-errors.ts` | `auth-errors.ts` |
+| Layer統合 | `index.ts` | - |
+
+**クラス名**: PascalCase（ファイル名から変換）
+
+```
+auth-service.ts → AuthService
+user-profile-service.ts → UserProfileService
+```
+
+**理由**:
+- Next.js / Node.js エコシステムはkebab-caseが主流
+- シェル操作・検索との相性が良い（`rg auth-service`）
+- Effect-TS公式は規約を強制していない
+
 ### Service Pattern
 
 **原則**: 外部依存はすべてサービス化し、Service が PgDrizzle を直接使用する
