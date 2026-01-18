@@ -8,7 +8,7 @@ import {
   CurrencyDollarIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
-import { Button } from "@/app/ui/button";
+import { Button } from "@/components/ui/button";
 import { createInvoice } from "@/app/lib/actions";
 import { useActionState } from "react";
 import { useForm } from "@conform-to/react";
@@ -109,7 +109,7 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
               <div className="flex items-center">
                 <input
                   id="pending"
-                  key={fields.status.key}
+                  key="pending"
                   name={fields.status.name}
                   type="radio"
                   value="pending"
@@ -127,7 +127,7 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
               <div className="flex items-center">
                 <input
                   id="paid"
-                  key={fields.status.key}
+                  key="paid"
                   name={fields.status.name}
                   type="radio"
                   value="paid"
