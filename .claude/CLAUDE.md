@@ -49,43 +49,52 @@ bun storybook                      # Storybook起動
 app/
 ├── api/                # Next.js API Routes（Better Auth等）
 ├── services/           # Effect-TS ビジネスロジック
-│   ├── __tests__/      # サービス層のテスト
+│   ├── __tests__/
 │   │   ├── db/         # DB テスト基盤（withRollback, runServiceWithTx）
-│   │   └── factories/  # テストデータファクトリ（@praha/drizzle-factory）
-│   ├── *-service.ts    # サービス（ビジネスロジック + DB アクセス）
+│   │   └── factories/  # テストデータファクトリ
+│   ├── *-service.ts    # サービス定義
 │   ├── *-errors.ts     # TaggedError 定義
-│   └── index.ts        # サービスのエクスポート + Layer 統合
+│   └── index.ts        # Layer 統合 + runService
 ├── domain/             # ドメイン型（Effect.Schema Brand型）
-├── layers/lives/       # Effect-TS Layer 実装（DI 設定）
+├── layers/lives/       # Effect-TS Layer（DI 設定）
 ├── lib/                # アプリ固有ユーティリティ
 │   ├── actions.ts      # Server Actions
 │   ├── data.ts         # データ取得関数
-│   ├── atoms/          # Jotai atoms（クライアント状態）
-│   ├── hooks/          # カスタムフック
-│   └── schema/         # Zodスキーマ（フォーム用）
-├── use-conform/        # Conform フォーム連携（Server Actions対応）
-├── ui/                 # ページ固有のUIコンポーネント
-├── schema/             # Zod スキーマ定義（共通）
-└── [page]/             # Next.js App Router ページ
-    └── (auth, dashboard, setting, steps, thanks)
+│   ├── atoms/          # Jotai atoms
+│   └── hooks/          # カスタムフック
+├── schema/             # Zod スキーマ（フォーム用）
+├── use-conform/        # Conform フォーム連携
+├── ui/                 # ページ固有UIコンポーネント
+└── (pages)/            # Next.js App Router ページ
+    ├── auth/           # 認証ページ
+    ├── dashboard/      # ダッシュボード
+    ├── setting/        # 設定
+    ├── steps/          # ステップ
+    └── thanks/         # サンクスページ
 
 lib/                    # グローバルユーティリティ
 ├── auth.ts             # Better Auth サーバー設定
 ├── auth-client.ts      # Better Auth クライアント設定
+├── auth/               # Better Auth 関連サブモジュール
+├── email/              # メール送信ユーティリティ
+├── flash-toaster/      # フラッシュメッセージ
 └── utils.ts            # 共通ユーティリティ（cn等）
 
 components/
 ├── ui/                 # shadcn/ui 共通コンポーネント
+├── auth/               # 認証コンポーネント
 └── *.tsx               # アプリ固有の共通コンポーネント
 
 db/drizzle/             # Drizzle スキーマ定義
 drizzle/                # Drizzle マイグレーションSQL
 __tests__/              # 統合テスト
 e2e/                    # E2Eテスト（Playwright）
-├── tests/              # テストファイル
-└── playwright.config.ts
+.kiro/                  # Spec-driven development
+├── steering/           # プロジェクトガイド
+└── specs/              # 機能仕様
 hooks/                  # グローバルカスタムフック
 middlewares/            # Next.js ミドルウェア
+scripts/                # ユーティリティスクリプト
 stories/                # Storybook ストーリー
 ```
 
