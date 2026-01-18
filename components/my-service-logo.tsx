@@ -1,5 +1,4 @@
 import Image from "next/image";
-import myServiceLogo from "@/app/ui/icons/my-service-logo.png";
 
 interface Props {
   width?: number;
@@ -18,7 +17,7 @@ export default function MyServiceLogo({
       style={{ width, height }}
     >
       <Image
-        src={myServiceLogo}
+        src="/icons/my-service-logo.png"
         alt="myservicelogo"
         fill
         className="object-contain"

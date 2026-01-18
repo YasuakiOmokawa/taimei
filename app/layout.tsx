@@ -1,5 +1,5 @@
-import "@/app/ui/global.css";
-import { inter } from "@/app/ui/fonts";
+import "@/app/globals.css";
+import { inter } from "@/lib/fonts";
 import FlashToaster from "@/lib/flash-toaster";
 import { ReactNode } from "react";
 import Providers from "./providers";

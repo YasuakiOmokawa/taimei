@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseWithZod } from "@conform-to/zod/v4";
-import { emailLinkLoginSchema } from "./schema/login/schema";
-import { invoiceSchema } from "./schema/invoice/schema";
+import { emailLinkLoginSchema } from "@/app/schema/login";
+import { invoiceSchema } from "@/app/schema/invoice";
 import { setFlash } from "@/lib/flash-toaster";
 import { deleteUserSchema } from "../setting/profile/schema";
 import { fetchCurrentUser } from "./data";
