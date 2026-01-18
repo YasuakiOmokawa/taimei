@@ -48,6 +48,12 @@ bun storybook                      # Storybook起動
 ```
 app/
 ├── api/                # Next.js API Routes（Better Auth等）
+├── actions/            # Server Actions（機能別ファイル）
+├── data/               # データ取得関数（機能別ファイル）
+├── schema/             # Zod スキーマ（フォーム用、機能別ファイル）
+├── hooks/              # クライアントフック（use-xxx.ts）
+├── atoms/              # Jotai atoms（クライアント状態）
+├── domain/             # ドメイン型（Effect.Schema Brand型）
 ├── services/           # Effect-TS ビジネスロジック
 │   ├── __tests__/      # サービス層のテスト
 │   │   ├── db/         # DB テスト基盤（withRollback, runServiceWithTx）
@@ -55,23 +61,20 @@ app/
 │   ├── *-service.ts    # サービス（ビジネスロジック + DB アクセス）
 │   ├── *-errors.ts     # TaggedError 定義
 │   └── index.ts        # サービスのエクスポート + Layer 統合
-├── domain/             # ドメイン型（Effect.Schema Brand型）
 ├── layers/lives/       # Effect-TS Layer 実装（DI 設定）
-├── lib/                # アプリ固有ユーティリティ
-│   ├── actions.ts      # Server Actions
-│   ├── data.ts         # データ取得関数
-│   ├── atoms/          # Jotai atoms（クライアント状態）
-│   ├── hooks/          # カスタムフック
-│   └── schema/         # Zodスキーマ（フォーム用）
-├── use-conform/        # Conform フォーム連携（Server Actions対応）
 ├── ui/                 # ページ固有のUIコンポーネント
-├── schema/             # Zod スキーマ定義（共通）
-└── [page]/             # Next.js App Router ページ
+└── [page]/             # Next.js App Router ページ（page.tsx, layout.tsxのみ）
     └── (auth, dashboard, setting, steps, thanks)
 
 lib/                    # グローバルユーティリティ
-├── auth.ts             # Better Auth サーバー設定
-├── auth-client.ts      # Better Auth クライアント設定
+├── auth/               # Better Auth 設定（統合）
+│   ├── auth.ts         # サーバー設定
+│   ├── auth-client.ts  # クライアント設定
+│   ├── auth-guard.ts   # 認証ガード
+│   ├── hooks/          # 認証フック
+│   └── messages/       # メッセージ定義
+├── email/              # メール送信
+├── flash-toaster/      # Flash通知
 └── utils.ts            # 共通ユーティリティ（cn等）
 
 components/
@@ -84,10 +87,22 @@ __tests__/              # 統合テスト
 e2e/                    # E2Eテスト（Playwright）
 ├── tests/              # テストファイル
 └── playwright.config.ts
-hooks/                  # グローバルカスタムフック
 middlewares/            # Next.js ミドルウェア
 stories/                # Storybook ストーリー
 ```
+
+### 配置ルール
+
+| カテゴリ | 配置場所 | 例 |
+|---------|---------|-----|
+| Server Actions | `app/actions/` | `app/actions/invoice.ts` |
+| Zodスキーマ | `app/schema/` | `app/schema/invoice.ts` |
+| Effect.Schema Brand型 | `app/domain/` | `app/domain/email.ts` |
+| データ取得関数 | `app/data/` | `app/data/invoice.ts` |
+| クライアントフック | `app/hooks/` | `app/hooks/use-avatar.ts` |
+| Jotai Atoms | `app/atoms/` | `app/atoms/form.ts` |
+| ページ固有UI | `app/ui/[feature]/` | `app/ui/invoices/table.tsx` |
+| 認証設定 | `lib/auth/` | `lib/auth/auth.ts` |
 
 ---
 

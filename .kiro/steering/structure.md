@@ -47,13 +47,35 @@
 **Location**: `app/schema/`
 **Purpose**: Zod スキーマ定義
 
-### Conform Forms
-**Location**: `app/use-conform/`
-**Purpose**: Conform + Zod フォーム連携（Server Actions対応）
+### Server Actions
+**Location**: `app/actions/`
+**Purpose**: Server Actions（機能別ファイル）
+**Example**: `app/actions/invoice.ts`, `app/actions/auth.ts`
 
-### Lib (ユーティリティ)
-**Location**: `app/lib/`
-**Purpose**: Server Actions、ユーティリティ関数
+### Data Fetching
+**Location**: `app/data/`
+**Purpose**: データ取得関数（機能別ファイル）
+**Example**: `app/data/invoice.ts`, `app/data/customer.ts`
+
+### Client Hooks
+**Location**: `app/hooks/`
+**Purpose**: クライアントフック（use-xxx.ts）
+**Example**: `app/hooks/use-mobile.ts`, `app/hooks/use-current-user.ts`
+
+### Atoms (Client State)
+**Location**: `app/atoms/`
+**Purpose**: Jotai atoms（クライアント状態）
+**Example**: `app/atoms/form.ts`
+
+### Auth
+**Location**: `lib/auth/`
+**Purpose**: Better Auth 設定（統合）
+**Pattern**:
+- `auth.ts`: サーバー設定
+- `auth-client.ts`: クライアント設定
+- `auth-guard.ts`: 認証ガード
+- `hooks/`: 認証フック
+- `messages/`: メッセージ定義
 
 ### Database
 **Location**: `db/drizzle/`
@@ -99,10 +121,20 @@ import { helper } from './utils'
 - `_tag` でパターンマッチ
 
 ### ファイル配置ルール
-- ページ固有 → `app/[route]/` 配下
-- 共有UI → `components/`
-- ビジネスロジック → `app/services/`
-- 設計書 → `docs_for_llm/` (PR時に削除)
+
+| カテゴリ | 配置場所 | 例 |
+|---------|---------|-----|
+| Server Actions | `app/actions/` | `app/actions/invoice.ts` |
+| Zodスキーマ | `app/schema/` | `app/schema/invoice.ts` |
+| Effect.Schema Brand型 | `app/domain/` | `app/domain/email.ts` |
+| データ取得関数 | `app/data/` | `app/data/invoice.ts` |
+| クライアントフック | `app/hooks/` | `app/hooks/use-avatar.ts` |
+| Jotai Atoms | `app/atoms/` | `app/atoms/form.ts` |
+| ページ固有UI | `app/ui/[feature]/` | `app/ui/invoices/table.tsx` |
+| 認証設定 | `lib/auth/` | `lib/auth/auth.ts` |
+| ビジネスロジック | `app/services/` | `app/services/user-service.ts` |
+| 共有UI | `components/` | `components/app-sidebar.tsx` |
+| 設計書 | `docs_for_llm/` | PR時に削除 |
 
 ---
 _Document patterns, not file trees. New files following patterns shouldn't require updates_
