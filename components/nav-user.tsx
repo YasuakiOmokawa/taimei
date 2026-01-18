@@ -5,9 +5,9 @@ import {
   ChevronsUpDown,
   CreditCard,
   LogOut,
+  Settings,
   Sparkles,
 } from "lucide-react";
-import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -90,7 +90,7 @@ export function NavUser({ image, name, email }: CurrentUser) {
             <DropdownMenuGroup>
               <Link href="/setting/profile">
                 <DropdownMenuItem>
-                  <Cog6ToothIcon />
+                  <Settings />
                   設定
                 </DropdownMenuItem>
               </Link>

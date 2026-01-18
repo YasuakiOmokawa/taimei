@@ -15,7 +15,6 @@ export function useAuthMessage() {
   useEffect(() => {
     if (hasShown.current) return;
 
-    // エラーを優先、次に成功メッセージを処理
     const message = errorCode
       ? getAuthErrorMessage(errorCode)
       : successCode

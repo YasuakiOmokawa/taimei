@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Command } from "lucide-react";
+import { Command, Settings, User } from "lucide-react";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
@@ -13,8 +13,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { Cog6ToothIcon, UserIcon } from "@heroicons/react/24/outline";
-import { NavProjects } from "./nav-projects";
+import { NavProjects } from "@/components/nav-projects";
 import { CurrentUser } from "@/app/lib/data";
 
 type Props = {
@@ -32,12 +31,12 @@ export function SettingSidebar({ currentUser, ...props }: Props) {
       {
         name: "プロフィール",
         url: "/setting/profile",
-        icon: UserIcon,
+        icon: User,
       },
       {
         name: "アカウント",
         url: "/setting/account",
-        icon: Cog6ToothIcon,
+        icon: Settings,
       },
     ],
   };

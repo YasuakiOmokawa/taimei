@@ -5,8 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 
-// Map of links to display in the side navigation.
-// Depending on the size of the application, this would be stored in a database.
+// 静的定義で十分な規模のため、DB管理は見送り
 const links = [
   { name: "Home", href: "/dashboard", icon: Home },
   {
