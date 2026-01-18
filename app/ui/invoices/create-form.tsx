@@ -13,7 +13,7 @@ import { createInvoice } from "@/app/lib/actions";
 import { useActionState } from "react";
 import { useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod/v4";
-import { invoiceSchema } from "@/app/lib/schema/invoice/schema";
+import { invoiceSchema } from "@/app/schema/invoice";
 
 export default function Form({ customers }: { customers: CustomerField[] }) {
   const [lastResult, formAction] = useActionState(createInvoice, undefined);

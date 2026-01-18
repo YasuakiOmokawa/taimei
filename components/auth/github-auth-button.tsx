@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import githubIcon from "@/app/ui/icons/github-mark.png";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
 import { BProgress } from "@bprogress/core";
@@ -23,7 +22,7 @@ export default function GithubAuthButton() {
   return (
     <Button type="button" variant="outline" className="w-full" onClick={handleGithubAuth}>
       <Image
-        src={githubIcon}
+        src="/icons/github-mark.png"
         alt="GitHub icon"
         width={100}
         height={100}

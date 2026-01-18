@@ -1,10 +1,10 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import GithubAuthButton from "@/app/ui/github-auth-button";
+import GithubAuthButton from "@/components/auth/github-auth-button";
 import AuthFormHeader from "./auth-form-header";
 import MyServiceName from "./my-service-name";
-import EmailLinkAuthForm from "@/app/ui/email-link-auth-form";
+import EmailLinkAuthForm from "@/components/auth/email-link-auth-form";
 import AuthFormFooter from "./auth-form-footer";
 
 export function AuthForm({

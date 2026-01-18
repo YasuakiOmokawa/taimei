@@ -7,7 +7,6 @@ import { ArrowRight, Menu, X } from "lucide-react";
 import { useState } from "react";
 import MyServiceName from "@/components/my-service-name";
 import MyServiceLogo from "@/components/my-service-logo";
-import heroImage from "@/app/ui/icons/hero-image.png";
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -88,7 +87,7 @@ export default function LandingPage() {
               </div>
               <div className="flex justify-center lg:justify-end">
                 <Image
-                  src={heroImage}
+                  src="/icons/hero-image.png"
                   width={600}
                   height={600}
                   alt="ヒーローイメージ"

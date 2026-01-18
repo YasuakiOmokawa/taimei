@@ -1,4 +1,4 @@
-import Form from "@/app/ui/use-conform/create/confirm/form";
+import Form from "@/app/use-conform/components/confirm/form";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 

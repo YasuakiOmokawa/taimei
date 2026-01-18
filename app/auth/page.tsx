@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { getSession } from "@/app/lib/auth-guard"
 import { AuthForm } from "@/components/auth-form"
-import { AuthMessageHandler } from "@/app/ui/auth-message-handler"
+import { AuthMessageHandler } from "@/components/auth/auth-message-handler"
 import { Suspense } from "react"
 
 /**
