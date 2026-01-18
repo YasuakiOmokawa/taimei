@@ -1,6 +1,7 @@
 "use client";
 
-import { CustomerField, InvoiceSelectionById } from "@/app/lib/data";
+import { CustomerField } from "@/app/data/customer";
+import { InvoiceSelectionById } from "@/app/data/invoice";
 import {
   CheckIcon,
   ClockIcon,

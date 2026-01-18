@@ -16,7 +16,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { CurrentUser } from "@/app/lib/data";
+import { CurrentUser } from "@/app/data/auth";
 
 type Props = {
   currentUser: CurrentUser;

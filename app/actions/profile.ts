@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { parseWithZod } from "@conform-to/zod/v4";
-import { fetchCurrentUser } from "@/app/lib/data";
+import { fetchCurrentUser } from "@/app/data/auth";
 import { del, put } from "@vercel/blob";
 import { userSchema } from "@/app/schema/profile";
 import { Effect, Either } from "effect";
