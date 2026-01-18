@@ -12,7 +12,8 @@ import { userSchema } from "@/app/schema/profile";
 import { updateUser } from "@/app/actions/profile";
 import { withCallbacks } from "@/lib/with-callbacks";
 import { toast } from "sonner";
-import type { CurrentUser, UserProfileSelectionById } from "@/app/lib/data";
+import type { CurrentUser } from "@/app/data/auth";
+import type { UserProfileSelectionById } from "@/app/data/user-profile";
 import { AvatarUpload } from "@/app/setting/profile/avatar-upload";
 
 type Props = {

@@ -28,7 +28,7 @@ import { signOut } from "@/app/actions/auth";
 import Link from "next/link";
 import { BProgress } from "@bprogress/core";
 import { getInitials } from "@/app/setting/profile/utils";
-import { CurrentUser } from "@/app/lib/data";
+import { CurrentUser } from "@/app/data/auth";
 
 export function NavUser({ image, name, email }: CurrentUser) {
   const { isMobile } = useSidebar();

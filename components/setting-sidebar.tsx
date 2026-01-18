@@ -15,7 +15,7 @@ import {
 import Link from "next/link";
 import { Cog6ToothIcon, UserIcon } from "@heroicons/react/24/outline";
 import { NavProjects } from "./nav-projects";
-import { CurrentUser } from "@/app/lib/data";
+import { CurrentUser } from "@/app/data/auth";
 
 type Props = {
   currentUser: CurrentUser;

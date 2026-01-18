@@ -1,7 +1,7 @@
 "use client";
 
 import { authClient } from "@/lib/auth-client";
-import { CurrentUser } from "@/app/lib/data";
+import { CurrentUser } from "@/app/data/auth";
 
 export function useCurrentUser(): CurrentUser {
   const { data: session } = authClient.useSession();
