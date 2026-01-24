@@ -14,15 +14,16 @@ import { AuthService } from "./auth-service";
 export { IdGenerator } from "./id-generator-service";
 export {
   AccountValidationService,
-  AccountAlreadyExists,
   type AccountInput,
 } from "./account-validation-service";
-export { UserService, UserNotFound, UserServiceError } from "./user-service";
+export { AccountAlreadyExists } from "./account-validation-errors";
+export { UserService } from "./user-service";
+export { UserNotFound, UserServiceError } from "./user-errors";
+export { UserProfileService } from "./user-profile-service";
 export {
-  UserProfileService,
   UserProfileNotFound,
   UserProfileServiceError,
-} from "./user-profile-service";
+} from "./user-profile-errors";
 export { DashboardService, DashboardServiceError, type Revenue, type LatestInvoice, type CardData } from "./dashboard-service";
 export {
   InvoiceService,
@@ -43,9 +44,12 @@ export {
 
 // すべてのサービスの依存関係を一箇所で解決するため Layer.mergeAll で統合
 // Effect.Service は .Default、Effect.Tag は .Live を使用
+// 共有 Layer: 二重構築を防ぐため変数化
+const UserServiceLive = UserService.Default.pipe(Layer.provide(PgDrizzleLive));
+
 export const Live = Layer.mergeAll(
   Tag2Service.Default.pipe(Layer.provide(PgDrizzleLive)),
-  UserService.Default.pipe(Layer.provide(PgDrizzleLive)),
+  UserServiceLive,
   UserProfileService.Default.pipe(
     Layer.provide(IdGenerator.Live),
     Layer.provide(PgDrizzleLive)
@@ -53,9 +57,7 @@ export const Live = Layer.mergeAll(
   DashboardService.Default.pipe(Layer.provide(PgDrizzleLive)),
   InvoiceService.Default.pipe(Layer.provide(PgDrizzleLive)),
   CustomerService.Default.pipe(Layer.provide(PgDrizzleLive)),
-  AccountValidationService.Default.pipe(
-    Layer.provide(UserService.Default.pipe(Layer.provide(PgDrizzleLive)))
-  ),
+  AccountValidationService.Default.pipe(Layer.provide(UserServiceLive)),
   AuthService.Default.pipe(Layer.provide(PgDrizzleLive))
 );
 
