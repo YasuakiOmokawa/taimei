@@ -1,10 +1,11 @@
-import { describe, expect } from "vitest";
+import { describe } from "vitest";
+import { expect } from "@effect/vitest";
 import { Effect, Either } from "effect";
 import {
   AccountValidationService,
   type AccountInput,
-  AccountAlreadyExists,
 } from "../account-validation-service";
+import { AccountAlreadyExists } from "../account-validation-errors";
 import { Email } from "@/app/domain/email";
 import { dbEffect } from "./db/effect-test-helpers";
 

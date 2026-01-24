@@ -1,7 +1,8 @@
 import { describe } from "vitest";
 import { expect } from "@effect/vitest";
 import { Effect, Either } from "effect";
-import { UserService, UserNotFound } from "../user-service";
+import { UserService } from "../user-service";
+import { UserNotFound } from "../user-errors";
 import { dbEffect } from "./db/effect-test-helpers";
 import { Email } from "@/app/domain/email";
 

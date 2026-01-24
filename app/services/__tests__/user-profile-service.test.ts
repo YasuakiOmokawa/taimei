@@ -1,10 +1,8 @@
 import { describe } from "vitest";
 import { expect } from "@effect/vitest";
 import { Effect, Either } from "effect";
-import {
-  UserProfileService,
-  UserProfileNotFound,
-} from "../user-profile-service";
+import { UserProfileService } from "../user-profile-service";
+import { UserProfileNotFound } from "../user-profile-errors";
 import { dbEffect } from "./db/effect-test-helpers";
 
 describe("UserProfileService", () => {
