@@ -1,13 +1,8 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
-import { Data, Effect } from "effect";
+import { Effect } from "effect";
 import { customers, invoices } from "@/db/drizzle/schema";
 import { eq, or, ilike, sql } from "drizzle-orm";
-
-export class CustomerServiceError extends Data.TaggedError(
-  "CustomerServiceError"
-)<{
-  message: string;
-}> {}
+import { CustomerServiceError } from "./customer-errors";
 
 export class CustomerService extends Effect.Service<CustomerService>()(
   "services/CustomerService",

@@ -1,7 +1,8 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
-import { Data, Effect } from "effect";
+import { Effect } from "effect";
 import { invoices, customers } from "@/db/drizzle/schema";
 import { eq, or, ilike, sql, desc, count } from "drizzle-orm";
+import { InvoiceNotFound, InvoiceServiceError } from "./invoice-errors";
 
 export type CreateInvoiceInput = {
   customerId: string;
@@ -15,16 +16,6 @@ export type UpdateInvoiceInput = {
   amount: number;
   status: string;
 };
-
-export class InvoiceNotFound extends Data.TaggedError("InvoiceNotFound")<{
-  id: string;
-}> {}
-
-export class InvoiceServiceError extends Data.TaggedError(
-  "InvoiceServiceError"
-)<{
-  message: string;
-}> {}
 
 export class InvoiceService extends Effect.Service<InvoiceService>()(
   "services/InvoiceService",
