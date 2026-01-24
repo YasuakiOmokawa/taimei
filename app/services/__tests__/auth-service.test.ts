@@ -1,8 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { Effect, Either } from "effect";
 import type { Session } from "@/lib/auth";
-import { AuthService, AuthServiceError } from "../auth-service";
-import { MagicLinkError, SignOutError } from "../auth-errors";
+import { AuthService } from "../auth-service";
+import {
+  AuthServiceError,
+  MagicLinkError,
+  SignOutError,
+} from "../auth-errors";
 import { Email } from "@/app/domain/email";
 
 // Layer DI を利用したモック実装

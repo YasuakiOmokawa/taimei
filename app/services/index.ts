@@ -24,17 +24,30 @@ export {
   UserProfileNotFound,
   UserProfileServiceError,
 } from "./user-profile-errors";
-export { DashboardService, DashboardServiceError, type Revenue, type LatestInvoice, type CardData } from "./dashboard-service";
+export {
+  DashboardService,
+  type Revenue,
+  type LatestInvoice,
+  type CardData,
+} from "./dashboard-service";
+export { DashboardServiceError } from "./dashboard-errors";
 export {
   InvoiceService,
-  InvoiceNotFound,
-  InvoiceServiceError,
   type CreateInvoiceInput,
   type UpdateInvoiceInput,
 } from "./invoice-service";
-export { CustomerService, CustomerServiceError } from "./customer-service";
-export { AuthService, AuthServiceError } from "./auth-service";
+export { InvoiceNotFound, InvoiceServiceError } from "./invoice-errors";
+export { CustomerService } from "./customer-service";
+export { CustomerServiceError } from "./customer-errors";
+export { Tag2Service } from "./tag2-service";
 export {
+  Tag2NotFound,
+  Tag2ParseError,
+  Tag2ServiceError,
+} from "./tag2-errors";
+export { AuthService } from "./auth-service";
+export {
+  AuthServiceError,
   MagicLinkError,
   SessionError,
   SignOutError,

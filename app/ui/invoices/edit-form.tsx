@@ -28,7 +28,7 @@ export default function EditInvoiceForm({
     lastResult,
 
     defaultValue: {
-      customerId: invoice.customer_id,
+      customerId: invoice.customerId,
       amount: String(invoice.amount),
       status: invoice.status,
     },
@@ -58,7 +58,7 @@ export default function EditInvoiceForm({
               key={fields.customerId.key}
               name={fields.customerId.name}
               className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-              defaultValue={fields.customerId.value ?? invoice.customer_id}
+              defaultValue={fields.customerId.value ?? invoice.customerId}
               aria-describedby="customer-error"
             >
               <option value="" disabled>

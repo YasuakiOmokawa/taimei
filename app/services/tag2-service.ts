@@ -1,20 +1,13 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
-import { Data, Effect, Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { tags2 } from "@/db/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { Tag2Id } from "@/app/schema/tag2";
-
-export class Tag2NotFound extends Data.TaggedError("Tag2NotFound")<{
-  id: string;
-}> {}
-
-export class Tag2ParseError extends Data.TaggedError("Tag2ParseError")<{
-  message: string;
-}> {}
-
-export class Tag2ServiceError extends Data.TaggedError("Tag2ServiceError")<{
-  message: string;
-}> {}
+import {
+  Tag2NotFound,
+  Tag2ParseError,
+  Tag2ServiceError,
+} from "./tag2-errors";
 
 export class Tag2Service extends Effect.Service<Tag2Service>()(
   "services/Tag2Service",

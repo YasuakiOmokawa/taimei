@@ -22,9 +22,14 @@ export class SignOutError extends Data.TaggedError("SignOutError")<{
   cause: unknown;
 }> {}
 
+export class AuthServiceError extends Data.TaggedError("AuthServiceError")<{
+  message: string;
+}> {}
+
 export type AuthError =
   | UserNotFoundError
   | UserAlreadyExistsError
   | MagicLinkError
   | SessionError
-  | SignOutError;
+  | SignOutError
+  | AuthServiceError;

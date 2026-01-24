@@ -1,8 +1,9 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
-import { Data, Effect } from "effect";
+import { Effect } from "effect";
 import { revenue, invoices, customers } from "@/db/drizzle/schema";
 import { sql, desc, eq } from "drizzle-orm";
 import { formatCurrency } from "@/app/lib/utils";
+import { DashboardServiceError } from "./dashboard-errors";
 
 export type Revenue = {
   month: string;
@@ -15,7 +16,7 @@ export type LatestInvoice = {
   customer: {
     name: string;
     email: string;
-    image_url: string;
+    imageUrl: string;
   };
 };
 
@@ -25,12 +26,6 @@ export type CardData = {
   totalPaidInvoices: string;
   totalPendingInvoices: string;
 };
-
-export class DashboardServiceError extends Data.TaggedError(
-  "DashboardServiceError"
-)<{
-  message: string;
-}> {}
 
 export class DashboardService extends Effect.Service<DashboardService>()(
   "services/DashboardService",
@@ -134,7 +129,7 @@ export class DashboardService extends Effect.Service<DashboardService>()(
               customer: {
                 name: invoice.customerName,
                 email: invoice.customerEmail,
-                image_url: invoice.customerImageUrl,
+                imageUrl: invoice.customerImageUrl,
               },
             })) as LatestInvoice[];
           }),
