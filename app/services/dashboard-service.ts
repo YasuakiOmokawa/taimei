@@ -16,7 +16,7 @@ export type LatestInvoice = {
   customer: {
     name: string;
     email: string;
-    image_url: string;
+    imageUrl: string;
   };
 };
 
@@ -129,7 +129,7 @@ export class DashboardService extends Effect.Service<DashboardService>()(
               customer: {
                 name: invoice.customerName,
                 email: invoice.customerEmail,
-                image_url: invoice.customerImageUrl,
+                imageUrl: invoice.customerImageUrl,
               },
             })) as LatestInvoice[];
           }),

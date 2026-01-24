@@ -126,14 +126,14 @@ export type FilteredInvoice = {
   status: "pending" | "paid";
   name: string;
   email: string;
-  image_url: string;
+  imageUrl: string;
 };
 
 export type FilteredCustomer = {
   id: string;
   name: string;
   email: string;
-  image_url: string;
+  imageUrl: string;
   total_invoices: number;
   total_pending: string;
   total_paid: string;
@@ -169,7 +169,7 @@ export async function fetchFilteredInvoices(
     status: invoice.status as "pending" | "paid",
     name: invoice.name,
     email: invoice.email,
-    image_url: invoice.imageUrl,
+    imageUrl: invoice.imageUrl,
   }));
 }
 
@@ -250,7 +250,7 @@ export async function fetchFilteredCustomers(
     id: customer.id,
     name: customer.name,
     email: customer.email,
-    image_url: customer.imageUrl,
+    imageUrl: customer.imageUrl,
     total_invoices: customer.totalInvoices,
     total_pending: formatCurrency(customer.totalPending),
     total_paid: formatCurrency(customer.totalPaid),
