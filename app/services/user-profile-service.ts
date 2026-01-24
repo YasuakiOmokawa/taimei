@@ -1,20 +1,12 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
-import { Data, Effect } from "effect";
+import { Effect } from "effect";
 import { userProfile } from "@/db/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { IdGenerator } from "./id-generator-service";
-
-export class UserProfileNotFound extends Data.TaggedError(
-  "UserProfileNotFound"
-)<{
-  userId: string;
-}> {}
-
-export class UserProfileServiceError extends Data.TaggedError(
-  "UserProfileServiceError"
-)<{
-  message: string;
-}> {}
+import {
+  UserProfileNotFound,
+  UserProfileServiceError,
+} from "./user-profile-errors";
 
 export class UserProfileService extends Effect.Service<UserProfileService>()(
   "services/UserProfileService",

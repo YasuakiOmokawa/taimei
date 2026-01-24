@@ -1,12 +1,7 @@
-import { Data, Effect } from "effect";
+import { Effect } from "effect";
 import { UserService } from "./user-service";
 import { Email } from "@/app/domain/email";
-
-export class AccountAlreadyExists extends Data.TaggedError(
-  "AccountAlreadyExists"
-)<{
-  message: string;
-}> {}
+import { AccountAlreadyExists } from "./account-validation-errors";
 
 export type AccountInput = {
   readonly email: Email;
