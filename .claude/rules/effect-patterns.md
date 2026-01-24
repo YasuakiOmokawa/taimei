@@ -136,6 +136,28 @@ user-profile-service.ts → UserProfileService
 - シェル操作・検索との相性が良い（`rg auth-service`）
 - Effect-TS公式は規約を強制していない
 
+### エラー定義の分離パターン
+
+**原則**: エラークラスは `*-errors.ts` に分離し、サービスファイルには置かない
+
+```
+app/services/
+├── user-service.ts      # サービス実装のみ
+├── user-errors.ts       # TaggedError 定義
+└── index.ts             # re-export（サービス + エラー）
+```
+
+**理由**:
+- サービスファイルの責務を単一化
+- エラー型の再利用性向上
+- `auth-errors.ts` パターンとの統一
+
+**index.ts での re-export**:
+```typescript
+export { UserService } from "./user-service";
+export { UserNotFound, UserServiceError } from "./user-errors";
+```
+
 ### Service Pattern
 
 **原則**: 外部依存はすべてサービス化し、Service が PgDrizzle を直接使用する
@@ -187,6 +209,25 @@ export class UserService extends Effect.Service<UserService>()(
     }),
   }
 ) {}
+```
+
+### Layer 共有変数パターン
+
+依存サービスの Layer 二重構築を防ぐため、共有変数化する:
+
+```typescript
+// ❌ 二重構築（UserService.Default が2回評価される）
+AccountValidationService.Default.pipe(
+  Layer.provide(UserService.Default.pipe(Layer.provide(PgDrizzleLive)))
+)
+
+// ✅ 共有変数化
+const UserServiceLive = UserService.Default.pipe(Layer.provide(PgDrizzleLive));
+
+export const Live = Layer.mergeAll(
+  UserServiceLive,
+  AccountValidationService.Default.pipe(Layer.provide(UserServiceLive)),
+);
 ```
 
 ### Effect.Tag vs Effect.Service の使い分け
