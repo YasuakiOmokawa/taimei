@@ -1,8 +1,9 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
-import { Data, Effect } from "effect";
+import { Effect } from "effect";
 import { user } from "@/db/drizzle/schema";
 import { eq, sql } from "drizzle-orm";
 import { Email } from "@/app/domain/email";
+import { UserNotFound, UserServiceError } from "./user-errors";
 
 export class UserService extends Effect.Service<UserService>()(
   "services/UserService",
@@ -112,11 +113,3 @@ export class UserService extends Effect.Service<UserService>()(
     }),
   }
 ) {}
-
-export class UserNotFound extends Data.TaggedError("UserNotFound")<{
-  id: string;
-}> {}
-
-export class UserServiceError extends Data.TaggedError("UserServiceError")<{
-  message: string;
-}> {}
