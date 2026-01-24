@@ -1,15 +1,16 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
-import { Data, Effect } from "effect";
+import { Effect } from "effect";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { account } from "@/db/drizzle/schema";
 import { eq } from "drizzle-orm";
-import { MagicLinkError, SessionError, SignOutError } from "./auth-errors";
+import {
+  AuthServiceError,
+  MagicLinkError,
+  SessionError,
+  SignOutError,
+} from "./auth-errors";
 import { Email } from "@/app/domain/email";
-
-export class AuthServiceError extends Data.TaggedError("AuthServiceError")<{
-  message: string;
-}> {}
 
 export class AuthService extends Effect.Service<AuthService>()(
   "services/AuthService",

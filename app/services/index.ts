@@ -45,8 +45,9 @@ export {
   Tag2ParseError,
   Tag2ServiceError,
 } from "./tag2-errors";
-export { AuthService, AuthServiceError } from "./auth-service";
+export { AuthService } from "./auth-service";
 export {
+  AuthServiceError,
   MagicLinkError,
   SessionError,
   SignOutError,

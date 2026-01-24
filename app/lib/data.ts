@@ -109,7 +109,7 @@ export async function fetchCardData(): Promise<CardData> {
 
 export type InvoiceSelectionById = {
   id: string;
-  customer_id: string;
+  customerId: string;
   amount: number;
   status: "pending" | "paid";
 };
@@ -134,9 +134,9 @@ export type FilteredCustomer = {
   name: string;
   email: string;
   imageUrl: string;
-  total_invoices: number;
-  total_pending: string;
-  total_paid: string;
+  totalInvoices: number;
+  totalPending: string;
+  totalPaid: string;
 };
 
 const formatCurrency = (amount: number) => {
@@ -209,7 +209,7 @@ export async function fetchInvoiceById(
 
   return {
     id: result.right.id,
-    customer_id: result.right.customerId,
+    customerId: result.right.customerId,
     amount: result.right.amount / 100,
     status: result.right.status as "pending" | "paid",
   };
@@ -251,8 +251,8 @@ export async function fetchFilteredCustomers(
     name: customer.name,
     email: customer.email,
     imageUrl: customer.imageUrl,
-    total_invoices: customer.totalInvoices,
-    total_pending: formatCurrency(customer.totalPending),
-    total_paid: formatCurrency(customer.totalPaid),
+    totalInvoices: customer.totalInvoices,
+    totalPending: formatCurrency(customer.totalPending),
+    totalPaid: formatCurrency(customer.totalPaid),
   }));
 }
