@@ -1,5 +1,3 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { Effect, Either } from "effect";
 import {
   runService,
@@ -11,6 +9,7 @@ import {
   type LatestInvoice,
   type CardData,
 } from "@/app/services";
+import { getSession } from "./auth-guard";
 
 export interface CurrentUser {
   id: string;
@@ -21,10 +20,9 @@ export interface CurrentUser {
 
 export type { Revenue, LatestInvoice, CardData };
 
+// cache() 付き getSession() から導出（二重 RPC 回避）
 export async function fetchCurrentUser(): Promise<CurrentUser> {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getSession();
 
   const { id, name, email, image } = session?.user ?? {};
   return {
