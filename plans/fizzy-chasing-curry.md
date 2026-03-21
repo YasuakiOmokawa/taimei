@@ -577,3 +577,16 @@ docker compose -f docker-compose.e2e.yml up --build  # E2E
 - `docker-compose.yml` — auth-redis サービス追加（redis:7-alpine, ポート 6380）
 
 **3層キャッシュ完成**: L1 Cookie キャッシュ（5分）+ L2 Redis secondaryStorage + L3 PostgreSQL
+
+### PR4 (taimei-auth): Proto 定義 + Buf コード生成 — 完了 ✅
+
+**コミット**: `eb7e524`
+**作成ファイル (4件 + lockfile)**:
+- `proto/auth/v1/auth.proto` — AuthService(5 RPC) + UserService(4 RPC) + 共通メッセージ（User, Session, Account）
+- `buf.yaml` + `buf.gen.yaml` — Buf v2 + protoc-gen-es で TypeScript 生成
+- `src/gen/auth/v1/auth_pb.ts` — 生成コード（コミットに含める）
+- `package.json` — `generate` スクリプト + ConnectRPC 依存追加
+
+**RPC 一覧**:
+- AuthService: VerifySession, GetUser, FindAccountByUserId, SignOut, SendMagicLink
+- UserService: FindUserByEmail, FindUserById, UpdateUser（clear_image フラグ付き）, DeleteUser
