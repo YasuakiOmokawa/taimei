@@ -606,3 +606,19 @@ docker compose -f docker-compose.e2e.yml up --build  # E2E
 **動作確認**: Docker Compose で VerifySession + FindUserByEmail RPC の疎通確認済み（無効トークン/存在しないメール → 空レスポンス）
 
 **設計判断**: Bun の Web API と connectNodeAdapter（Node.js 用）の互換性問題のため、内部 Node.js http サーバーを Hono からプロキシする方式を採用。外部からは 3100 ポートのみ公開
+
+### PR6 (taimei-auth): auth-client SDK — 完了 ✅
+
+**コミット**: `c27dea9`
+**作成ファイル (7件)**:
+- `packages/auth-client/package.json` — `@taimei/auth-client`（peerDeps: connectrpc, protobuf）
+- `packages/auth-client/src/server.ts` — `createAuthClient()` ConnectRPC クライアント + `mapConnectError()` エラーマッピング
+- `packages/auth-client/src/guard.ts` — `createAuthGuard()` セッション検証（cache/redirect/getSessionToken を外部注入し FW 非依存）
+- `packages/auth-client/src/browser.ts` — ブラウザ用設定（Better Auth の薄いラッパー）
+- `packages/auth-client/src/errors.ts` — `AuthServiceUnavailable` / `AuthServiceTimeout` / `AuthServiceUnauthorized` TaggedError
+- `packages/auth-client/src/index.ts` — re-export
+- `packages/auth-client/tsconfig.json`
+
+**設計判断**:
+- guard.ts は Next.js の `cache()`, `redirect()`, `cookies()` を外部から注入する方式。SDK 自体は Next.js に直接依存しない
+- browser.ts は Better Auth クライアントを薄くラップするのみ。厚いラッパーはバージョンアップ追従が困難になるため避けた
