@@ -1,10 +1,12 @@
 import { createAuthClient } from "better-auth/react";
 import { magicLinkClient } from "better-auth/client/plugins";
 
-// Server Action から呼び出す場合も考慮して baseURL を設定
-// NEXT_PUBLIC_APP_URL が設定されていない場合は相対パス（ブラウザ用）
+// ブラウザからの認証リクエストは auth-service に直接アクセス
+// CORS は auth-service の Hono middleware で処理
+const authServiceUrl = process.env.NEXT_PUBLIC_AUTH_SERVICE_URL;
+
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL ?? undefined,
+  baseURL: authServiceUrl ?? undefined,
   plugins: [magicLinkClient()],
 });
 

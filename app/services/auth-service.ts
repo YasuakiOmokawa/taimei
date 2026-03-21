@@ -1,9 +1,4 @@
-import * as PgDrizzle from "@effect/sql-drizzle/Pg";
 import { Effect } from "effect";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
-import { account } from "@/db/drizzle/schema";
-import { eq } from "drizzle-orm";
 import {
   AuthServiceError,
   MagicLinkError,
@@ -11,19 +6,59 @@ import {
   SignOutError,
 } from "./auth-errors";
 import { Email } from "@/app/domain/email";
+import { createAuthClient, mapConnectError } from "@taimei/auth-client";
+
+const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://localhost:3100";
+const serviceKey = process.env.AUTH_SERVICE_KEY;
 
 export class AuthService extends Effect.Service<AuthService>()(
   "services/AuthService",
   {
     effect: Effect.gen(function* () {
-      const pgdrizzle = yield* PgDrizzle.PgDrizzle;
+      const { authService } = createAuthClient({
+        baseUrl: `${authServiceUrl}/rpc`,
+        serviceKey,
+      });
 
       return {
         getSession: () =>
           Effect.tryPromise({
             try: async () => {
-              const h = await headers();
-              return await auth.api.getSession({ headers: h });
+              // Cookie からセッショントークンを取得するのは呼び出し側の責務
+              // ここでは headers() を直接使わず、auth-guard.ts 経由で呼ばれる
+              const { headers: h } = await import("next/headers");
+              const headersList = await h();
+              const cookieHeader = headersList.get("cookie") || "";
+              const tokenMatch = cookieHeader.match(
+                /(?:better-auth\.session_token|__Secure-better-auth\.session_token)=([^;]+)/
+              );
+              const token = tokenMatch?.[1];
+
+              if (!token) return null;
+
+              const result = await authService.verifySession({
+                sessionToken: token,
+              });
+
+              if (!result.user || !result.session) return null;
+
+              return {
+                user: {
+                  id: result.user.id,
+                  name: result.user.name,
+                  email: result.user.email,
+                  emailVerified: result.user.emailVerified,
+                  image: result.user.image ?? null,
+                  createdAt: new Date(result.user.createdAt),
+                  updatedAt: new Date(result.user.updatedAt),
+                },
+                session: {
+                  id: result.session.id,
+                  token: result.session.token,
+                  expiresAt: new Date(result.session.expiresAt),
+                  userId: result.session.userId,
+                },
+              };
             },
             catch: (e) => new SessionError({ cause: e }),
           }),
@@ -31,8 +66,17 @@ export class AuthService extends Effect.Service<AuthService>()(
         signOut: () =>
           Effect.tryPromise({
             try: async () => {
-              const h = await headers();
-              await auth.api.signOut({ headers: h });
+              const { headers: h } = await import("next/headers");
+              const headersList = await h();
+              const cookieHeader = headersList.get("cookie") || "";
+              const tokenMatch = cookieHeader.match(
+                /(?:better-auth\.session_token|__Secure-better-auth\.session_token)=([^;]+)/
+              );
+              const token = tokenMatch?.[1];
+
+              if (token) {
+                await authService.signOut({ sessionToken: token });
+              }
             },
             catch: (e) => new SignOutError({ cause: e }),
           }),
@@ -40,10 +84,9 @@ export class AuthService extends Effect.Service<AuthService>()(
         sendMagicLink: (email: Email, callbackURL: string) =>
           Effect.tryPromise({
             try: async () => {
-              const h = await headers();
-              await auth.api.signInMagicLink({
-                body: { email: email as string, callbackURL },
-                headers: h,
+              await authService.sendMagicLink({
+                email: email as string,
+                callbackUrl: callbackURL,
               });
             },
             catch: (e) => new MagicLinkError({ cause: e }),
@@ -51,12 +94,28 @@ export class AuthService extends Effect.Service<AuthService>()(
 
         findAccountByUserId: (userId: string) =>
           Effect.tryPromise({
-            try: () =>
-              pgdrizzle
-                .select()
-                .from(account)
-                .where(eq(account.userId, userId))
-                .then((res) => res.at(0)),
+            try: async () => {
+              const result = await authService.findAccountByUserId({
+                userId,
+              });
+              if (!result.account) return undefined;
+
+              return {
+                id: result.account.id,
+                accountId: result.account.accountId,
+                providerId: result.account.providerId,
+                userId: result.account.userId,
+                accessToken: result.account.accessToken ?? null,
+                refreshToken: result.account.refreshToken ?? null,
+                idToken: null,
+                accessTokenExpiresAt: null,
+                refreshTokenExpiresAt: null,
+                scope: result.account.scope ?? null,
+                password: null,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              };
+            },
             catch: (e) =>
               new AuthServiceError({
                 message: `findAccountByUserId failed: ${e}`,

@@ -566,3 +566,95 @@ docker compose -f docker-compose.e2e.yml up --build  # E2E
 **設計判断**:
 - API Key は `/rpc/*` のみ適用。`/api/auth/**` はブラウザから直接呼ばれるため除外
 - ローカル開発時は `AUTH_COOKIE_DOMAIN: localhost`（サブドメイン共有不要）
+
+### PR3 (taimei-auth): Redis セカンダリストレージ + ヘルスチェック — 完了 ✅
+
+**コミット**: `8e04363`
+**変更ファイル (4件 + lockfile)**:
+- `src/redis.ts` — Redis クライアント + Better Auth secondaryStorage アダプター（get/set/delete）
+- `src/auth.ts` — `secondaryStorage: redisStorage` 追加
+- `src/index.ts` — Redis 接続 + `/health` に DB・Redis 疎通チェック（200 ok / 503 degraded）
+- `docker-compose.yml` — auth-redis サービス追加（redis:7-alpine, ポート 6380）
+
+**3層キャッシュ完成**: L1 Cookie キャッシュ（5分）+ L2 Redis secondaryStorage + L3 PostgreSQL
+
+### PR4 (taimei-auth): Proto 定義 + Buf コード生成 — 完了 ✅
+
+**コミット**: `eb7e524`
+**作成ファイル (4件 + lockfile)**:
+- `proto/auth/v1/auth.proto` — AuthService(5 RPC) + UserService(4 RPC) + 共通メッセージ（User, Session, Account）
+- `buf.yaml` + `buf.gen.yaml` — Buf v2 + protoc-gen-es で TypeScript 生成
+- `src/gen/auth/v1/auth_pb.ts` — 生成コード（コミットに含める）
+- `package.json` — `generate` スクリプト + ConnectRPC 依存追加
+
+**RPC 一覧**:
+- AuthService: VerifySession, GetUser, FindAccountByUserId, SignOut, SendMagicLink
+- UserService: FindUserByEmail, FindUserById, UpdateUser（clear_image フラグ付き）, DeleteUser
+
+### PR5 (taimei-auth): ConnectRPC gRPC ハンドラー実装 — 完了 ✅
+
+**コミット**: `96d00d4`
+**作成ファイル (4件)**:
+- `src/rpc/auth-handler.ts` — AuthService 5 RPC 実装（DB 直接クエリ + auth.api.signInMagicLink）
+- `src/rpc/user-handler.ts` — UserService 4 RPC 実装（DB 直接クエリ、UpdateUser に clear_image フラグ）
+- `src/rpc/routes.ts` — ルーター統合
+- `drizzle.config.ts` — drizzle-kit push 用
+
+**変更ファイル (1件)**:
+- `src/index.ts` — connectNodeAdapter を内部 Node.js http サーバー(127.0.0.1:3101)で起動、Hono から `/rpc/*` をプロキシ
+
+**動作確認**: Docker Compose で VerifySession + FindUserByEmail RPC の疎通確認済み（無効トークン/存在しないメール → 空レスポンス）
+
+**設計判断**: Bun の Web API と connectNodeAdapter（Node.js 用）の互換性問題のため、内部 Node.js http サーバーを Hono からプロキシする方式を採用。外部からは 3100 ポートのみ公開
+
+### PR6 (taimei-auth): auth-client SDK — 完了 ✅
+
+**コミット**: `c27dea9`
+**作成ファイル (7件)**:
+- `packages/auth-client/package.json` — `@taimei/auth-client`（peerDeps: connectrpc, protobuf）
+- `packages/auth-client/src/server.ts` — `createAuthClient()` ConnectRPC クライアント + `mapConnectError()` エラーマッピング
+- `packages/auth-client/src/guard.ts` — `createAuthGuard()` セッション検証（cache/redirect/getSessionToken を外部注入し FW 非依存）
+- `packages/auth-client/src/browser.ts` — ブラウザ用設定（Better Auth の薄いラッパー）
+- `packages/auth-client/src/errors.ts` — `AuthServiceUnavailable` / `AuthServiceTimeout` / `AuthServiceUnauthorized` TaggedError
+- `packages/auth-client/src/index.ts` — re-export
+- `packages/auth-client/tsconfig.json`
+
+**設計判断**:
+- guard.ts は Next.js の `cache()`, `redirect()`, `cookies()` を外部から注入する方式。SDK 自体は Next.js に直接依存しない
+- browser.ts は Better Auth クライアントを薄くラップするのみ。厚いラッパーはバージョンアップ追従が困難になるため避けた
+- auth-client SDK は開発中はローカルパス参照（`file:../taimei-auth/packages/auth-client`）、Phase 3 完了後に npm publish に移行予定
+
+### PR7 (taimei): [原子的] Service 層 ConnectRPC 移行 — 完了 ✅
+
+**コミット**: `b607593` (branch: `feature/micro-auth/client-migration`)
+**変更ファイル (3件 + lockfile)**:
+- `app/services/auth-service.ts` — `auth.api.*` → ConnectRPC AuthService クライアント。headers() から Cookie 抽出してセッショントークンを RPC に送信
+- `app/services/user-service.ts` — PgDrizzle `user` テーブル → ConnectRPC UserService クライアント。existsByEmail は findUserByEmail null 判定、clearImage は updateUser clearImage=true で代替
+- `app/services/index.ts` — AuthService + UserService の Layer から PgDrizzleLive 依存を除去。AccountValidationService は UserService 経由で連鎖解決
+
+**テスト型エラー**: `auth-service.test.ts` に型エラーあり（getSession 戻り値型の変更による）。PR12 で対応予定
+
+### PR8 (taimei): auth-guard + data.ts + auth-client baseURL — 完了 ✅
+
+**コミット**: `0c2d3cc`
+**変更ファイル (3件)**:
+- `app/lib/auth-guard.ts` — `auth.api.getSession()` → `createAuthGuard()` に差し替え。`cookies()` から session_token 抽出 → ConnectRPC VerifySession で検証
+- `app/lib/data.ts` — `fetchCurrentUser()` を `cache()` 付き `getSession()` から導出（二重 RPC 回避。`auth.api` import 完全除去）
+- `lib/auth-client.ts` — `baseURL` を `NEXT_PUBLIC_AUTH_SERVICE_URL` に変更
+
+### PR9 (taimei): actions.ts deleteUser — スキップ（PR7 で対応済み）✅
+
+`deleteUser()` は `UserService.delete()` を呼んでおり、PR7 で UserService が ConnectRPC に移行済みのため追加変更不要
+
+### PR10 (taimei): API Route 削除 + lib/auth.ts 削除 — 完了 ✅
+
+**コミット**: `59c9641`
+**削除ファイル (2件)**:
+- `app/api/auth/[...all]/route.ts` — Better Auth HTTP ハンドラー。ブラウザは auth-service に直接アクセスするため不要
+- `lib/auth.ts` — Better Auth 設定。taimei-auth リポに移植済み
+
+### PR11 (taimei): DB スキーマ認証テーブル除去 + FK 削除 — 完了 ✅
+
+**コミット**: `c65627e`
+**変更ファイル (1件)**:
+- `db/drizzle/schema.ts` — user/session/account/verification テーブル定義 + 全 relations 除去。userProfile.userId の FK を論理参照に変更（-118行）

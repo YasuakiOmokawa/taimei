@@ -4,7 +4,11 @@ import type { PgTransaction } from "drizzle-orm/pg-core";
 import type { NodePgQueryResultHKT } from "drizzle-orm/node-postgres";
 import type { ExtractTablesWithRelations } from "drizzle-orm";
 import { Pool } from "pg";
-import * as schema from "@/db/drizzle/schema";
+import * as appSchema from "@/db/drizzle/schema";
+import { testTableSchema } from "../factories";
+
+// テスト用スキーマ: アプリスキーマ + factory のテスト用 user テーブル定義を統合
+const schema = { ...appSchema, ...testTableSchema };
 
 const TEST_DATABASE_URL =
   process.env.DATABASE_URL ||
