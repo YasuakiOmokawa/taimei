@@ -652,3 +652,9 @@ docker compose -f docker-compose.e2e.yml up --build  # E2E
 **削除ファイル (2件)**:
 - `app/api/auth/[...all]/route.ts` — Better Auth HTTP ハンドラー。ブラウザは auth-service に直接アクセスするため不要
 - `lib/auth.ts` — Better Auth 設定。taimei-auth リポに移植済み
+
+### PR11 (taimei): DB スキーマ認証テーブル除去 + FK 削除 — 完了 ✅
+
+**コミット**: `c65627e`
+**変更ファイル (1件)**:
+- `db/drizzle/schema.ts` — user/session/account/verification テーブル定義 + 全 relations 除去。userProfile.userId の FK を論理参照に変更（-118行）
