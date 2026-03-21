@@ -66,7 +66,7 @@
 | セッション | **Cookie (domain=.taimei-code.com) + Redis** | `crossSubDomainCookies` で公式サポート。Redis でセッション検証を高速化 |
 | 招待 | **Better Auth Organization プラグイン** | 招待/ロール/チーム管理を網羅 |
 | SSO | **Better Auth SSO プラグイン** | SAML/OIDC RP として動作。エンタープライズ対応 |
-| モノレポ | **Turborepo** | proto 定義・クライアント SDK を共有パッケージ化 |
+| リポ構成 | **別リポ** | 認証サービスを独立リポジトリ化。SDK は npm パッケージとして公開 |
 
 ### Cookie ドメイン共有設計
 
@@ -96,47 +96,45 @@ betterAuth({
 
 ---
 
-## モノレポ構成
+## リポジトリ構成（別リポ方式）
+
+認証サービスを独立リポジトリとして構築し、クライアント SDK を npm パッケージとして公開する。
 
 ```
-/
-├── apps/
-│   ├── auth-service/          # 認証マイクロサービス（新規）
-│   │   ├── src/
-│   │   │   ├── index.ts       # Hono + ConnectRPC サーバー
-│   │   │   ├── auth.ts        # Better Auth 設定（lib/auth.ts から移植）
-│   │   │   ├── rpc/           # ConnectRPC ハンドラー
-│   │   │   │   └── auth-handler.ts
-│   │   │   ├── hooks/         # セッションフック
-│   │   │   └── email/         # Resend 統合
-│   │   ├── db/
-│   │   │   ├── schema.ts      # 認証テーブル（user, session, account, verification, org）
-│   │   │   └── client.ts      # Drizzle クライアント
-│   │   ├── drizzle/           # マイグレーション
-│   │   ├── Dockerfile
-│   │   └── package.json
-│   │
-│   └── taimei/                # 既存プロジェクト（認証クライアント化）
-│       └── ... (現在の構成)
-│
+# リポ: taimei-auth（新規作成）
+taimei-auth/
+├── src/
+│   ├── index.ts               # Hono + ConnectRPC サーバー
+│   ├── auth.ts                # Better Auth 設定（taimei の lib/auth.ts から移植）
+│   ├── rpc/                   # ConnectRPC ハンドラー
+│   │   ├── auth-handler.ts
+│   │   └── user-handler.ts
+│   ├── hooks/                 # セッションフック
+│   └── email/                 # Resend 統合
+├── db/
+│   ├── schema.ts              # 認証テーブル（user, session, account, verification）
+│   └── client.ts              # Drizzle クライアント
+├── drizzle/                   # マイグレーション
+├── proto/
+│   └── auth/v1/auth.proto     # Proto 定義
 ├── packages/
-│   ├── auth-proto/            # Proto 定義 + 生成コード（新規）
-│   │   ├── proto/
-│   │   │   └── auth/v1/auth.proto
-│   │   ├── gen/               # Buf 生成コード
-│   │   └── package.json
-│   │
-│   └── auth-client/           # 認証クライアント SDK（新規）
+│   └── auth-client/           # クライアント SDK（npm publish）
 │       ├── src/
 │       │   ├── server.ts      # ConnectRPC クライアント（サーバーサイド用）
 │       │   ├── guard.ts       # verifySession / getSession ヘルパー
 │       │   └── browser.ts     # Better Auth React クライアント（ブラウザ用）
 │       └── package.json
-│
 ├── docker-compose.yml
-├── turbo.json
+├── Dockerfile
 └── package.json
+
+# リポ: taimei（既存）
+taimei/
+├── package.json               # "@taimei/auth-client": "^0.1.0" を追加
+└── ... (現在の構成、turbo.json や workspaces は不要)
 ```
+
+**利点**: 認証サービスが独立デプロイ可能。新プロダクトは `npm install @taimei/auth-client` で認証基盤を利用できる
 
 ---
 
@@ -365,43 +363,45 @@ bun run e2e
 
 ### ブランチ戦略
 
-```bash
-git checkout -b feature/micro-auth/scaffold  # Phase 1 起点
-```
-
-命名規則: `feature/micro-auth/{scope}` で Phase 横断の一貫性を確保
+**taimei-auth リポ（新規）**: `main` ブランチで直接開発（Phase 1-2）
+**taimei リポ（既存）**: `feature/micro-auth/client-migration` ブランチ（Phase 3）
 
 ### PR分割計画
 
+**taimei-auth リポ（Phase 1-2）:**
+
 | PR | スコープ | ファイル数 | 依存 |
 |----|----------|-----------|------|
-| PR1 | モノレポ基盤 + auth-service スキャフォールド | 5 | - |
-| PR2 | Better Auth 設定 + メール移植 | 5 | PR1 |
-| PR3 | Hono サーバー + CORS + API Key + Docker Compose | 5 | PR2 |
-| PR4 | Redis + ヘルスチェック | 3 | PR3 |
-| PR5 | Proto 定義 + Buf コード生成 | 5 | PR1 |
-| PR6 | auth-service gRPC ハンドラー | 4 | PR3, PR5 |
-| PR7 | auth-client SDK | 5 | PR5 |
-| PR8 | **[原子的]** Service 層 ConnectRPC 移行 | 3 | PR6, PR7 |
-| PR9 | auth-guard + data.ts + エラー拡張 | 4 | PR8 |
-| PR10 | actions.ts deleteUser + auth-client baseURL | 3 | PR8 |
-| PR11 | API Route 削除 + lib/auth.ts 削除 | 3 | PR9, PR10 |
-| PR12 | DB スキーマ認証テーブル除去 + FK 削除 | 4 | PR11 |
-| PR13 | E2E テスト基盤更新 | 2 | PR12 |
+| PR1 | リポ初期化 + DB スキーマ + Better Auth 設定 | 5 | - |
+| PR2 | Hono サーバー + CORS + API Key + Docker Compose | 5 | PR1 |
+| PR3 | Redis + ヘルスチェック | 3 | PR2 |
+| PR4 | Proto 定義 + Buf コード生成 | 5 | PR1 |
+| PR5 | gRPC ハンドラー実装 | 4 | PR2, PR4 |
+| PR6 | auth-client SDK（npm パッケージ） | 5 | PR4 |
+
+**taimei リポ（Phase 3）:**
+
+| PR | スコープ | ファイル数 | 依存 |
+|----|----------|-----------|------|
+| PR7 | **[原子的]** Service 層 ConnectRPC 移行 | 3 | PR5, PR6 |
+| PR8 | auth-guard + data.ts + エラー拡張 | 4 | PR7 |
+| PR9 | actions.ts deleteUser + auth-client インストール | 3 | PR7 |
+| PR10 | API Route 削除 + lib/auth.ts 削除 | 3 | PR8, PR9 |
+| PR11 | DB スキーマ認証テーブル除去 + FK 削除 | 4 | PR10 |
+| PR12 | E2E テスト基盤更新 | 2 | PR11 |
 
 **PRチェーン図**:
 ```
-main
-  └── PR1 (scaffold)
-        ├── PR2 → PR3 → PR4            (Phase 1 本線)
-        │                 └── PR6 ←─┐  (gRPC ハンドラー)
-        └── PR5 ─────────────────────┤  (Proto、Phase 1 と並行可)
-              └── PR7                │  (auth-client)
-                    └── PR8 → PR9 ──┘
-                          └── PR10 → PR11 → PR12 → PR13
-```
+taimei-auth リポ:
+  PR1 (init + schema + auth)
+    ├── PR2 → PR3              (Hono + Docker + Redis)
+    │           └── PR5 ←─┐   (gRPC ハンドラー)
+    └── PR4 ───────────────┤   (Proto、並行可)
+          └── PR6          │   (auth-client SDK → npm publish)
 
-**並行開発**: PR5（Proto）は PR1 完了後すぐ着手、Phase 1 本線 PR2-PR4 と並行
+taimei リポ:
+  PR7 (Service層移行) → PR8 → PR9 → PR10 → PR11 → PR12
+```
 
 ### 手動QA手順
 
