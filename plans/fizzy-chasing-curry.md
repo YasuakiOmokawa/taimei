@@ -633,3 +633,11 @@ docker compose -f docker-compose.e2e.yml up --build  # E2E
 - `app/services/index.ts` — AuthService + UserService の Layer から PgDrizzleLive 依存を除去。AccountValidationService は UserService 経由で連鎖解決
 
 **テスト型エラー**: `auth-service.test.ts` に型エラーあり（getSession 戻り値型の変更による）。PR12 で対応予定
+
+### PR8 (taimei): auth-guard + data.ts + auth-client baseURL — 完了 ✅
+
+**コミット**: `0c2d3cc`
+**変更ファイル (3件)**:
+- `app/lib/auth-guard.ts` — `auth.api.getSession()` → `createAuthGuard()` に差し替え。`cookies()` から session_token 抽出 → ConnectRPC VerifySession で検証
+- `app/lib/data.ts` — `fetchCurrentUser()` を `cache()` 付き `getSession()` から導出（二重 RPC 回避。`auth.api` import 完全除去）
+- `lib/auth-client.ts` — `baseURL` を `NEXT_PUBLIC_AUTH_SERVICE_URL` に変更
