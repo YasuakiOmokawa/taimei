@@ -57,8 +57,8 @@ export {
 
 // すべてのサービスの依存関係を一箇所で解決するため Layer.mergeAll で統合
 // Effect.Service は .Default、Effect.Tag は .Live を使用
-// 共有 Layer: 二重構築を防ぐため変数化
-const UserServiceLive = UserService.Default.pipe(Layer.provide(PgDrizzleLive));
+// AuthService と UserService は ConnectRPC クライアントを内部で生成するため PgDrizzleLive 不要
+const UserServiceLive = UserService.Default;
 
 export const Live = Layer.mergeAll(
   Tag2Service.Default.pipe(Layer.provide(PgDrizzleLive)),
@@ -71,7 +71,7 @@ export const Live = Layer.mergeAll(
   InvoiceService.Default.pipe(Layer.provide(PgDrizzleLive)),
   CustomerService.Default.pipe(Layer.provide(PgDrizzleLive)),
   AccountValidationService.Default.pipe(Layer.provide(UserServiceLive)),
-  AuthService.Default.pipe(Layer.provide(PgDrizzleLive))
+  AuthService.Default
 );
 
 // Next.js の Server Actions から Effect を実行するため、
