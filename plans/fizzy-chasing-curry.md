@@ -566,3 +566,14 @@ docker compose -f docker-compose.e2e.yml up --build  # E2E
 **設計判断**:
 - API Key は `/rpc/*` のみ適用。`/api/auth/**` はブラウザから直接呼ばれるため除外
 - ローカル開発時は `AUTH_COOKIE_DOMAIN: localhost`（サブドメイン共有不要）
+
+### PR3 (taimei-auth): Redis セカンダリストレージ + ヘルスチェック — 完了 ✅
+
+**コミット**: `8e04363`
+**変更ファイル (4件 + lockfile)**:
+- `src/redis.ts` — Redis クライアント + Better Auth secondaryStorage アダプター（get/set/delete）
+- `src/auth.ts` — `secondaryStorage: redisStorage` 追加
+- `src/index.ts` — Redis 接続 + `/health` に DB・Redis 疎通チェック（200 ok / 503 degraded）
+- `docker-compose.yml` — auth-redis サービス追加（redis:7-alpine, ポート 6380）
+
+**3層キャッシュ完成**: L1 Cookie キャッシュ（5分）+ L2 Redis secondaryStorage + L3 PostgreSQL
