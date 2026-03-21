@@ -553,3 +553,16 @@ docker compose -f docker-compose.e2e.yml up --build  # E2E
 
 **コミット**: `8e4af4e`
 **理由**: Vercel ビルドで e2e/playwright.config.ts が @playwright/test を import し型エラー。E2E はビルド対象外のため exclude
+
+### PR2 (taimei-auth): CORS + サービス間認証 + Docker Compose — 完了 ✅
+
+**コミット**: `e41d6bb`
+**変更ファイル (4件)**:
+- `src/index.ts` — CORS middleware（`hono/cors`, `credentials: true`, 許可オリジン環境変数化）+ API Key 検証 middleware（`/rpc/*` のみ）
+- `Dockerfile` — Bun ベース、マルチステージビルド
+- `docker-compose.yml` — auth-service(3100) + auth-postgres(5435)、ホットリロード対応
+- `.dockerignore`
+
+**設計判断**:
+- API Key は `/rpc/*` のみ適用。`/api/auth/**` はブラウザから直接呼ばれるため除外
+- ローカル開発時は `AUTH_COOKIE_DOMAIN: localhost`（サブドメイン共有不要）
