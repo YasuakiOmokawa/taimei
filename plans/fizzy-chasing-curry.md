@@ -590,3 +590,19 @@ docker compose -f docker-compose.e2e.yml up --build  # E2E
 **RPC 一覧**:
 - AuthService: VerifySession, GetUser, FindAccountByUserId, SignOut, SendMagicLink
 - UserService: FindUserByEmail, FindUserById, UpdateUser（clear_image フラグ付き）, DeleteUser
+
+### PR5 (taimei-auth): ConnectRPC gRPC ハンドラー実装 — 完了 ✅
+
+**コミット**: `96d00d4`
+**作成ファイル (4件)**:
+- `src/rpc/auth-handler.ts` — AuthService 5 RPC 実装（DB 直接クエリ + auth.api.signInMagicLink）
+- `src/rpc/user-handler.ts` — UserService 4 RPC 実装（DB 直接クエリ、UpdateUser に clear_image フラグ）
+- `src/rpc/routes.ts` — ルーター統合
+- `drizzle.config.ts` — drizzle-kit push 用
+
+**変更ファイル (1件)**:
+- `src/index.ts` — connectNodeAdapter を内部 Node.js http サーバー(127.0.0.1:3101)で起動、Hono から `/rpc/*` をプロキシ
+
+**動作確認**: Docker Compose で VerifySession + FindUserByEmail RPC の疎通確認済み（無効トークン/存在しないメール → 空レスポンス）
+
+**設計判断**: Bun の Web API と connectNodeAdapter（Node.js 用）の互換性問題のため、内部 Node.js http サーバーを Hono からプロキシする方式を採用。外部からは 3100 ポートのみ公開
