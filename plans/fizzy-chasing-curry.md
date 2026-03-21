@@ -528,3 +528,28 @@ docker compose -f docker-compose.e2e.yml up --build  # E2E
 | MECE追加 | 6 | 3 | 3 | 100% |
 | 設計レビュー追加 | 3 | 1 | 2 | 100% |
 | **合計** | **47** | **20** | **27** | **100%** |
+
+---
+
+## 実装ログ
+
+### PR1 (taimei-auth): リポ初期化 + DB スキーマ + Better Auth 設定 — 完了 ✅
+
+**リポジトリ**: https://github.com/YasuakiOmokawa/taimei-auth (public)
+**コミット**: `5d2fbf3`
+**作成ファイル (12件)**:
+- `package.json` / `tsconfig.json` / `.gitignore` — パッケージ初期化
+- `db/schema.ts` — 認証テーブル 4つ（user, session, account, verification）+ relations
+- `db/client.ts` — Drizzle クライアント（`DATABASE_URL`）
+- `src/auth.ts` — Better Auth 設定（nextCookies 除去, crossSubDomainCookies, trustedOrigins 環境変数化, setFlash→クエリパラメータ方式）
+- `src/index.ts` — Hono エントリポイント（`/api/auth/**` + `/health`）
+- `src/email/client.ts` — Resend クライアント
+- `src/email/magic-link.tsx` / `src/email/welcome.tsx` — メールテンプレート
+- `src/email/send-welcome.ts` — ウェルカムメール送信
+
+**設計変更**: モノレポ → 別リポ方式に変更。taimei の turbo.json / workspaces は不要に
+
+### 付随修正 (taimei): tsconfig.json に e2e を exclude — 完了 ✅
+
+**コミット**: `8e4af4e`
+**理由**: Vercel ビルドで e2e/playwright.config.ts が @playwright/test を import し型エラー。E2E はビルド対象外のため exclude
