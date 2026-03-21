@@ -622,3 +622,14 @@ docker compose -f docker-compose.e2e.yml up --build  # E2E
 **設計判断**:
 - guard.ts は Next.js の `cache()`, `redirect()`, `cookies()` を外部から注入する方式。SDK 自体は Next.js に直接依存しない
 - browser.ts は Better Auth クライアントを薄くラップするのみ。厚いラッパーはバージョンアップ追従が困難になるため避けた
+- auth-client SDK は開発中はローカルパス参照（`file:../taimei-auth/packages/auth-client`）、Phase 3 完了後に npm publish に移行予定
+
+### PR7 (taimei): [原子的] Service 層 ConnectRPC 移行 — 完了 ✅
+
+**コミット**: `b607593` (branch: `feature/micro-auth/client-migration`)
+**変更ファイル (3件 + lockfile)**:
+- `app/services/auth-service.ts` — `auth.api.*` → ConnectRPC AuthService クライアント。headers() から Cookie 抽出してセッショントークンを RPC に送信
+- `app/services/user-service.ts` — PgDrizzle `user` テーブル → ConnectRPC UserService クライアント。existsByEmail は findUserByEmail null 判定、clearImage は updateUser clearImage=true で代替
+- `app/services/index.ts` — AuthService + UserService の Layer から PgDrizzleLive 依存を除去。AccountValidationService は UserService 経由で連鎖解決
+
+**テスト型エラー**: `auth-service.test.ts` に型エラーあり（getSession 戻り値型の変更による）。PR12 で対応予定
