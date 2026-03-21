@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { Effect, Either } from "effect";
-import type { Session } from "@/lib/auth";
 import { AuthService } from "../auth-service";
 import {
   AuthServiceError,
@@ -13,8 +12,27 @@ import { Email } from "@/app/domain/email";
 // テストでは providerId のみ使用するため、必要最小限の型定義
 type MockAccount = { providerId: string } | undefined;
 
+// ConnectRPC 移行後のセッション型（auth-service RPC レスポンスに対応）
+type MockSession = {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    emailVerified: boolean;
+    image: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  session: {
+    id: string;
+    token: string;
+    expiresAt: Date;
+    userId: string;
+  };
+} | null;
+
 const createMockAuthService = (options: {
-  session?: Session | null;
+  session?: MockSession;
   signOutError?: boolean;
   magicLinkError?: boolean;
   accountQueryError?: boolean;
@@ -59,8 +77,6 @@ describe("AuthService", () => {
       const mockSession = {
         session: {
           id: "session-1",
-          createdAt: new Date(),
-          updatedAt: new Date(),
           userId: "user-1",
           expiresAt: new Date(Date.now() + 3600000),
           token: "test-token",
@@ -74,7 +90,7 @@ describe("AuthService", () => {
           createdAt: new Date(),
           updatedAt: new Date(),
         },
-      } as Session;
+      } satisfies NonNullable<MockSession>;
 
       const mock = createMockAuthService({ session: mockSession });
 

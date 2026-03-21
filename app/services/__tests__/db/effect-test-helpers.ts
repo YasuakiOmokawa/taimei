@@ -33,9 +33,8 @@ const createTestServiceLayer = (tx: TestDb) => {
     tx as unknown as PgRemoteDatabase<Record<string, never>>
   );
 
-  const UserServiceLayer = UserService.Default.pipe(
-    Layer.provide(TestPgDrizzleLayer)
-  );
+  // UserService は ConnectRPC に移行済みのため PgDrizzle 不要
+  const UserServiceLayer = UserService.Default;
 
   return Layer.mergeAll(
     UserServiceLayer,
