@@ -641,3 +641,14 @@ docker compose -f docker-compose.e2e.yml up --build  # E2E
 - `app/lib/auth-guard.ts` — `auth.api.getSession()` → `createAuthGuard()` に差し替え。`cookies()` から session_token 抽出 → ConnectRPC VerifySession で検証
 - `app/lib/data.ts` — `fetchCurrentUser()` を `cache()` 付き `getSession()` から導出（二重 RPC 回避。`auth.api` import 完全除去）
 - `lib/auth-client.ts` — `baseURL` を `NEXT_PUBLIC_AUTH_SERVICE_URL` に変更
+
+### PR9 (taimei): actions.ts deleteUser — スキップ（PR7 で対応済み）✅
+
+`deleteUser()` は `UserService.delete()` を呼んでおり、PR7 で UserService が ConnectRPC に移行済みのため追加変更不要
+
+### PR10 (taimei): API Route 削除 + lib/auth.ts 削除 — 完了 ✅
+
+**コミット**: `59c9641`
+**削除ファイル (2件)**:
+- `app/api/auth/[...all]/route.ts` — Better Auth HTTP ハンドラー。ブラウザは auth-service に直接アクセスするため不要
+- `lib/auth.ts` — Better Auth 設定。taimei-auth リポに移植済み
