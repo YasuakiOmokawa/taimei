@@ -658,3 +658,32 @@ docker compose -f docker-compose.e2e.yml up --build  # E2E
 **コミット**: `c65627e`
 **変更ファイル (1件)**:
 - `db/drizzle/schema.ts` — user/session/account/verification テーブル定義 + 全 relations 除去。userProfile.userId の FK を論理参照に変更（-118行）
+
+### PR12 (taimei): テスト基盤を ConnectRPC 移行に対応 — 完了 ✅
+
+**コミット**: `1437ca1`
+**変更ファイル (5件)**:
+- `__tests__/auth-guard.test.ts` — `@/lib/auth` モック → `@taimei/auth-client` モックに書き換え
+- `app/services/__tests__/auth-service.test.ts` — Session 型をインライン MockSession に変更
+- `app/services/__tests__/factories/index.ts` — user テーブルをインライン定義（auth-service DB 移行に伴う暫定措置）。`testTableSchema` を export
+- `app/services/__tests__/db/test-db.ts` — テスト用スキーマに `testTableSchema` を統合（any キャスト不使用）
+- `app/services/__tests__/db/effect-test-helpers.ts` — UserService Layer から PgDrizzle 依存除去
+
+---
+
+## 残タスク
+
+### 疎通確認（手動QA）
+- [ ] taimei-auth Docker Compose + taimei dev サーバー起動
+- [ ] 環境変数設定（`AUTH_SERVICE_URL`, `NEXT_PUBLIC_AUTH_SERVICE_URL`）
+- [ ] ブラウザで `/dashboard` → `/auth` リダイレクト確認
+- [ ] OAuth / Magic Link 認証フロー確認（環境変数設定後）
+
+### npm publish
+- [ ] `@taimei/auth-client` を npmjs.com に publish
+- [ ] taimei の `package.json` を `file:` → `^0.1.0` に切替
+- [ ] Vercel ビルド通過確認
+
+### Phase 4（将来）
+- [ ] Better Auth Organization プラグイン（招待/ロール/チーム）
+- [ ] SSO プラグイン（SAML/OIDC RP）
