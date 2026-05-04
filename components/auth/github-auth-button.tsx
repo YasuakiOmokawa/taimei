@@ -18,10 +18,9 @@ export default function GithubAuthButton() {
       provider: "github",
       callbackURL: `${origin}${redirectPath}`,
       // OAuth 失敗時は taimei-auth (Layer B) のエラー画面に遷移する。中間期間 (PR10a/b で
-      // taimei 側旧 auth UI 削除前) 用の暫定 hardcode。Better Auth は absolute URL を
-      // そのまま 302 先として使うため cross-origin (app → auth) 遷移可能。
-      errorCallbackURL:
-        "https://auth.taimei-code.com/auth/error?reason=signin_failed",
+      // taimei 側旧 auth UI 削除前) 用の暫定。Better Auth は absolute URL をそのまま 302 先と
+      // して使うため cross-origin (app → auth) 遷移可能。env で env 切替可能 (PR5b で導入)。
+      errorCallbackURL: `${process.env.NEXT_PUBLIC_AUTH_URL ?? "https://auth.taimei-code.com"}/auth/error?reason=signin_failed`,
     });
   };
 
