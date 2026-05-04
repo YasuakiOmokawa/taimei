@@ -1,7 +1,20 @@
 volumes:
   pg-data:
+  auth-pg-data:
+
+# 同一 network 内で network alias によりコンテナ名と独立した DNS 名を提供。
+# - app.taimei-code.local → e2e-application (taimei, port 3001)
+# - auth.taimei-code.local → e2e-auth-service (taimei-auth, port 3100)
+# Playwright コンテナのブラウザは同 network 内の DNS を解決できるため、
+# extra_hosts は不要。production と同じ host pattern (.taimei-code.com) で
+# Cookie domain (.taimei-code.local) を共有可能 (cross-subdomain SSO)。
+networks:
+  e2e-network:
+    name: e2e-network
+    driver: bridge
 
 services:
+  # taimei (Next.js) 用 DB
   e2e-postgres:
     image: postgres:16.8-alpine3.21
     volumes:
@@ -19,11 +32,73 @@ services:
       interval: 3s
       timeout: 3s
       retries: 5
+    networks:
+      - e2e-network
 
+  # taimei-auth 用 DB (sign 流の Layer B / Better Auth が利用)
+  e2e-auth-postgres:
+    image: postgres:16.8-alpine3.21
+    volumes:
+      - auth-pg-data:/var/lib/postgresql/data
+    ports:
+      - "5435:5435"
+    environment:
+      - POSTGRES_DB=auth
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - PGPORT=5435
+    healthcheck:
+      test: pg_isready -U postgres -d auth
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - e2e-network
+
+  # taimei-auth 用 Redis (Better Auth secondary storage)
+  e2e-auth-redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - e2e-network
+
+  # taimei-auth (Hono + Bun, Layer B 含む) — sibling repo を build context にする。
+  # CI で実行する場合は taimei-auth も checkout 必要 (e2e.yml で対応予定 PR12b)。
+  e2e-auth-service:
+    build:
+      context: '../taimei-auth'
+      dockerfile: Dockerfile
+    environment:
+      - PORT=3100
+      - DATABASE_URL=postgres://postgres:password@e2e-auth-postgres:5435/auth
+      - REDIS_URL=redis://e2e-auth-redis:6379
+      - AUTH_SERVICE_URL=http://auth.taimei-code.local:3100
+      - AUTH_COOKIE_DOMAIN=taimei-code.local
+      - AUTH_TRUSTED_ORIGINS=http://app.taimei-code.local:3001,http://auth.taimei-code.local:3100
+      - APP_ENV=test
+      - APP_NAME=taimei
+      - AUTH_SECRET=test-secret-for-e2e-testing-32chars
+    depends_on:
+      e2e-auth-postgres:
+        condition: service_healthy
+      e2e-auth-redis:
+        condition: service_healthy
+    networks:
+      e2e-network:
+        aliases:
+          - auth.taimei-code.local
+
+  # taimei (Next.js) — Layer B 経由で sign 流 ログインを行う
   e2e-application:
     build:
       context: '.'
       dockerfile: Dockerfile
+      args:
+        NPM_TOKEN: ${NPM_TOKEN}
     ports:
       - "3001:3001"
     command: >
@@ -32,10 +107,12 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:password@e2e-postgres:5433/postgres
       - APP_ENV=test
-      - AUTH_TRUST_HOST=http://e2e-application:3001
+      - AUTH_TRUST_HOST=http://app.taimei-code.local:3001
       - PORT=3001
       - AUTH_SECRET=test-secret-for-e2e-testing-32chars
-      - NEXT_PUBLIC_APP_URL=http://e2e-application:3001
+      - NEXT_PUBLIC_APP_URL=http://app.taimei-code.local:3001
+      - NEXT_PUBLIC_AUTH_URL=http://auth.taimei-code.local:3100
+      - AUTH_SERVICE_URL=http://auth.taimei-code.local:3100
     develop:
       watch:
         - action: sync
@@ -46,7 +123,14 @@ services:
     depends_on:
       e2e-postgres:
         condition: service_healthy
+      e2e-auth-service:
+        condition: service_started
+    networks:
+      e2e-network:
+        aliases:
+          - app.taimei-code.local
 
+  # Playwright runner — 同一 network 内なら DNS 解決でブラウザから .taimei-code.local が引ける。
   e2e:
     build:
       context: './e2e'
@@ -55,8 +139,11 @@ services:
         - common=./
     environment:
       - CI=${CI}
-      - PLAYWRIGHT_BASE_URL=http://e2e-application:3001
+      - PLAYWRIGHT_BASE_URL=http://app.taimei-code.local:3001
+      - APP_BASE_URL=http://app.taimei-code.local:3001
+      - AUTH_BASE_URL=http://auth.taimei-code.local:3100
       - DATABASE_URL=postgres://postgres:password@e2e-postgres:5433/postgres
+      - AUTH_DATABASE_URL=postgres://postgres:password@e2e-auth-postgres:5435/auth
     command: >
       sh -c "${E2E_SERVICE_COMMAND}"
     volumes:
@@ -73,3 +160,6 @@ services:
           path: ./e2e/package.json
     depends_on:
       - e2e-application
+      - e2e-auth-service
+    networks:
+      - e2e-network

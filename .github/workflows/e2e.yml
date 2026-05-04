@@ -10,11 +10,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # taimei-auth (sign 流 Layer B) を sibling path に clone。docker-compose.e2e.yml の
+      # e2e-auth-service が build context: '../taimei-auth' を参照するため必須。
+      # public repo なので認証不要。
+      - name: Clone taimei-auth (sibling)
+        run: git clone --depth 1 https://github.com/taimei-code/taimei-auth.git ../taimei-auth
+
       - name: docker compose build
         run: docker compose -f docker-compose.e2e.yml build
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Run Playwright tests
         run: E2E_SERVICE_COMMAND='npm test' docker compose -f docker-compose.e2e.yml up --abort-on-container-exit --exit-code-from e2e
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - uses: actions/upload-artifact@v4
         if: always()
