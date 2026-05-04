@@ -1,29 +1,35 @@
 import { test, expect } from "@playwright/test";
 import {
+  AUTH_BASE_URL,
   createTestUser,
   getVerificationToken,
   signInWithMagicLink,
   verifyMagicLinkAndGetContext,
 } from "./utils/signIn";
 
-test.describe("認証フロー", () => {
+// sign 流 (PR5b/PR7 で確立) の e2e。Layer B (taimei-auth) 経由ログインを検証する。
+// taimei への未認証アクセス → proxy が AUTH_BASE_URL/auth/?service_name=taimei&redirect_url=... に redirect。
+// Layer B の SignIn 画面でフォーム送信 → Magic Link verify → taimei /auth/after-signin → /dashboard。
+test.describe("認証フロー (sign 流)", () => {
   test.describe("保護ルートへの未認証アクセス", () => {
-    test("未認証で保護ルートにアクセスすると /auth?callbackUrl にリダイレクトされる", async ({
+    test("未認証で保護ルートにアクセスすると Layer B にリダイレクトされる", async ({
       page,
     }) => {
       await page.goto("/dashboard");
-      await expect(page).toHaveURL(/\/auth\?callbackUrl=.*dashboard/);
+      // proxy.ts が buildAuthLoginUrl で組んだ URL に redirect する想定
+      await expect(page).toHaveURL(
+        new RegExp(
+          `${AUTH_BASE_URL.replace(/\./g, "\\.")}/auth/\\?service_name=taimei&redirect_url=.*dashboard`,
+        ),
+      );
     });
 
-    test("ログイン後、callbackUrl にリダイレクトされる", async ({
+    test("ログイン後、redirect_url にリダイレクトされる", async ({
       page,
       browser,
     }) => {
       const testEmail = await createTestUser();
       await page.goto("/dashboard");
-      await expect(page).toHaveURL(/\/auth\?callbackUrl=.*dashboard/);
-
-      // Magic Link でのセッション作成後の挙動を検証
       const context = await signInWithMagicLink(browser, testEmail);
       const authedPage = await context.newPage();
       await authedPage.goto("/dashboard");
@@ -44,7 +50,6 @@ test.describe("認証フロー", () => {
     test("認証済みで / にアクセスしてもランディングページが表示される", async ({
       browser,
     }) => {
-      // 認証状態でもルートパスは /auth にリダイレクトしない仕様を検証
       const testEmail = await createTestUser();
       const context = await signInWithMagicLink(browser, testEmail);
       const page = await context.newPage();
@@ -56,31 +61,32 @@ test.describe("認証フロー", () => {
     });
   });
 
-  test.describe("統合認証フロー", () => {
+  test.describe("Layer B 経由の統合認証フロー", () => {
     test("未登録メールで認証すると新規アカウントが作成される", async ({
       page,
       browser,
     }) => {
-      // Arrange: 未登録メールアドレス
       const newEmail = `new-${Date.now()}@example.com`;
 
-      // Act: フォーム送信 → Magic Link 検証 → dashboard アクセス
-      await page.goto("/auth");
-      await page.getByLabel("Email").fill(newEmail);
-      await page.getByRole("button", { name: "メールで続ける" }).click();
+      // Layer B の SignIn 画面を直接訪問 (service_name=taimei + redirect_url=...)
+      const params = new URLSearchParams({
+        service_name: "taimei",
+        redirect_url: "http://app.taimei-code.local:3001/auth/after-signin",
+      });
+      await page.goto(`${AUTH_BASE_URL}/auth/?${params.toString()}`);
+      await page.getByLabel("メールアドレス").fill(newEmail);
+      await page
+        .getByRole("button", { name: "Magic Link を送信" })
+        .click();
 
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({ hasText: "認証リンクをメールで送信しました。" })
-      ).toBeVisible();
+      // Magic Link 送信完了 (画面に「メールを送信しました」表示)
+      await expect(page.getByText(newEmail)).toBeVisible();
 
       const token = await getVerificationToken(newEmail);
       const context = await verifyMagicLinkAndGetContext(browser, token);
       const authedPage = await context.newPage();
       await authedPage.goto("/dashboard");
 
-      // Assert: ダッシュボードが表示される（認証成功）
       await expect(authedPage).toHaveURL(/\/dashboard/);
       await expect(authedPage.locator("h1")).toContainText("Dashboard");
 
@@ -88,62 +94,49 @@ test.describe("認証フロー", () => {
     });
 
     test("既存メールで認証するとログインできる", async ({ page, browser }) => {
-      // Arrange: 既存ユーザー作成
       const existingEmail = await createTestUser();
 
-      // Act: フォーム送信 → Magic Link 検証 → dashboard アクセス
-      await page.goto("/auth");
-      await page.getByLabel("Email").fill(existingEmail);
-      await page.getByRole("button", { name: "メールで続ける" }).click();
+      const params = new URLSearchParams({
+        service_name: "taimei",
+        redirect_url: "http://app.taimei-code.local:3001/auth/after-signin",
+      });
+      await page.goto(`${AUTH_BASE_URL}/auth/?${params.toString()}`);
+      await page.getByLabel("メールアドレス").fill(existingEmail);
+      await page
+        .getByRole("button", { name: "Magic Link を送信" })
+        .click();
 
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({ hasText: "認証リンクをメールで送信しました。" })
-      ).toBeVisible();
+      await expect(page.getByText(existingEmail)).toBeVisible();
 
       const token = await getVerificationToken(existingEmail);
       const context = await verifyMagicLinkAndGetContext(browser, token);
       const authedPage = await context.newPage();
       await authedPage.goto("/dashboard");
 
-      // Assert: ダッシュボードが表示される（認証成功）
       await expect(authedPage).toHaveURL(/\/dashboard/);
       await expect(authedPage.locator("h1")).toContainText("Dashboard");
 
       await context.close();
     });
 
-    test("認証済みユーザーが /auth にアクセスすると /dashboard にリダイレクトされる", async ({
+    test("認証済みユーザーが /dashboard を直接訪問できる (proxy で redirect されない)", async ({
       browser,
     }) => {
-      // Arrange: 認証済みユーザー
       const testEmail = await createTestUser();
       const context = await signInWithMagicLink(browser, testEmail);
       const page = await context.newPage();
 
-      // Act: /auth にアクセス
-      await page.goto("/auth");
-
-      // Assert: /dashboard にリダイレクト
+      await page.goto("/dashboard");
       await expect(page).toHaveURL(/\/dashboard/);
 
       await context.close();
     });
 
-    test("/auth?error=signin_failed でフラッシュメッセージが表示される", async ({
+    test("Layer B のエラー画面 (signin_failed) が表示される", async ({
       page,
     }) => {
-      // Act: エラーパラメータ付きで /auth にアクセス
-      await page.goto("/auth?error=signin_failed");
-
-      // Assert: エラー toast + URL クリーン
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({ hasText: "ログインに失敗しました。" })
-      ).toBeVisible();
-      await expect(page).toHaveURL("/auth");
+      await page.goto(`${AUTH_BASE_URL}/auth/error?reason=signin_failed`);
+      await expect(page.getByText("ログインに失敗しました")).toBeVisible();
     });
   });
 });

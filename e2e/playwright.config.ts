@@ -20,8 +20,10 @@ export default defineConfig({
     ? [["html", { open: "never" }]]
     : [["html", { host: "0.0.0.0", port: "9323", open: "always" }]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */ use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.PLAYWRIGHT_BASE_URL,
+    /* Base URL to use in actions like `await page.goto('/')`.
+     * sign 流: APP_BASE_URL (taimei) を baseURL に固定。AUTH_BASE_URL (taimei-auth) は
+     * signIn helper / spec 内で個別に組み立てる (cross-origin のため). */
+    baseURL: process.env.APP_BASE_URL ?? process.env.PLAYWRIGHT_BASE_URL,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",

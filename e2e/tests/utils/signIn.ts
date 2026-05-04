@@ -1,14 +1,26 @@
 import { Browser, BrowserContext } from "@playwright/test";
-import { db } from "../../db/client";
-import { user, verification } from "../../db/schema";
 import { eq, desc } from "drizzle-orm";
 
-export const BASE_URL =
-  process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3001";
+import { authDb } from "../../db/auth-client";
+import { user, verification } from "../../db/auth-schema";
+
+// sign 流 (PR5b/PR7 で taimei に統合) 対応の e2e signIn helper。
+// taimei (app.taimei-code.local:3001) と taimei-auth (auth.taimei-code.local:3100) は別オリジン。
+// Magic Link 関連の API はすべて taimei-auth (AUTH_BASE_URL) に飛ばし、
+// 検証完了後 callbackURL = APP_BASE_URL/auth/after-signin に redirect させる。
+//
+// Cookie domain は AUTH_COOKIE_DOMAIN=taimei-code.local 設定済 (PR12a)。
+// Better Auth が Set-Cookie: Domain=.taimei-code.local で返すため、
+// Playwright BrowserContext に追加するときも同じ domain を指定する必要がある。
+export const APP_BASE_URL =
+  process.env.APP_BASE_URL ?? "http://app.taimei-code.local:3001";
+export const AUTH_BASE_URL =
+  process.env.AUTH_BASE_URL ?? "http://auth.taimei-code.local:3100";
+const COOKIE_DOMAIN = ".taimei-code.local";
 
 export async function createTestUser(): Promise<string> {
   const uuid = crypto.randomUUID();
-  await db.insert(user).values({
+  await authDb.insert(user).values({
     id: uuid,
     name: "E2E Test User",
     email: `e2e-${uuid}@example.com`,
@@ -17,19 +29,16 @@ export async function createTestUser(): Promise<string> {
   return `e2e-${uuid}@example.com`;
 }
 
-/**
- * Server Action の非同期処理完了を待つため、トークンが見つかるまでポーリング
- * デフォルト: 20回 × 1秒間隔 = 最大20秒
- */
+// Server Action の非同期処理完了を待つため、トークンが見つかるまでポーリング (最大 20s)。
 export async function getVerificationToken(
   email: string,
-  options: { maxRetries?: number; retryDelay?: number } = {}
+  options: { maxRetries?: number; retryDelay?: number } = {},
 ): Promise<string> {
   const { maxRetries = 20, retryDelay = 1000 } = options;
   const expectedValue = JSON.stringify({ email });
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const record = await db
+    const record = await authDb
       .select()
       .from(verification)
       .where(eq(verification.value, expectedValue))
@@ -47,28 +56,27 @@ export async function getVerificationToken(
   }
 
   throw new Error(
-    `Verification token not found for ${email} after ${maxRetries} attempts`
+    `Verification token not found for ${email} after ${maxRetries} attempts`,
   );
 }
 
 export async function signInWithMagicLink(
   browser: Browser,
-  email: string
+  email: string,
 ): Promise<BrowserContext> {
-  const response = await fetch(`${BASE_URL}/api/auth/sign-in/magic-link`, {
+  // 1. taimei-auth に Magic Link 送信リクエスト (verification record が DB に書かれる)
+  const sendResp = await fetch(`${AUTH_BASE_URL}/api/auth/sign-in/magic-link`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
   });
-
-  if (!response.ok) {
-    throw new Error(`Magic link request failed: ${response.status}`);
+  if (!sendResp.ok) {
+    throw new Error(`Magic link request failed: ${sendResp.status}`);
   }
 
+  // 2. DB から token を取得して verify。callbackURL は taimei /auth/after-signin (sign 流着地点)。
   const token = await getVerificationToken(email);
-
-  // Playwright の page.goto() ではなく fetch を使用（Set-Cookie ヘッダーを直接取得するため）
-  const verifyUrl = `${BASE_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=/dashboard`;
+  const verifyUrl = `${AUTH_BASE_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=${encodeURIComponent(`${APP_BASE_URL}/auth/after-signin`)}`;
   const verifyResponse = await fetch(verifyUrl, { redirect: "manual" });
 
   const setCookieHeader = verifyResponse.headers.get("set-cookie");
@@ -76,6 +84,7 @@ export async function signInWithMagicLink(
     throw new Error("No Set-Cookie header in verify response");
   }
 
+  // 3. Set-Cookie を BrowserContext に追加。domain は taimei-code.local (cross-subdomain)。
   const cookies = parseCookies(setCookieHeader);
   const context = await browser.newContext();
   await context.addCookies(cookies);
@@ -88,15 +97,12 @@ export async function signIn(browser: Browser): Promise<BrowserContext> {
   return signInWithMagicLink(browser, email);
 }
 
-/**
- * Magic Link トークンを検証してセッションを持つ BrowserContext を返す
- * signInWithMagicLink と異なり、トークンを直接受け取る（getVerificationToken 済みの場合に使用）
- */
+// 既知 token から直接 verify する (auth.spec.ts でフォーム送信後の token 取得経路で使用)。
 export async function verifyMagicLinkAndGetContext(
   browser: Browser,
-  token: string
+  token: string,
 ): Promise<BrowserContext> {
-  const verifyUrl = `${BASE_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=/dashboard`;
+  const verifyUrl = `${AUTH_BASE_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=${encodeURIComponent(`${APP_BASE_URL}/auth/after-signin`)}`;
   const verifyResponse = await fetch(verifyUrl, { redirect: "manual" });
 
   const setCookieHeader = verifyResponse.headers.get("set-cookie");
@@ -111,9 +117,7 @@ export async function verifyMagicLinkAndGetContext(
   return context;
 }
 
-export function parseCookies(
-  setCookieHeader: string
-): Array<{
+export function parseCookies(setCookieHeader: string): Array<{
   name: string;
   value: string;
   domain: string;
@@ -122,9 +126,7 @@ export function parseCookies(
   secure?: boolean;
   sameSite?: "Strict" | "Lax" | "None";
 }> {
-  // カンマ区切りだがクッキー値内にもカンマが含まれうるため、名前=値パターンの前でのみ分割
   const cookieStrings = setCookieHeader.split(/,(?=\s*[a-zA-Z_][a-zA-Z0-9_-]*=)/);
-  const domain = new URL(BASE_URL).hostname;
 
   return cookieStrings.map((cookieStr) => {
     const parts = cookieStr.split(";").map((p) => p.trim());
@@ -143,7 +145,7 @@ export function parseCookies(
     } = {
       name: name.trim(),
       value,
-      domain,
+      domain: COOKIE_DOMAIN,
       path: "/",
     };
 
