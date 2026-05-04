@@ -1,6 +1,11 @@
 volumes:
   pg-data:
 
+networks:
+  auth-net:
+    external: true
+    name: taimei-auth_default
+
 services:
   postgres:
     image: postgres:16.8-alpine3.21
@@ -47,6 +52,12 @@ services:
     user: vscode
     environment:
       - DATABASE_URL=postgres://postgres:password@postgres:5432/postgres
+      - AUTH_SERVICE_URL=http://auth-service:3100
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=http://localhost:3100
+      - AUTH_SERVICE_KEY=${AUTH_SERVICE_KEY:-}
+    networks:
+      - default
+      - auth-net
     develop:
       watch:
         - action: sync

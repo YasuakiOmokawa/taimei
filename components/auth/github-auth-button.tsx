@@ -11,11 +11,14 @@ export default function GithubAuthButton() {
 
   const handleGithubAuth = () => {
     BProgress.start();
+    // Better Auth は relative path を auth-service の baseURL 相対で解決するため、
+    // taimei オリジンへ戻すには絶対 URL を渡す必要がある
+    const origin = window.location.origin;
     authClient.signIn.social({
       provider: "github",
-      callbackURL: redirectPath,
+      callbackURL: `${origin}${redirectPath}`,
       // OAuth 失敗時は統合認証ページにリダイレクト（エラー表示 + 再試行導線）
-      errorCallbackURL: "/auth?error=signin_failed",
+      errorCallbackURL: `${origin}/auth?error=signin_failed`,
     });
   };
 

@@ -1,188 +1,258 @@
-import { describe } from "vitest";
-import { expect } from "@effect/vitest";
+import { describe, it, expect } from "vitest";
 import { Effect, Either } from "effect";
 import { UserService } from "../user-service";
-import { UserNotFound } from "../user-errors";
-import { dbEffect } from "./db/effect-test-helpers";
+import { UserNotFound, UserServiceError } from "../user-errors";
 import { Email } from "@/app/domain/email";
 
+// ConnectRPC 移行後、UserService は auth-service への RPC 薄いラッパーとなったため、
+// DB 統合テストは成立しない（user テーブルは auth-service 側にある）。
+// auth-service.test.ts と同じく Layer DI でモック注入する単体テストパターンに切替。
+
+type MockUser = {
+  readonly id: string;
+  readonly name: string;
+  readonly email: string;
+  readonly emailVerified: boolean;
+  readonly image: string | null;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+};
+
+const buildUser = (over: Partial<MockUser> = {}): MockUser => ({
+  id: "user-1",
+  name: "Test User",
+  email: "test@example.com",
+  emailVerified: true,
+  image: null,
+  createdAt: new Date("2026-01-01T00:00:00Z"),
+  updatedAt: new Date("2026-01-01T00:00:00Z"),
+  ...over,
+});
+
+const createMockUserService = (
+  impl: Partial<UserService> = {}
+): UserService =>
+  new UserService({
+    existsByEmail: () => Effect.succeed(false),
+    findByEmail: () => Effect.succeed(undefined),
+    findById: () => Effect.succeed(undefined),
+    update: (id) => Effect.fail(new UserNotFound({ id })),
+    delete: (id) => Effect.fail(new UserNotFound({ id })),
+    clearImage: (id) => Effect.fail(new UserNotFound({ id })),
+    ...impl,
+  });
+
+const runWithMock = <A, E>(
+  effect: Effect.Effect<A, E, UserService>,
+  mock: UserService
+) =>
+  effect.pipe(
+    Effect.provideService(UserService, mock),
+    Effect.either,
+    Effect.runPromise
+  );
+
 describe("UserService", () => {
-  describe("update", () => {
-    dbEffect("正常系: ユーザー名を更新できる", ({ factory: f }) =>
-      Effect.gen(function* () {
-        const created = yield* Effect.promise(() => f.user.create());
-
-        const service = yield* UserService;
-        const updated = yield* service.update(created.id, {
-          name: "Updated Name",
-        });
-
-        expect(updated.name).toBe("Updated Name");
-      })
-    );
-
-    dbEffect("正常系: ユーザー画像を更新できる", ({ factory: f }) =>
-      Effect.gen(function* () {
-        const created = yield* Effect.promise(() => f.user.create());
-
-        const service = yield* UserService;
-        const updated = yield* service.update(created.id, {
-          image: "https://example.com/new-avatar.png",
-        });
-
-        expect(updated.image).toBe("https://example.com/new-avatar.png");
-      })
-    );
-
-    dbEffect("異常系: 存在しないユーザーを更新しようとするとエラー", () =>
-      Effect.gen(function* () {
-        const service = yield* UserService;
-        const result = yield* Effect.either(
-          service.update("non-existent-id", { name: "New Name" })
-        );
-
-        expect(Either.isLeft(result)).toBe(true);
-        if (Either.isLeft(result)) {
-          expect(result.left).toBeInstanceOf(UserNotFound);
-        }
-      })
-    );
-  });
-
-  describe("delete", () => {
-    dbEffect("正常系: ユーザーを削除できる", ({ factory: f }) =>
-      Effect.gen(function* () {
-        const created = yield* Effect.promise(() => f.user.create());
-
-        const service = yield* UserService;
-        yield* service.delete(created.id);
-      })
-    );
-
-    dbEffect("異常系: 存在しないユーザーを削除しようとするとエラー", () =>
-      Effect.gen(function* () {
-        const service = yield* UserService;
-        const result = yield* Effect.either(service.delete("non-existent-id"));
-
-        expect(Either.isLeft(result)).toBe(true);
-        if (Either.isLeft(result)) {
-          expect(result.left).toBeInstanceOf(UserNotFound);
-        }
-      })
-    );
-  });
-
-  describe("clearImage", () => {
-    dbEffect("正常系: ユーザー画像をクリアできる", ({ factory: f }) =>
-      Effect.gen(function* () {
-        const created = yield* Effect.promise(() =>
-          f.user.create({
-            image: "https://example.com/avatar.png",
-          })
-        );
-
-        const service = yield* UserService;
-        const updated = yield* service.clearImage(created.id);
-
-        expect(updated.image).toBeNull();
-      })
-    );
-
-    dbEffect(
-      "異常系: 存在しないユーザーの画像をクリアしようとするとエラー",
-      () =>
-        Effect.gen(function* () {
-          const service = yield* UserService;
-          const result = yield* Effect.either(
-            service.clearImage("non-existent-id")
-          );
-
-          expect(Either.isLeft(result)).toBe(true);
-          if (Either.isLeft(result)) {
-            expect(result.left).toBeInstanceOf(UserNotFound);
-          }
-        })
-    );
-  });
-
   describe("existsByEmail", () => {
-    dbEffect("正常系: 存在するメールアドレスで true を返す", ({ factory: f }) =>
-      Effect.gen(function* () {
-        yield* Effect.promise(() =>
-          f.user.create({ email: "test@example.com" })
-        );
+    it("RPC が user を返す場合 true", async () => {
+      const mock = createMockUserService({
+        existsByEmail: () => Effect.succeed(true),
+      });
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const s = yield* UserService;
+          return yield* s.existsByEmail(Email.makeSync("test@example.com"));
+        }),
+        mock
+      );
+      expect(Either.isRight(result)).toBe(true);
+      if (Either.isRight(result)) expect(result.right).toBe(true);
+    });
 
-        const service = yield* UserService;
-        const exists = yield* service.existsByEmail(
-          Email.makeSync("test@example.com")
-        );
+    it("RPC が user 不在を返す場合 false", async () => {
+      const mock = createMockUserService();
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const s = yield* UserService;
+          return yield* s.existsByEmail(Email.makeSync("none@example.com"));
+        }),
+        mock
+      );
+      expect(Either.isRight(result)).toBe(true);
+      if (Either.isRight(result)) expect(result.right).toBe(false);
+    });
 
-        expect(exists).toBe(true);
-      })
-    );
-
-    dbEffect("正常系: 存在しないメールアドレスで false を返す", () =>
-      Effect.gen(function* () {
-        const service = yield* UserService;
-        const exists = yield* service.existsByEmail(
-          Email.makeSync("nonexistent@example.com")
-        );
-
-        expect(exists).toBe(false);
-      })
-    );
+    it("RPC エラー時 UserServiceError", async () => {
+      const mock = createMockUserService({
+        existsByEmail: () =>
+          Effect.fail(new UserServiceError({ message: "rpc down" })),
+      });
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const s = yield* UserService;
+          return yield* s.existsByEmail(Email.makeSync("x@example.com"));
+        }),
+        mock
+      );
+      expect(Either.isLeft(result)).toBe(true);
+      if (Either.isLeft(result))
+        expect(result.left).toBeInstanceOf(UserServiceError);
+    });
   });
 
   describe("findByEmail", () => {
-    dbEffect(
-      "正常系: メールアドレスでユーザーを検索できる",
-      ({ factory: f }) =>
+    it("user が存在すればドメイン型で返す", async () => {
+      const u = buildUser({ email: "found@example.com" });
+      const mock = createMockUserService({
+        findByEmail: () => Effect.succeed(u),
+      });
+      const result = await runWithMock(
         Effect.gen(function* () {
-          const created = yield* Effect.promise(() =>
-            f.user.create({ email: "test@example.com" })
-          );
+          const s = yield* UserService;
+          return yield* s.findByEmail(Email.makeSync("found@example.com"));
+        }),
+        mock
+      );
+      expect(Either.isRight(result)).toBe(true);
+      if (Either.isRight(result)) expect(result.right?.email).toBe("found@example.com");
+    });
 
-          const service = yield* UserService;
-          const user = yield* service.findByEmail(
-            Email.makeSync("test@example.com")
-          );
-
-          expect(user?.id).toBe(created.id);
-          expect(user?.email).toBe("test@example.com");
-        })
-    );
-
-    dbEffect("正常系: 存在しないメールアドレスでundefinedを返す", () =>
-      Effect.gen(function* () {
-        const service = yield* UserService;
-        const user = yield* service.findByEmail(
-          Email.makeSync("nonexistent@example.com")
-        );
-
-        expect(user).toBeUndefined();
-      })
-    );
+    it("不在なら undefined", async () => {
+      const mock = createMockUserService();
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const s = yield* UserService;
+          return yield* s.findByEmail(Email.makeSync("none@example.com"));
+        }),
+        mock
+      );
+      expect(Either.isRight(result)).toBe(true);
+      if (Either.isRight(result)) expect(result.right).toBeUndefined();
+    });
   });
 
   describe("findById", () => {
-    dbEffect("正常系: IDでユーザーを検索できる", ({ factory: f }) =>
-      Effect.gen(function* () {
-        const created = yield* Effect.promise(() => f.user.create());
+    it("user が存在すればドメイン型で返す", async () => {
+      const u = buildUser({ id: "abc" });
+      const mock = createMockUserService({
+        findById: () => Effect.succeed(u),
+      });
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const s = yield* UserService;
+          return yield* s.findById("abc");
+        }),
+        mock
+      );
+      expect(Either.isRight(result)).toBe(true);
+      if (Either.isRight(result)) expect(result.right?.id).toBe("abc");
+    });
 
-        const service = yield* UserService;
-        const user = yield* service.findById(created.id);
+    it("不在なら undefined", async () => {
+      const mock = createMockUserService();
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const s = yield* UserService;
+          return yield* s.findById("none");
+        }),
+        mock
+      );
+      expect(Either.isRight(result)).toBe(true);
+      if (Either.isRight(result)) expect(result.right).toBeUndefined();
+    });
+  });
 
-        expect(user?.id).toBe(created.id);
-      })
-    );
+  describe("update", () => {
+    it("成功時に更新後 user", async () => {
+      const updated = buildUser({ name: "Updated" });
+      const mock = createMockUserService({
+        update: () => Effect.succeed(updated),
+      });
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const s = yield* UserService;
+          return yield* s.update("user-1", { name: "Updated" });
+        }),
+        mock
+      );
+      expect(Either.isRight(result)).toBe(true);
+      if (Either.isRight(result)) expect(result.right.name).toBe("Updated");
+    });
 
-    dbEffect("正常系: 存在しないIDでundefinedを返す", () =>
-      Effect.gen(function* () {
-        const service = yield* UserService;
-        const user = yield* service.findById("non-existent-id");
+    it("UserNotFound エラー", async () => {
+      const mock = createMockUserService();
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const s = yield* UserService;
+          return yield* s.update("missing", { name: "x" });
+        }),
+        mock
+      );
+      expect(Either.isLeft(result)).toBe(true);
+      if (Either.isLeft(result))
+        expect(result.left).toBeInstanceOf(UserNotFound);
+    });
+  });
 
-        expect(user).toBeUndefined();
-      })
-    );
+  describe("delete", () => {
+    it("成功時 void", async () => {
+      const mock = createMockUserService({
+        delete: () => Effect.succeed(undefined as void),
+      });
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const s = yield* UserService;
+          return yield* s.delete("user-1");
+        }),
+        mock
+      );
+      expect(Either.isRight(result)).toBe(true);
+    });
+
+    it("UserNotFound エラー", async () => {
+      const mock = createMockUserService();
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const s = yield* UserService;
+          return yield* s.delete("missing");
+        }),
+        mock
+      );
+      expect(Either.isLeft(result)).toBe(true);
+      if (Either.isLeft(result))
+        expect(result.left).toBeInstanceOf(UserNotFound);
+    });
+  });
+
+  describe("clearImage", () => {
+    it("成功時 image=null の user", async () => {
+      const u = buildUser({ image: null });
+      const mock = createMockUserService({
+        clearImage: () => Effect.succeed(u),
+      });
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const s = yield* UserService;
+          return yield* s.clearImage("user-1");
+        }),
+        mock
+      );
+      expect(Either.isRight(result)).toBe(true);
+      if (Either.isRight(result)) expect(result.right.image).toBeNull();
+    });
+
+    it("UserNotFound エラー", async () => {
+      const mock = createMockUserService();
+      const result = await runWithMock(
+        Effect.gen(function* () {
+          const s = yield* UserService;
+          return yield* s.clearImage("missing");
+        }),
+        mock
+      );
+      expect(Either.isLeft(result)).toBe(true);
+      if (Either.isLeft(result))
+        expect(result.left).toBeInstanceOf(UserNotFound);
+    });
   });
 });
