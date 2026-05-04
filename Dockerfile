@@ -19,6 +19,7 @@ WORKDIR /app
 # ライブラリインストール
 COPY --chown=${username}:${username} package.json ./
 COPY --chown=${username}:${username} bun.lockb ./
+COPY --chown=${username}:${username} vendor ./vendor
 RUN bun install
 
 # アプリケーションコードをコピー

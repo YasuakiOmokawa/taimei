@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseWithZod } from "@conform-to/zod/v4";
+import { buildAbsoluteCallbackURL } from "./url-helpers";
 import { emailLinkLoginSchema } from "@/app/schema/login";
 import { invoiceSchema } from "@/app/schema/invoice";
 import { setFlash } from "@/lib/flash-toaster";
@@ -60,12 +61,14 @@ export async function sendAuthEmailLink(
     return submission.reply();
   }
 
+  const callbackURL = await buildAbsoluteCallbackURL(redirectPath);
+
   const result = await runService(() =>
     Effect.gen(function* () {
       const service = yield* AuthService;
       yield* service.sendMagicLink(
         Email.fromTrusted(submission.value.email),
-        redirectPath
+        callbackURL
       );
     })
   );
