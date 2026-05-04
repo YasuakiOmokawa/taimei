@@ -6,7 +6,7 @@ import {
   SignOutError,
 } from "./auth-errors";
 import { Email } from "@/app/domain/email";
-import { createAuthClient, mapConnectError } from "@taimei/auth-client";
+import { createAuthClient, mapConnectError } from "@taimei-code/auth-client";
 
 const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://localhost:3100";
 const serviceKey = process.env.AUTH_SERVICE_KEY;

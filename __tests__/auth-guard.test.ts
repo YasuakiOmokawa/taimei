@@ -12,7 +12,7 @@ vi.mock("next/headers", () => ({
 const mockVerifySession = vi.fn();
 const mockGetSession = vi.fn();
 
-vi.mock("@taimei/auth-client", () => ({
+vi.mock("@taimei-code/auth-client", () => ({
   createAuthClient: () => ({
     authService: { verifySession: vi.fn() },
     userService: {},

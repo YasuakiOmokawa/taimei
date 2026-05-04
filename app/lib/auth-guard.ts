@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createAuthClient, createAuthGuard } from "@taimei/auth-client";
+import { createAuthClient, createAuthGuard } from "@taimei-code/auth-client";
 
 const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://localhost:3100";
 const serviceKey = process.env.AUTH_SERVICE_KEY;

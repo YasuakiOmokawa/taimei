@@ -17,8 +17,12 @@ USER ${username}
 WORKDIR /app
 
 # ライブラリインストール
+# .npmrc は GitHub Packages (private) から @taimei-code/auth-client を install するため必須。
+# ${NPM_TOKEN} の展開は Docker build 時に --build-arg NPM_TOKEN=$NPM_TOKEN で渡す。
+COPY --chown=${username}:${username} .npmrc ./
 COPY --chown=${username}:${username} package.json ./
 COPY --chown=${username}:${username} bun.lockb ./
+ARG NPM_TOKEN
 RUN bun install
 
 # アプリケーションコードをコピー
