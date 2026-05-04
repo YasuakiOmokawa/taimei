@@ -1,74 +1,99 @@
-import { describe } from "vitest";
-import { expect } from "@effect/vitest";
-import { Effect, Either } from "effect";
+import { describe, it, expect } from "vitest";
+import { Effect, Either, Layer } from "effect";
 import {
   AccountValidationService,
   type AccountInput,
 } from "../account-validation-service";
 import { AccountAlreadyExists } from "../account-validation-errors";
+import { UserService } from "../user-service";
+import { UserNotFound } from "../user-errors";
 import { Email } from "@/app/domain/email";
-import { dbEffect } from "./db/effect-test-helpers";
+
+// UserService は ConnectRPC 経由で auth-service に問い合わせるため、
+// テスト用に Layer.succeed でモック実装を注入する。
+// 既存メールアドレスは Set で管理する単純なメモリ実装。
+const createMockUserServiceLayer = (existingEmails: Set<string>) =>
+  Layer.succeed(
+    UserService,
+    new UserService({
+      existsByEmail: (email) => Effect.succeed(existingEmails.has(email as string)),
+      findByEmail: () => Effect.succeed(undefined),
+      findById: () => Effect.succeed(undefined),
+      update: (id) => Effect.fail(new UserNotFound({ id })),
+      delete: (id) => Effect.fail(new UserNotFound({ id })),
+      clearImage: (id) => Effect.fail(new UserNotFound({ id })),
+    })
+  );
+
+const runWithExisting = <A, E>(
+  effect: Effect.Effect<A, E, AccountValidationService>,
+  existingEmails: Set<string> = new Set()
+) => {
+  const mockUserLayer = createMockUserServiceLayer(existingEmails);
+  const layer = AccountValidationService.Default.pipe(Layer.provide(mockUserLayer));
+  return effect.pipe(Effect.provide(layer), Effect.either, Effect.runPromise);
+};
 
 describe("AccountValidationService", () => {
-  describe("validate - DB integration", () => {
-    dbEffect("正常系: 新規メールアドレスでバリデーション成功", () =>
+  it("正常系: 新規メールアドレスでバリデーション成功", async () => {
+    const input: AccountInput = {
+      email: Email.makeSync("newuser@example.com"),
+      name: "New User",
+    };
+
+    const result = await runWithExisting(
       Effect.gen(function* () {
-        const input: AccountInput = {
-          email: Email.makeSync("newuser@example.com"),
-          name: "New User",
-        };
-
         const service = yield* AccountValidationService;
-        const validated = yield* service.validate(input);
-
-        expect(validated.email).toBe(input.email);
-        expect(validated.name).toBe("New User");
+        return yield* service.validate(input);
       })
     );
 
-    dbEffect("正常系: 複数の入力をバリデーションできる", () =>
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right.email).toBe(input.email);
+      expect(result.right.name).toBe("New User");
+    }
+  });
+
+  it("正常系: 複数の入力をバリデーションできる", async () => {
+    const result = await runWithExisting(
       Effect.gen(function* () {
-        const input1: AccountInput = {
-          email: Email.makeSync("user1@example.com"),
-          name: "User 1",
-        };
-
-        const input2: AccountInput = {
-          email: Email.makeSync("user2@example.com"),
-          name: "User 2",
-        };
-
         const service = yield* AccountValidationService;
-        const validated1 = yield* service.validate(input1);
-        const validated2 = yield* service.validate(input2);
-
-        expect(validated1.name).toBe("User 1");
-        expect(validated2.name).toBe("User 2");
+        const v1 = yield* service.validate({
+          email: Email.makeSync("u1@example.com"),
+          name: "U1",
+        });
+        const v2 = yield* service.validate({
+          email: Email.makeSync("u2@example.com"),
+          name: "U2",
+        });
+        return [v1, v2] as const;
       })
     );
 
-    dbEffect(
-      "異常系: 既に存在するメールアドレスで AccountAlreadyExists エラー",
-      ({ factory: f }) =>
-        Effect.gen(function* () {
-          yield* Effect.promise(() =>
-            f.user.create({ email: "existing@example.com" })
-          );
+    expect(Either.isRight(result)).toBe(true);
+    if (Either.isRight(result)) {
+      expect(result.right[0].name).toBe("U1");
+      expect(result.right[1].name).toBe("U2");
+    }
+  });
 
-          const input: AccountInput = {
-            email: Email.makeSync("existing@example.com"),
-            name: "Duplicate User",
-          };
-
-          const service = yield* AccountValidationService;
-          const result = yield* Effect.either(service.validate(input));
-
-          expect(Either.isLeft(result)).toBe(true);
-          if (Either.isLeft(result)) {
-            expect(result.left).toBeInstanceOf(AccountAlreadyExists);
-            expect(result.left.message).toContain("既に登録されています");
-          }
-        })
+  it("異常系: 既存メールアドレスで AccountAlreadyExists", async () => {
+    const result = await runWithExisting(
+      Effect.gen(function* () {
+        const service = yield* AccountValidationService;
+        return yield* service.validate({
+          email: Email.makeSync("existing@example.com"),
+          name: "Duplicate",
+        });
+      }),
+      new Set(["existing@example.com"])
     );
+
+    expect(Either.isLeft(result)).toBe(true);
+    if (Either.isLeft(result)) {
+      expect(result.left).toBeInstanceOf(AccountAlreadyExists);
+      expect(result.left.message).toContain("既に登録されています");
+    }
   });
 });
