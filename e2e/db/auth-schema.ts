@@ -7,7 +7,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-// taimei-auth (Layer B + Better Auth) DB の Better Auth schema (e2e helper 用、最小セット)。
+// taimei-auth (認証サーバー, Better Auth) DB の schema (e2e helper 用、最小セット)。
 // signIn helper が verification token を取得するために必要な user / verification のみ定義。
 // session / account は signIn フローでの参照不要。
 export const user = pgTable(

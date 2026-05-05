@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # taimei-auth (sign 流 Layer B) を sibling path に clone。docker-compose.e2e.yml の
+      # taimei-auth (認証サーバー) を sibling path に clone。docker-compose.e2e.yml の
       # e2e-auth-service が build context: '../taimei-auth' を参照するため必須。
       # public repo なので認証不要。
       - name: Clone taimei-auth (sibling)

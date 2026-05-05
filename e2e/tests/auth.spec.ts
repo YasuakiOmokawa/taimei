@@ -7,12 +7,12 @@ import {
   verifyMagicLinkAndGetContext,
 } from "./utils/signIn";
 
-// sign 流 (PR5b/PR7 で確立) の e2e。Layer B (taimei-auth) 経由ログインを検証する。
+// taimei-auth (認証サーバー) 経由ログインを検証する e2e。
 // taimei への未認証アクセス → proxy が AUTH_BASE_URL/auth/?service_name=taimei&redirect_url=... に redirect。
-// Layer B の SignIn 画面でフォーム送信 → Magic Link verify → taimei /auth/after-signin → /dashboard。
-test.describe("認証フロー (sign 流)", () => {
+// taimei-auth の SignIn 画面でフォーム送信 → Magic Link verify → taimei /auth/after-signin → /dashboard。
+test.describe("認証フロー", () => {
   test.describe("保護ルートへの未認証アクセス", () => {
-    test("未認証で保護ルートにアクセスすると Layer B にリダイレクトされる", async ({
+    test("未認証で保護ルートにアクセスすると taimei-auth にリダイレクトされる", async ({
       page,
     }) => {
       await page.goto("/dashboard");
@@ -61,14 +61,14 @@ test.describe("認証フロー (sign 流)", () => {
     });
   });
 
-  test.describe("Layer B 経由の統合認証フロー", () => {
+  test.describe("taimei-auth 経由の統合認証フロー", () => {
     test("未登録メールで認証すると新規アカウントが作成される", async ({
       page,
       browser,
     }) => {
       const newEmail = `new-${Date.now()}@example.com`;
 
-      // Layer B の SignIn 画面を直接訪問 (service_name=taimei + redirect_url=...)
+      // taimei-auth の SignIn 画面を直接訪問 (service_name=taimei + redirect_url=...)
       const params = new URLSearchParams({
         service_name: "taimei",
         redirect_url: "http://app.taimei-code.local:3001/auth/after-signin",
@@ -132,7 +132,7 @@ test.describe("認証フロー (sign 流)", () => {
       await context.close();
     });
 
-    test("Layer B のエラー画面 (signin_failed) が表示される", async ({
+    test("taimei-auth のエラー画面 (signin_failed) が表示される", async ({
       page,
     }) => {
       await page.goto(`${AUTH_BASE_URL}/auth/error?reason=signin_failed`);

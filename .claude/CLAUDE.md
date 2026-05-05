@@ -12,29 +12,9 @@ bunx drizzle-kit generate          # マイグレーションSQL生成
 bunx drizzle-kit migrate           # マイグレーション適用
 ```
 
-### Local Dev (sign 流統合)
+### Local Dev / E2E
 
-```bash
-docker compose up --build --watch  # taimei + taimei-auth + DB×2 + Redis を統合起動
-```
-
-ブラウザは `http://app.taimei-code.local:3001` でアクセス。Magic Link は test mode で console 出力されるため `docker logs taimei-auth-service-1 | grep "Magic Link"` で URL を取得して手動コピペ。
-
-**前提**:
-- 親ディレクトリに `taimei-auth` を clone (build context `../taimei-auth`)
-- `/etc/hosts` に `127.0.0.1 app.taimei-code.local auth.taimei-code.local` を追加 (sudo 必要、 一度だけ)
-- `.env` に `NPM_TOKEN=<read:packages 権限の GitHub PAT>` (GitHub Packages から `@taimei-code/auth-client` 取得用)
-- port 3001 が空いていること (`docker stop freee-mcp-grafana-1` で解放できる)
-
-### E2E (Playwright)
-
-```bash
-E2E_SERVICE_COMMAND='npm test' \
-  docker compose -p taimei-e2e -f docker-compose.e2e.yml \
-  up --build --abort-on-container-exit --exit-code-from e2e
-```
-
-`-p taimei-e2e` で dev compose と project / volume を分離。詳細は `e2e/README.md` 参照。
+開発環境起動・前提条件・Magic Link 取得・Mac ブラウザでのローカル動作確認・E2E 実行手順は `README.md` を参照。
 
 ## Tech Stack
 

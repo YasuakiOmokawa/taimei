@@ -4,12 +4,12 @@ import { desc } from "drizzle-orm";
 import { authDb } from "../../db/auth-client";
 import { user, verification } from "../../db/auth-schema";
 
-// sign 流 (PR5b/PR7 で taimei に統合) 対応の e2e signIn helper。
+// taimei-auth (認証サーバー) 経由ログイン用の e2e signIn helper。
 // taimei (app.taimei-code.local:3001) と taimei-auth (auth.taimei-code.local:3100) は別オリジン。
 // Magic Link 関連の API はすべて taimei-auth (AUTH_BASE_URL) に飛ばし、
 // 検証完了後 callbackURL = APP_BASE_URL/auth/after-signin に redirect させる。
 //
-// Cookie domain は AUTH_COOKIE_DOMAIN=taimei-code.local 設定済 (PR12a)。
+// Cookie domain は docker-compose の AUTH_COOKIE_DOMAIN=taimei-code.local で設定済。
 // Better Auth が Set-Cookie: Domain=.taimei-code.local で返すため、
 // Playwright BrowserContext に追加するときも同じ domain を指定する必要がある。
 export const APP_BASE_URL =
@@ -84,7 +84,7 @@ export async function signInWithMagicLink(
     throw new Error(`Magic link request failed: ${sendResp.status}`);
   }
 
-  // 2. DB から token を取得して verify。callbackURL は taimei /auth/after-signin (sign 流着地点)。
+  // 2. DB から token を取得して verify。callbackURL は taimei /auth/after-signin (taimei 側のログイン後着地点)。
   const token = await getVerificationToken(email);
   const verifyUrl = `${AUTH_BASE_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=${encodeURIComponent(`${APP_BASE_URL}/auth/after-signin`)}`;
   const verifyResponse = await fetch(verifyUrl, { redirect: "manual" });
