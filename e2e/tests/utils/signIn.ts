@@ -1,5 +1,5 @@
 import { Browser, BrowserContext } from "@playwright/test";
-import { eq, desc } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 
 import { authDb } from "../../db/auth-client";
 import { user, verification } from "../../db/auth-schema";
@@ -30,21 +30,31 @@ export async function createTestUser(): Promise<string> {
 }
 
 // Server Action の非同期処理完了を待つため、トークンが見つかるまでポーリング (最大 20s)。
+// Better Auth 1.5.6 の magic-link plugin は verification.value に
+//   { email, name?, attempt: number }
+// の JSON を保存するため、完全一致でなく email キーで post-filter する。
+// (storeToken の default は "plain" のため identifier = raw token と一致。)
 export async function getVerificationToken(
   email: string,
   options: { maxRetries?: number; retryDelay?: number } = {},
 ): Promise<string> {
   const { maxRetries = 20, retryDelay = 1000 } = options;
-  const expectedValue = JSON.stringify({ email });
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const record = await authDb
+    const records = await authDb
       .select()
       .from(verification)
-      .where(eq(verification.value, expectedValue))
       .orderBy(desc(verification.createdAt))
-      .limit(1)
-      .then((rows) => rows[0]);
+      .limit(20);
+
+    const record = records.find((r) => {
+      try {
+        const parsed = JSON.parse(r.value);
+        return parsed.email === email;
+      } catch {
+        return false;
+      }
+    });
 
     if (record) {
       return record.identifier;

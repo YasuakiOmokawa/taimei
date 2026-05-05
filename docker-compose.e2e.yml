@@ -72,6 +72,10 @@ services:
     build:
       context: '../taimei-auth'
       dockerfile: Dockerfile
+      args:
+        APP_ENV: test
+    command: >
+      sh -c "bunx drizzle-kit migrate && bun run src/index.ts"
     environment:
       - PORT=3100
       - DATABASE_URL=postgres://postgres:password@e2e-auth-postgres:5435/auth
@@ -138,7 +142,7 @@ services:
       additional_contexts:
         - common=./
     environment:
-      - CI=${CI}
+      - CI=${CI:-true}
       - PLAYWRIGHT_BASE_URL=http://app.taimei-code.local:3001
       - APP_BASE_URL=http://app.taimei-code.local:3001
       - AUTH_BASE_URL=http://auth.taimei-code.local:3100
