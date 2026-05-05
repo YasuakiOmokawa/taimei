@@ -31,6 +31,14 @@ COPY --chown=${username}:${username} . .
 # パフォーマンス向上のため、vercelへの情報提供を抑止
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Next.js は NEXT_PUBLIC_* を build 時に bundle / middleware へ static replace するため
+# build args で渡す必要がある (runtime env で override 不可)。production / e2e で
+# 異なる host を渡すため Dockerfile では ARG のみ宣言し、 docker-compose 側で値を渡す。
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+ARG NEXT_PUBLIC_AUTH_URL
+ENV NEXT_PUBLIC_AUTH_URL=${NEXT_PUBLIC_AUTH_URL}
+
 # 開発環境で環境立ち上げの速度を上げたい場合、以下コマンドを実行して
 # 立ち上げること
 # $ docker compose build --build-arg APP_BUILD_CMD='' && docker compose up --watch

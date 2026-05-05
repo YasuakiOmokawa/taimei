@@ -14,6 +14,12 @@ import { buildAuthLoginUrl } from "@taimei-code/auth-client";
 const AUTH_URL =
   process.env.NEXT_PUBLIC_AUTH_URL ?? "https://auth.taimei-code.com";
 
+// Next.js v16 middleware の request.url は internal listen address (例: localhost:3001) を
+// 返すケースがあり、Layer B の URL allowlist で弾かれる。NEXT_PUBLIC_APP_URL を base に
+// pathname + search を組んで明示的に絶対 URL を作る。
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://app.taimei-code.com";
+
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -36,10 +42,11 @@ export default async function proxy(request: NextRequest) {
   });
 
   if (!sessionCookie) {
+    const returnTo = `${APP_URL}${pathname}${request.nextUrl.search}`;
     const url = buildAuthLoginUrl({
       authBaseUrl: AUTH_URL,
       service: "taimei",
-      returnTo: request.url,
+      returnTo,
     });
     return NextResponse.redirect(url);
   }
