@@ -42,10 +42,11 @@ parent/
 
 ### 4. port 衝突回避
 
-dev container や grafana 等が port 3001/3100/5433/5435 を占有していないこと:
+他の container や process が port 3001/3100/5433/5435 を占有していないこと。占有時は以下で特定して停止:
 
 ```bash
-docker stop freee-mcp-grafana-1 2>/dev/null   # 例: 3001 占有を解放
+docker ps | grep -E '3001|3100|5433|5435'   # 占有 container を特定
+docker stop <container>                      # 該当 container を停止
 ```
 
 ## 実行
@@ -115,7 +116,7 @@ docker logs taimei-e2e-e2e-auth-service-1 2>&1 | grep "Magic Link"
 → migration 未実行。`e2e-auth-service.command` に `bunx drizzle-kit migrate` が含まれていることを確認。
 
 ### port 3001 衝突
-→ `docker stop freee-mcp-grafana-1` 等で占有プロセスを停止。
+→ `docker ps | grep 3001` で占有 container を特定し、`docker stop <container>` で停止。
 
 ## ローカル開発時の動作確認 (e2e と別)
 

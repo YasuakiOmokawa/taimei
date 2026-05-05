@@ -38,7 +38,7 @@ docker compose up --build --watch
 - 親ディレクトリに `taimei-auth` を clone (build context `../taimei-auth`)
 - `/etc/hosts` に `127.0.0.1 app.taimei-code.local auth.taimei-code.local` を追加 (sudo 必要、一度だけ)
 - `.env` に `NPM_TOKEN=<read:packages 権限の GitHub PAT>` (GitHub Packages から `@taimei-code/auth-client` 取得用)
-- port 3001 が空いていること (`docker stop freee-mcp-grafana-1` で解放できる)
+- port 3001 が空いていること (占有されている場合は `docker ps | grep 3001` で特定して `docker stop <container>` で解放)
 
 ### Magic Link
 
@@ -56,18 +56,18 @@ docker logs taimei-auth-service-1 | grep "Magic Link"
 docker compose build --build-arg APP_BUILD_CMD='' && docker compose up --watch
 ```
 
-### Mac ブラウザでのローカル動作確認 (2026-05-05 完了)
+### ブラウザでのローカル動作確認 (2026-05-05 完了)
 
 `docker compose up --build --watch` でローカル動作確認:
 
-1. AWS EC2 上で claude code が docker compose 起動 (ports 3001/3100 公開)
-2. Mac から VSCode Remote SSH の auto port forwarding 経由で localhost:3001 へ到達
-3. Mac の `/etc/hosts` に `127.0.0.1 app.taimei-code.local auth.taimei-code.local` を追加
+1. docker compose 起動 (ports 3001/3100 公開)
+2. リモート開発環境を使う場合は、ブラウザを動かすマシンへ port を到達可能にする (port forwarding / SSH tunnel 等。ローカル開発なら不要)
+3. ブラウザを動かす OS の `/etc/hosts` に `127.0.0.1 app.taimei-code.local auth.taimei-code.local` を追加
 4. ブラウザ `http://app.taimei-code.local:3001/dashboard` → taimei-auth の SignIn 画面に redirect
 5. メアド入力 → 「Magic Link を送信」→ `docker logs taimei-auth-service-1 | grep "Magic Link"` で URL 取得
-6. URL を Chrome で開く → /dashboard 着地 ✅
+6. URL をブラウザで開く → /dashboard 着地 ✅
 
-これで認証統合のエンドツーエンド動作 (proxy → taimei-auth → Magic Link → cookie → /dashboard) が手動で確認できた。`.local` TLD は Mac の Bonjour 解決で問題になる可能性があったが今回は無事動作。
+これで認証統合のエンドツーエンド動作 (proxy → taimei-auth → Magic Link → cookie → /dashboard) が手動で確認できた。`.local` TLD は macOS の Bonjour 解決で問題になる可能性があったが今回は無事動作。
 
 ## E2E テスト
 
