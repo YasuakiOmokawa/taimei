@@ -197,7 +197,7 @@ describe("UserService", () => {
   describe("delete", () => {
     it("成功時 void", async () => {
       const mock = createMockUserService({
-        delete: () => Effect.succeed(undefined as void),
+        delete: (_id: string) => Effect.succeed(undefined),
       });
       const result = await runWithMock(
         Effect.gen(function* () {
