@@ -1,12 +1,19 @@
 volumes:
   pg-data:
+  auth-pg-data:
 
+# 同一 network 内で network alias によりコンテナ名と独立した DNS 名を提供。
+# - app.taimei-code.local → application (taimei, port 3001)
+# - auth.taimei-code.local → auth-service (taimei-auth, port 3100)
+# Cookie domain (.taimei-code.local) を共有し cross-subdomain SSO を成立させる。
+# dev / e2e で同じ host name + port を採用しているため /etc/hosts 設定は 1 度で済む。
 networks:
-  auth-net:
-    external: true
-    name: taimei-auth_default
+  taimei-network:
+    name: taimei-network
+    driver: bridge
 
 services:
+  # taimei (Next.js) 用 DB
   postgres:
     image: postgres:16.8-alpine3.21
     volumes:
@@ -26,7 +33,10 @@ services:
       interval: 3s
       timeout: 3s
       retries: 5
+    networks:
+      - taimei-network
 
+  # vitest 用 DB (dbEffect / withRollback で利用)
   test_db:
     image: postgres:16.8-alpine3.21
     ports:
@@ -40,24 +50,99 @@ services:
       interval: 3s
       timeout: 3s
       retries: 5
+    networks:
+      - taimei-network
 
+  # taimei-auth 用 DB (sign 流の Layer B / Better Auth が利用)
+  auth-postgres:
+    image: postgres:16.8-alpine3.21
+    volumes:
+      - auth-pg-data:/var/lib/postgresql/data
+    ports:
+      - "5435:5435"
+    environment:
+      - POSTGRES_DB=auth
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - PGPORT=5435
+    healthcheck:
+      test: pg_isready -U postgres -d auth
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - taimei-network
+
+  # taimei-auth 用 Redis (Better Auth secondary storage)
+  auth-redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - taimei-network
+
+  # taimei-auth (Hono + Bun, Layer B 含む) — sibling repo (../taimei-auth) を build context にする。
+  # APP_ENV=development で services.ts の allowlist が .local を許可する (PR #20)。
+  auth-service:
+    build:
+      context: '../taimei-auth'
+      dockerfile: Dockerfile
+      args:
+        APP_ENV: development
+    command: >
+      sh -c "bunx drizzle-kit migrate && bun run src/index.ts"
+    ports:
+      - "3100:3100"
+    environment:
+      - PORT=3100
+      - DATABASE_URL=postgres://postgres:password@auth-postgres:5435/auth
+      - REDIS_URL=redis://auth-redis:6379
+      - AUTH_SERVICE_URL=http://auth.taimei-code.local:3100
+      - AUTH_COOKIE_DOMAIN=taimei-code.local
+      - AUTH_TRUSTED_ORIGINS=http://app.taimei-code.local:3001,http://auth.taimei-code.local:3100
+      - APP_ENV=development
+      - APP_NAME=taimei
+      - AUTH_SECRET=dev-secret-for-local-development-32chars
+    depends_on:
+      auth-postgres:
+        condition: service_healthy
+      auth-redis:
+        condition: service_healthy
+    networks:
+      taimei-network:
+        aliases:
+          - auth.taimei-code.local
+
+  # taimei (Next.js dev server) — Layer B 経由で sign 流 ログインを行う
   application:
     build:
       context: '.'
       dockerfile: Dockerfile
+      args:
+        NPM_TOKEN: ${NPM_TOKEN}
+        NEXT_PUBLIC_APP_URL: http://app.taimei-code.local:3001
+        NEXT_PUBLIC_AUTH_URL: http://auth.taimei-code.local:3100
+        # APP_BUILD_CMD="" で Dockerfile の RUN ${APP_BUILD_CMD} を skip する。
+        # next dev (turbopack) が runtime コンパイルするため build 段階は不要。
+        APP_BUILD_CMD: ""
     ports:
-      - "3000:3000"
+      - "3001:3001"
     command: >
-      sh -c "bun dev"
+      sh -c "bunx drizzle-kit migrate && bun dev"
     user: vscode
     environment:
       - DATABASE_URL=postgres://postgres:password@postgres:5432/postgres
-      - AUTH_SERVICE_URL=http://auth-service:3100
-      - NEXT_PUBLIC_AUTH_SERVICE_URL=http://localhost:3100
-      - AUTH_SERVICE_KEY=${AUTH_SERVICE_KEY:-}
-    networks:
-      - default
-      - auth-net
+      - APP_ENV=development
+      - PORT=3001
+      - NEXT_PUBLIC_APP_URL=http://app.taimei-code.local:3001
+      - NEXT_PUBLIC_AUTH_URL=http://auth.taimei-code.local:3100
+      - AUTH_SERVICE_URL=http://auth.taimei-code.local:3100
+      - AUTH_TRUSTED_ORIGINS=http://app.taimei-code.local:3001,http://auth.taimei-code.local:3100
+      - AUTH_COOKIE_DOMAIN=taimei-code.local
+      - AUTH_SECRET=dev-secret-for-local-development-32chars
     develop:
       watch:
         - action: sync
@@ -68,3 +153,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      taimei-network:
+        aliases:
+          - app.taimei-code.local
