@@ -1,6 +1,6 @@
 # E2E テスト
 
-Playwright + Docker Compose で taimei + taimei-auth (sign 流) を統合的に検証する。
+Playwright + Docker Compose で taimei + taimei-auth (認証サーバー) を統合的に検証する。
 
 ## 構成
 
@@ -94,7 +94,7 @@ docker logs taimei-e2e-e2e-auth-service-1 2>&1 | grep "Magic Link"
 
 | spec | 内容 |
 |------|------|
-| `auth.spec.ts` | sign 流の認証フロー全 7 件 (未認証 redirect / Magic Link / Layer B 画面遷移 / Error 画面) |
+| `auth.spec.ts` | taimei-auth 経由の認証フロー全 7 件 (未認証 redirect / Magic Link / taimei-auth 画面遷移 / Error 画面) |
 | `dashboard.spec.ts` | dashboard ページの表示確認 |
 
 `tests/utils/signIn.ts` の `signInWithMagicLink` helper が:
@@ -119,4 +119,4 @@ docker logs taimei-e2e-e2e-auth-service-1 2>&1 | grep "Magic Link"
 
 ## ローカル開発時の動作確認 (e2e と別)
 
-実際にブラウザで sign 流を動かす場合は **dev compose (`docker-compose.yml`)** を使う。詳細は project ルートの `CLAUDE.md` 参照。
+実際にブラウザで認証フローを動かす場合は **dev compose (`docker-compose.yml`)** を使う。詳細は project ルートの `README.md` 参照。

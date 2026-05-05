@@ -2,20 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 import { buildAuthLoginUrl } from "@taimei-code/auth-client";
 
-// sign 流: 未認証なら taimei-auth (Layer B) に redirect。helper (PR5a) で URL 構築を集約することで
-// クエリ名 typo / 順序ぶれを防ぐ。Cookie 検証は各ページで行うのは旧設計と同じ。
+// 未認証なら taimei-auth (認証サーバー) に redirect。
+// @taimei-code/auth-client の buildAuthLoginUrl で URL 構築を集約し、クエリ名 typo / 順序ぶれを防ぐ。
 //
 // publicPaths:
 // - "/" : LP / 未認証で見える top page
 // - "/api/auth": Better Auth callback (OAuth 戻り URL の処理経路)
-// - "/auth/after-signin", "/auth/after-signup": Layer B からの着地点 (Cookie 設定の race condition
+// - "/auth/after-signin", "/auth/after-signup": taimei-auth からの着地点 (Cookie 設定の race condition
 //   回避のため proxy をスキップ、各ページ側で getSession() で null チェック実装済)
-// 旧 "/auth" は publicPaths から削除 (PR10a で page.tsx ごと削除予定、それまでは Layer B に redirect)。
 const AUTH_URL =
   process.env.NEXT_PUBLIC_AUTH_URL ?? "https://auth.taimei-code.com";
 
 // Next.js v16 middleware の request.url は internal listen address (例: localhost:3001) を
-// 返すケースがあり、Layer B の URL allowlist で弾かれる。NEXT_PUBLIC_APP_URL を base に
+// 返すケースがあり、taimei-auth の URL allowlist で弾かれる。NEXT_PUBLIC_APP_URL を base に
 // pathname + search を組んで明示的に絶対 URL を作る。
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? "https://app.taimei-code.com";

@@ -4,10 +4,10 @@ import { Effect, Either } from "effect";
 import { getSession } from "@/app/lib/auth-guard";
 import { runService, UserProfileService } from "@/app/services";
 
-// Better Auth のログイン後着地点 (sign 流)。Layer B から callbackURL=https://app.taimei-code.com/auth/after-signin に飛んでくる。
+// Better Auth のログイン後着地点。taimei-auth から callbackURL=https://app.taimei-code.com/auth/after-signin に飛んでくる。
 //
 // 分岐:
-// (1) 未認証 (session なし) → Layer B の error 画面に誘導 (signin_failed)
+// (1) 未認証 (session なし) → taimei-auth の error 画面に誘導 (signin_failed)
 // (2) profile が DB に存在しない (初回ログイン) → /setting/profile で補完誘導
 // (3) profile 既存 → /dashboard
 //

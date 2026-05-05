@@ -3,53 +3,88 @@
 心安らかなソリューション。
 それが Taimei
 
-# パッケージインストール
+## パッケージインストール
 
-## アプリケーション用
+### アプリケーション用
 
 ```console
 bun install
 ```
 
-## e2e 用
+### e2e 用
 
 ```console
 npm --prefix ./e2e install ./e2e
 ```
 
-# データベースマイグレーション
+## データベースマイグレーション
 
 ```console
 bunx drizzle-kit migrate
 ```
 
-# 開発環境起動
+## 開発環境起動
 
-`--watch`オプションを指定するとホットリロードが可能です。
+`taimei + taimei-auth (認証サーバー) + DB×2 + Redis` を統合起動する。`--watch` でホットリロード。
 
 ```console
 docker compose up --build --watch
 ```
 
-上記コマンド実行後、以下コマンドを実行して立ち上げると起動時間が早くなります。
-（ただし、ローカルアプリケーションの速度は上記と比べて遅くなります）
+ブラウザは `http://app.taimei-code.local:3001` でアクセス。
+
+### 前提
+
+- 親ディレクトリに `taimei-auth` を clone (build context `../taimei-auth`)
+- `/etc/hosts` に `127.0.0.1 app.taimei-code.local auth.taimei-code.local` を追加 (sudo 必要、一度だけ)
+- `.env` に `NPM_TOKEN=<read:packages 権限の GitHub PAT>` (GitHub Packages から `@taimei-code/auth-client` 取得用)
+- port 3001 が空いていること (`docker stop freee-mcp-grafana-1` で解放できる)
+
+### Magic Link
+
+Magic Link は test mode で console 出力されるため、以下で URL を取得して手動コピペする:
+
+```console
+docker logs taimei-auth-service-1 | grep "Magic Link"
+```
+
+### ビルド時間短縮 (任意)
+
+ビルドキャッシュを効かせて起動を高速化したい場合 (ローカルアプリの実行速度は遅くなる):
 
 ```console
 docker compose build --build-arg APP_BUILD_CMD='' && docker compose up --watch
 ```
 
-# テストコマンド
+### Mac ブラウザでのローカル動作確認 (2026-05-05 完了)
 
-## e2e テスト
+`docker compose up --build --watch` でローカル動作確認:
+
+1. AWS EC2 上で claude code が docker compose 起動 (ports 3001/3100 公開)
+2. Mac から VSCode Remote SSH の auto port forwarding 経由で localhost:3001 へ到達
+3. Mac の `/etc/hosts` に `127.0.0.1 app.taimei-code.local auth.taimei-code.local` を追加
+4. ブラウザ `http://app.taimei-code.local:3001/dashboard` → taimei-auth の SignIn 画面に redirect
+5. メアド入力 → 「Magic Link を送信」→ `docker logs taimei-auth-service-1 | grep "Magic Link"` で URL 取得
+6. URL を Chrome で開く → /dashboard 着地 ✅
+
+これで認証統合のエンドツーエンド動作 (proxy → taimei-auth → Magic Link → cookie → /dashboard) が手動で確認できた。`.local` TLD は Mac の Bonjour 解決で問題になる可能性があったが今回は無事動作。
+
+## E2E テスト
 
 ```console
-E2E_SERVICE_COMMAND='npm test' docker compose -f docker-compose.e2e.yml up --build
+E2E_SERVICE_COMMAND='npm test' \
+  docker compose -p taimei-e2e -f docker-compose.e2e.yml \
+  up --build --abort-on-container-exit --exit-code-from e2e
 ```
 
-## e2e テスト（UI モード）
+`-p taimei-e2e` で dev compose と project / volume を分離。詳細は `e2e/README.md` 参照。
+
+### UI モード
 
 ```console
-E2E_SERVICE_COMMAND='npm run test-ui' docker compose -f docker-compose.e2e.yml up --build --watch
+E2E_SERVICE_COMMAND='npm run test-ui' \
+  docker compose -p taimei-e2e -f docker-compose.e2e.yml \
+  up --build --watch
 ```
 
 # TODO

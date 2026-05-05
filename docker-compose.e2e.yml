@@ -35,7 +35,7 @@ services:
     networks:
       - e2e-network
 
-  # taimei-auth 用 DB (sign 流の Layer B / Better Auth が利用)
+  # taimei-auth (認証サーバー) 用 DB — Better Auth が利用
   e2e-auth-postgres:
     image: postgres:16.8-alpine3.21
     volumes:
@@ -66,8 +66,8 @@ services:
     networks:
       - e2e-network
 
-  # taimei-auth (Hono + Bun, Layer B 含む) — sibling repo を build context にする。
-  # CI で実行する場合は taimei-auth も checkout 必要 (e2e.yml で対応予定 PR12b)。
+  # taimei-auth (認証サーバー, Hono + Bun) — sibling repo を build context にする。
+  # CI では .github/workflows/e2e.yml で taimei-auth を sibling path に clone する。
   e2e-auth-service:
     build:
       context: '../taimei-auth'
@@ -98,7 +98,7 @@ services:
         aliases:
           - auth.taimei-code.local
 
-  # taimei (Next.js) — Layer B 経由で sign 流 ログインを行う
+  # taimei (Next.js) — taimei-auth 経由でログインを行う
   e2e-application:
     build:
       context: '.'
