@@ -4,15 +4,37 @@
 
 ```bash
 bun install                        # パッケージインストール
-docker compose up --build --watch  # 開発環境起動
 bun run test:db                    # DB起動→全テスト→DB停止（推奨）
 bun vitest run <file_path>         # 特定ファイルテスト（test_db起動済み前提）
 bun eslint . --fix                 # ESLint自動修正
 bun tsc --noEmit                   # 型チェック
 bunx drizzle-kit generate          # マイグレーションSQL生成
 bunx drizzle-kit migrate           # マイグレーション適用
-E2E_SERVICE_COMMAND='npm test' docker compose -f docker-compose.e2e.yml up --build  # E2E
 ```
+
+### Local Dev (sign 流統合)
+
+```bash
+docker compose up --build --watch  # taimei + taimei-auth + DB×2 + Redis を統合起動
+```
+
+ブラウザは `http://app.taimei-code.local:3001` でアクセス。Magic Link は test mode で console 出力されるため `docker logs taimei-auth-service-1 | grep "Magic Link"` で URL を取得して手動コピペ。
+
+**前提**:
+- 親ディレクトリに `taimei-auth` を clone (build context `../taimei-auth`)
+- `/etc/hosts` に `127.0.0.1 app.taimei-code.local auth.taimei-code.local` を追加 (sudo 必要、 一度だけ)
+- `.env` に `NPM_TOKEN=<read:packages 権限の GitHub PAT>` (GitHub Packages から `@taimei-code/auth-client` 取得用)
+- port 3001 が空いていること (`docker stop freee-mcp-grafana-1` で解放できる)
+
+### E2E (Playwright)
+
+```bash
+E2E_SERVICE_COMMAND='npm test' \
+  docker compose -p taimei-e2e -f docker-compose.e2e.yml \
+  up --build --abort-on-container-exit --exit-code-from e2e
+```
+
+`-p taimei-e2e` で dev compose と project / volume を分離。詳細は `e2e/README.md` 参照。
 
 ## Tech Stack
 

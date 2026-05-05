@@ -74,6 +74,8 @@ services:
       dockerfile: Dockerfile
       args:
         APP_ENV: test
+    ports:
+      - "3100:3100"
     command: >
       sh -c "bunx drizzle-kit migrate && bun run src/index.ts"
     environment:
