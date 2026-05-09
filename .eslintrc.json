@@ -1,19 +1,14 @@
 {
-  "extends": [
-    "next/core-web-vitals",
-    "next/typescript",
-    "plugin:storybook/recommended"
-  ],
-  "rules": {
-    "@typescript-eslint/no-unused-vars": [
-      "warn",
-      {
-        "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_",
-        "caughtErrorsIgnorePattern": "^_",
-        "destructuredArrayIgnorePattern": "^_"
-      }
-    ],
-    "@typescript-eslint/no-empty-object-type": "off"
-  }
+  "extends": ["next/core-web-vitals"],
+  "ignorePatterns": [
+    ".next/",
+    "node_modules/",
+    "storybook-static/",
+    "coverage/",
+    "drizzle/migrations/",
+    "app/_proto/",
+    "e2e/playwright-report/",
+    "e2e/test-results/",
+    "stories/"
+  ]
 }
