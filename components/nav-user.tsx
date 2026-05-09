@@ -1,5 +1,7 @@
 "use client";
 
+import { BProgress } from "@bprogress/core";
+import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 import {
   Bell,
   ChevronsUpDown,
@@ -7,7 +9,10 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react";
-import { Cog6ToothIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
+import { signOut } from "@/app/lib/actions";
+import { CurrentUser } from "@/app/lib/data";
+import { getInitials } from "@/app/setting/profile/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -24,11 +29,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { signOut } from "@/app/lib/actions";
-import Link from "next/link";
-import { BProgress } from "@bprogress/core";
-import { getInitials } from "@/app/setting/profile/utils";
-import { CurrentUser } from "@/app/lib/data";
 
 export function NavUser({ image, name, email }: CurrentUser) {
   const { isMobile } = useSidebar();

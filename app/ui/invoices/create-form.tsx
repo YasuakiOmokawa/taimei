@@ -1,19 +1,19 @@
 "use client";
 
-import { CustomerField } from "@/app/lib/data";
-import Link from "next/link";
+import { useForm } from "@conform-to/react";
+import { parseWithZod } from "@conform-to/zod/v4";
 import {
   CheckIcon,
   ClockIcon,
   CurrencyDollarIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
-import { Button } from "@/components/ui/button";
-import { createInvoice } from "@/app/lib/actions";
+import Link from "next/link";
 import { useActionState } from "react";
-import { useForm } from "@conform-to/react";
-import { parseWithZod } from "@conform-to/zod/v4";
+import { createInvoice } from "@/app/lib/actions";
+import { CustomerField } from "@/app/lib/data";
 import { invoiceSchema } from "@/app/schema/invoice";
+import { Button } from "@/components/ui/button";
 
 export default function Form({ customers }: { customers: CustomerField[] }) {
   const [lastResult, formAction] = useActionState(createInvoice, undefined);
@@ -28,12 +28,7 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
   });
 
   return (
-    <form
-      id={form.id}
-      onSubmit={form.onSubmit}
-      action={formAction}
-      noValidate
-    >
+    <form id={form.id} onSubmit={form.onSubmit} action={formAction} noValidate>
       <div className="rounded-md bg-gray-50 p-4 md:p-6">
         {/* Customer Name */}
         <div className="mb-4">

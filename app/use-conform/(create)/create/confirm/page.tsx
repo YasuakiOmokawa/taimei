@@ -1,6 +1,6 @@
-import Form from "@/app/use-conform/components/confirm/form";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import Form from "@/app/use-conform/components/confirm/form";
 
 export default async function Page() {
   const headerList = await headers();

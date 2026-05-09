@@ -1,7 +1,7 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
+import { eq } from "drizzle-orm";
 import { Effect } from "effect";
 import { userProfile } from "@/db/drizzle/schema";
-import { eq } from "drizzle-orm";
 import { IdGenerator } from "./id-generator-service";
 import {
   UserProfileNotFound,
@@ -66,5 +66,5 @@ export class UserProfileService extends Effect.Service<UserProfileService>()(
           }),
       } as const;
     }),
-  }
+  },
 ) {}

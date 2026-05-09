@@ -1,12 +1,12 @@
+import { createAuthClient, mapConnectError } from "@taimei-code/auth-client";
 import { Effect } from "effect";
+import { Email } from "@/app/domain/email";
 import {
   AuthServiceError,
   MagicLinkError,
   SessionError,
   SignOutError,
 } from "./auth-errors";
-import { Email } from "@/app/domain/email";
-import { createAuthClient, mapConnectError } from "@taimei-code/auth-client";
 
 const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://localhost:3100";
 const serviceKey = process.env.AUTH_SERVICE_KEY;
@@ -30,7 +30,7 @@ export class AuthService extends Effect.Service<AuthService>()(
               const headersList = await h();
               const cookieHeader = headersList.get("cookie") || "";
               const tokenMatch = cookieHeader.match(
-                /(?:better-auth\.session_token|__Secure-better-auth\.session_token)=([^;]+)/
+                /(?:better-auth\.session_token|__Secure-better-auth\.session_token)=([^;]+)/,
               );
               const token = tokenMatch?.[1];
 
@@ -70,7 +70,7 @@ export class AuthService extends Effect.Service<AuthService>()(
               const headersList = await h();
               const cookieHeader = headersList.get("cookie") || "";
               const tokenMatch = cookieHeader.match(
-                /(?:better-auth\.session_token|__Secure-better-auth\.session_token)=([^;]+)/
+                /(?:better-auth\.session_token|__Secure-better-auth\.session_token)=([^;]+)/,
               );
               const token = tokenMatch?.[1];
 
@@ -123,5 +123,5 @@ export class AuthService extends Effect.Service<AuthService>()(
           }),
       } as const;
     }),
-  }
+  },
 ) {}

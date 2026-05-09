@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
-import { toast } from "sonner";
 import { BProgress } from "@bprogress/core";
-import { deleteAvatar } from "./actions";
+import React from "react";
 import type { Area } from "react-easy-crop";
+import { toast } from "sonner";
+import { deleteAvatar } from "./actions";
 import { getCroppedImage, setFileFromCroppedImage } from "./cropUtils";
 
 export function useAvatar(avatarUrl: string) {
@@ -49,27 +49,27 @@ export function useAvatar(avatarUrl: string) {
         const croppedImage = await getCroppedImage(
           fileInputRef.current.value,
           image,
-          croppedAreaPixelsRef.current
+          croppedAreaPixelsRef.current,
         );
         handleCropComplete(croppedImage);
         setFileFromCroppedImage(
           croppedImage,
           fileInputRef.current,
-          inputFileTypeRef.current
+          inputFileTypeRef.current,
         );
         setIsCropModalOpen(false);
       } catch (e) {
         throw e;
       }
     },
-    [handleCropComplete]
+    [handleCropComplete],
   );
 
   const onCropCompleteCallback = React.useCallback(
     (_: unknown, croppedAreaPixels: Area) => {
       croppedAreaPixelsRef.current = croppedAreaPixels;
     },
-    []
+    [],
   );
 
   const updatePreview = React.useCallback(
@@ -89,7 +89,7 @@ export function useAvatar(avatarUrl: string) {
       };
       reader.readAsDataURL(file);
     },
-    []
+    [],
   );
 
   const emptyPreview = () => {

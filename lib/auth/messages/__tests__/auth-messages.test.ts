@@ -1,14 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { getAuthErrorMessage, getAuthSuccessMessage } from "../auth-messages";
 
 describe("auth-messages", () => {
   describe("getAuthErrorMessage", () => {
     it("正常系: 有効なエラーコードでメッセージを返す", () => {
       expect(getAuthErrorMessage("magic_link_failed")).toBe(
-        "メール送信に失敗しました。"
+        "メール送信に失敗しました。",
       );
       expect(getAuthErrorMessage("signin_failed")).toBe(
-        "ログインに失敗しました。"
+        "ログインに失敗しました。",
       );
     });
 
@@ -21,7 +21,7 @@ describe("auth-messages", () => {
   describe("getAuthSuccessMessage", () => {
     it("正常系: 有効な成功コードでメッセージを返す", () => {
       expect(getAuthSuccessMessage("account_created")).toBe(
-        "アカウントを作成しました"
+        "アカウントを作成しました",
       );
       expect(getAuthSuccessMessage("logged_in")).toBe("ログインしました");
     });

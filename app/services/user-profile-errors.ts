@@ -1,13 +1,13 @@
 import { Data } from "effect";
 
 export class UserProfileNotFound extends Data.TaggedError(
-  "UserProfileNotFound"
+  "UserProfileNotFound",
 )<{
   userId: string;
 }> {}
 
 export class UserProfileServiceError extends Data.TaggedError(
-  "UserProfileServiceError"
+  "UserProfileServiceError",
 )<{
   message: string;
 }> {}

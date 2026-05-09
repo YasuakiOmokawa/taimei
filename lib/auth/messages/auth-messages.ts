@@ -11,7 +11,8 @@ export const AUTH_ERROR_MESSAGES: Record<AuthErrorCode, string> = {
   magic_link_failed: "メール送信に失敗しました。",
   signin_failed: "ログインに失敗しました。",
   signout_failed: "ログアウトに失敗しました。",
-  system_error: "システムエラーが発生しました。しばらく時間をおいて再度お試しください。",
+  system_error:
+    "システムエラーが発生しました。しばらく時間をおいて再度お試しください。",
 };
 
 export const AuthSuccessCode = {

@@ -1,7 +1,7 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
+import { eq, ilike, or, sql } from "drizzle-orm";
 import { Effect } from "effect";
 import { customers, invoices } from "@/db/drizzle/schema";
-import { eq, or, ilike, sql } from "drizzle-orm";
 import { CustomerServiceError } from "./customer-errors";
 
 export class CustomerService extends Effect.Service<CustomerService>()(
@@ -39,15 +39,15 @@ export class CustomerService extends Effect.Service<CustomerService>()(
                   email: customers.email,
                   imageUrl: customers.imageUrl,
                   totalInvoices: sql<number>`count(${invoices.id})`.as(
-                    "total_invoices"
+                    "total_invoices",
                   ),
                   totalPending:
                     sql<number>`sum(case when ${invoices.status} = 'pending' then ${invoices.amount} else 0 end)`.as(
-                      "total_pending"
+                      "total_pending",
                     ),
                   totalPaid:
                     sql<number>`sum(case when ${invoices.status} = 'paid' then ${invoices.amount} else 0 end)`.as(
-                      "total_paid"
+                      "total_paid",
                     ),
                 })
                 .from(customers)
@@ -55,14 +55,14 @@ export class CustomerService extends Effect.Service<CustomerService>()(
                 .where(
                   or(
                     ilike(customers.name, searchPattern),
-                    ilike(customers.email, searchPattern)
-                  )
+                    ilike(customers.email, searchPattern),
+                  ),
                 )
                 .groupBy(
                   customers.id,
                   customers.name,
                   customers.email,
-                  customers.imageUrl
+                  customers.imageUrl,
                 )
                 .orderBy(customers.name);
 
@@ -83,5 +83,5 @@ export class CustomerService extends Effect.Service<CustomerService>()(
           }),
       } as const;
     }),
-  }
+  },
 ) {}

@@ -9,8 +9,8 @@ import {
   Img,
   Preview,
   Section,
-  Text,
   Tailwind,
+  Text,
 } from "@react-email/components";
 
 type WelcomeEmailProps = {

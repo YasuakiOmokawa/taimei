@@ -1,5 +1,5 @@
-import { Toaster } from "@/components/ui/sonner";
 import { cookies } from "next/headers";
+import { Toaster } from "@/components/ui/sonner";
 import { FlashToasterClient } from "./flash-toaster/flash-toaster-client";
 
 export type Flash = {

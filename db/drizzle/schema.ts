@@ -1,17 +1,17 @@
-import {
-  pgTable,
-  varchar,
-  timestamp,
-  text,
-  integer,
-  uuid,
-  foreignKey,
-  date,
-  uniqueIndex,
-  index,
-  primaryKey,
-} from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import {
+  date,
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 
 export const customers = pgTable("customers", {
   id: uuid().defaultRandom().primaryKey().notNull(),
@@ -42,9 +42,7 @@ export const invoices = pgTable(
     id: uuid().defaultRandom().primaryKey().notNull(),
     amount: integer().notNull(),
     status: varchar({ length: 255 }).notNull(),
-    date: date()
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
+    date: date().default(sql`CURRENT_TIMESTAMP`).notNull(),
     customerId: uuid("customer_id").notNull(),
     createdAt: timestamp("created_at", { precision: 6, mode: "string" })
       .default(sql`CURRENT_TIMESTAMP`)
@@ -61,7 +59,7 @@ export const invoices = pgTable(
     })
       .onUpdate("cascade")
       .onDelete("cascade"),
-  ]
+  ],
 );
 
 export const revenue = pgTable(
@@ -79,9 +77,9 @@ export const revenue = pgTable(
   (table) => [
     uniqueIndex("revenue_month_key").using(
       "btree",
-      table.month.asc().nullsLast().op("text_ops")
+      table.month.asc().nullsLast().op("text_ops"),
     ),
-  ]
+  ],
 );
 
 // UserProfile（認証サービス分離後は userId が論理参照。FK なし）
@@ -100,9 +98,9 @@ export const userProfile = pgTable(
   (table) => [
     uniqueIndex("user_profile_userId_key").using(
       "btree",
-      table.userId.asc().nullsLast().op("text_ops")
+      table.userId.asc().nullsLast().op("text_ops"),
     ),
-  ]
+  ],
 );
 
 export const invoicesTotags = pgTable(
@@ -131,5 +129,5 @@ export const invoicesTotags = pgTable(
       columns: [table.a, table.b],
       name: "_invoicesTotags_AB_pkey",
     }),
-  ]
+  ],
 );

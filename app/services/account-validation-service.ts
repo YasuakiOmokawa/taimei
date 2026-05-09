@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { UserService } from "./user-service";
 import { Email } from "@/app/domain/email";
 import { AccountAlreadyExists } from "./account-validation-errors";
+import { UserService } from "./user-service";
 
 export type AccountInput = {
   readonly email: Email;
@@ -33,5 +33,5 @@ export class AccountValidationService extends Effect.Service<AccountValidationSe
           }),
       } as const;
     }),
-  }
+  },
 ) {}

@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
 import { ArrowRight, Menu, X } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
-import MyServiceName from "@/components/my-service-name";
 import MyServiceLogo from "@/components/my-service-logo";
+import MyServiceName from "@/components/my-service-name";
+import { Button } from "@/components/ui/button";
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

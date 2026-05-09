@@ -5,7 +5,7 @@ export class InvoiceNotFound extends Data.TaggedError("InvoiceNotFound")<{
 }> {}
 
 export class InvoiceServiceError extends Data.TaggedError(
-  "InvoiceServiceError"
+  "InvoiceServiceError",
 )<{
   message: string;
 }> {}

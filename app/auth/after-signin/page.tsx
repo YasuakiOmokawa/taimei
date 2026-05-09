@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { Effect, Either } from "effect";
+import { redirect } from "next/navigation";
 
 import { getSession } from "@/app/lib/auth-guard";
 import { runService, UserProfileService } from "@/app/services";

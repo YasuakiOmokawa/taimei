@@ -1,19 +1,19 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { parseWithZod } from "@conform-to/zod/v4";
-import { fetchCurrentUser } from "@/app/lib/data";
 import { del, put } from "@vercel/blob";
-import { userSchema } from "./schema";
 import { Effect, Either } from "effect";
+import { revalidatePath } from "next/cache";
+import { fetchCurrentUser } from "@/app/lib/data";
 import { runService, UserProfileService, UserService } from "@/app/services";
+import { userSchema } from "./schema";
 
 async function updateAvatar(
   id: string,
   parsedValue: {
     avatarUrl?: string | undefined;
     avatar?: File | undefined;
-  }
+  },
 ) {
   if (
     parsedValue.avatarUrl &&
@@ -29,7 +29,7 @@ async function updateAvatar(
       {
         access: "public",
         contentType: parsedValue.avatar.type,
-      }
+      },
     );
     return blob.url;
   }
@@ -37,7 +37,7 @@ async function updateAvatar(
 
 function buildUserUpdateData(
   blobUrl: string | undefined,
-  parsedValue: Record<string, unknown>
+  parsedValue: Record<string, unknown>,
 ): { name?: string; image?: string } {
   const data: { name?: string; image?: string } = {};
 
@@ -54,7 +54,7 @@ function buildUserUpdateData(
 export async function updateUser(
   id: string,
   _prevState: unknown,
-  formData: FormData
+  formData: FormData,
 ) {
   const submission = parseWithZod(formData, { schema: userSchema });
 
@@ -70,7 +70,7 @@ export async function updateUser(
       Effect.gen(function* () {
         const service = yield* UserProfileService;
         return yield* service.upsert(id, submission.value.bio ?? "");
-      })
+      }),
     );
 
     if (Either.isLeft(result)) {
@@ -83,7 +83,7 @@ export async function updateUser(
       Effect.gen(function* () {
         const service = yield* UserService;
         return yield* service.update(id, userData);
-      })
+      }),
     );
 
     if (Either.isLeft(result)) {
@@ -107,11 +107,14 @@ export async function deleteAvatar(url: string) {
     Effect.gen(function* () {
       const service = yield* UserService;
       return yield* service.clearImage(currentUser.id);
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {
-    return { status: "error", message: `Failed to clear avatar: ${result.left._tag}` };
+    return {
+      status: "error",
+      message: `Failed to clear avatar: ${result.left._tag}`,
+    };
   }
 
   revalidatePath("/setting/profile");

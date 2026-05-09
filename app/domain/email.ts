@@ -5,10 +5,10 @@ import { z } from "zod";
 const zodEmail = z.email();
 
 const EmailSchema = Schema.String.pipe(
-  Schema.filter(
-    (s) => (zodEmail.safeParse(s).success ? undefined : "無効なメールアドレス形式です")
+  Schema.filter((s) =>
+    zodEmail.safeParse(s).success ? undefined : "無効なメールアドレス形式です",
   ),
-  Schema.brand("Email")
+  Schema.brand("Email"),
 );
 
 export type Email = typeof EmailSchema.Type;

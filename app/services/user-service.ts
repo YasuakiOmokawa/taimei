@@ -1,7 +1,7 @@
+import { createAuthClient } from "@taimei-code/auth-client";
 import { Effect } from "effect";
 import { Email } from "@/app/domain/email";
 import { UserNotFound, UserServiceError } from "./user-errors";
-import { createAuthClient } from "@taimei-code/auth-client";
 
 const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://localhost:3100";
 const serviceKey = process.env.AUTH_SERVICE_KEY;
@@ -143,5 +143,5 @@ export class UserService extends Effect.Service<UserService>()(
           }),
       } as const;
     }),
-  }
+  },
 ) {}

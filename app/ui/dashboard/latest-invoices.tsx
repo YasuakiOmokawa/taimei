@@ -1,8 +1,8 @@
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import Image from "next/image";
+import { fetchLatestInvoices, LatestInvoice } from "@/app/lib/data";
 import { lusitana } from "@/lib/fonts";
-import { LatestInvoice, fetchLatestInvoices } from "@/app/lib/data";
 export default async function LatestInvoices() {
   const latestInvoices: LatestInvoice[] = await fetchLatestInvoices();
 
@@ -21,7 +21,7 @@ export default async function LatestInvoices() {
                   "flex flex-row items-center justify-between py-4",
                   {
                     "border-t": i !== 0,
-                  }
+                  },
                 )}
               >
                 <div className="flex items-center">

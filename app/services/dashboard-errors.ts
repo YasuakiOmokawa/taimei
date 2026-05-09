@@ -1,7 +1,7 @@
 import { Data } from "effect";
 
 export class DashboardServiceError extends Data.TaggedError(
-  "DashboardServiceError"
+  "DashboardServiceError",
 )<{
   message: string;
 }> {}

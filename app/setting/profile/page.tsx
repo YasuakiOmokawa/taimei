@@ -1,5 +1,4 @@
-import { fetchUserProfile } from "@/app/lib/data";
-import { fetchCurrentUser } from "@/app/lib/data";
+import { fetchCurrentUser, fetchUserProfile } from "@/app/lib/data";
 import { EditForm } from "./edit-form";
 
 export default async function Page() {

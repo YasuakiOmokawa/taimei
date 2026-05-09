@@ -1,6 +1,9 @@
 "use client";
 
-import { useFormMetadata, useField } from "@conform-to/react";
+import { useField, useFormMetadata } from "@conform-to/react";
+import { useAtom } from "jotai/react";
+import Link from "next/link";
+import { emailAtom, nameAtom } from "@/app/lib/atoms/atoms";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,9 +15,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import { emailAtom, nameAtom } from "@/app/lib/atoms/atoms";
-import { useAtom } from "jotai/react";
 
 export default function Form() {
   const form = useFormMetadata();

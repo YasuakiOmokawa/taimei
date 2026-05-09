@@ -1,19 +1,19 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { useActionState } from "react";
 import { useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod/v4";
-import { userSchema } from "@/app/setting/profile/schema";
-import { updateUser } from "./actions";
-import { withCallbacks } from "@/lib/with-callbacks";
+import { useActionState } from "react";
 import { toast } from "sonner";
 import type { CurrentUser, UserProfileSelectionById } from "@/app/lib/data";
 import { AvatarUpload } from "@/app/setting/profile/avatar-upload";
+import { userSchema } from "@/app/setting/profile/schema";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { withCallbacks } from "@/lib/with-callbacks";
+import { updateUser } from "./actions";
 
 type Props = {
   user: CurrentUser;
@@ -27,7 +27,7 @@ export function EditForm({ userProfile, user }: Props) {
         toast.success("プロフィールが更新されました");
       },
     }),
-    undefined
+    undefined,
   );
   const [form, fields] = useForm({
     lastResult,

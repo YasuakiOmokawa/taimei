@@ -10,10 +10,10 @@ type Callbacks<T, R = unknown> = {
 export const withCallbacks = <
   Args extends unknown[],
   T extends SubmissionResult<string[]>,
-  R = unknown
+  R = unknown,
 >(
   fn: (...args: Args) => Promise<T>,
-  callbacks: Callbacks<T, R>
+  callbacks: Callbacks<T, R>,
 ) => {
   return async (...args: Args) => {
     const promise = fn(...args);

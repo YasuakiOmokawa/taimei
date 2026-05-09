@@ -1,6 +1,12 @@
-import { defineFactory, composeFactory } from "@praha/drizzle-factory";
+import { composeFactory, defineFactory } from "@praha/drizzle-factory";
+import {
+  boolean,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { userProfile } from "@/db/drizzle/schema";
-import { pgTable, text, timestamp, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 
 // user テーブルは auth-service DB に移動済みだが、テストでは taimei DB に
 // 残存する user テーブルに直接書き込む（テスト用の暫定措置）
@@ -13,11 +19,17 @@ const user = pgTable(
     emailVerified: boolean("email_verified").default(false).notNull(),
     image: text("image"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()).notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (table) => [
-    uniqueIndex("user_email_key").using("btree", table.email.asc().nullsLast().op("text_ops")),
-  ]
+    uniqueIndex("user_email_key").using(
+      "btree",
+      table.email.asc().nullsLast().op("text_ops"),
+    ),
+  ],
 );
 
 // test-db.ts からも参照するため export
@@ -54,8 +66,11 @@ export const userProfileFactory = defineFactory({
   resolver: ({ sequence, use: useFactory }) => ({
     id: `test-profile-${sequence}`,
     bio: `Test bio ${sequence}`,
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    userId: () => useFactory(userFactory).create().then((u) => u.id),
+    userId: () =>
+      // eslint-disable-next-line react-hooks/rules-of-hooks -- drizzle-factory の use API、React Hook ではない
+      useFactory(userFactory)
+        .create()
+        .then((u) => u.id),
     createdAt: new Date(),
     updatedAt: new Date(),
   }),

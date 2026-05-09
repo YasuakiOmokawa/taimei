@@ -1,6 +1,7 @@
 "use client";
 
-import { CustomerField, InvoiceSelectionById } from "@/app/lib/data";
+import { useForm } from "@conform-to/react";
+import { parseWithZod } from "@conform-to/zod/v4";
 import {
   CheckIcon,
   ClockIcon,
@@ -8,12 +9,11 @@ import {
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { updateInvoice } from "@/app/lib/actions";
 import { useActionState } from "react";
-import { useForm } from "@conform-to/react";
-import { parseWithZod } from "@conform-to/zod/v4";
+import { updateInvoice } from "@/app/lib/actions";
+import { CustomerField, InvoiceSelectionById } from "@/app/lib/data";
 import { invoiceSchema } from "@/app/schema/invoice";
+import { Button } from "@/components/ui/button";
 
 export default function EditInvoiceForm({
   invoice,
@@ -23,7 +23,10 @@ export default function EditInvoiceForm({
   customers: CustomerField[];
 }) {
   const updateInvoiceWithId = updateInvoice.bind(null, invoice.id);
-  const [lastResult, formAction] = useActionState(updateInvoiceWithId, undefined);
+  const [lastResult, formAction] = useActionState(
+    updateInvoiceWithId,
+    undefined,
+  );
   const [form, fields] = useForm({
     lastResult,
 
@@ -40,12 +43,7 @@ export default function EditInvoiceForm({
   });
 
   return (
-    <form
-      id={form.id}
-      onSubmit={form.onSubmit}
-      action={formAction}
-      noValidate
-    >
+    <form id={form.id} onSubmit={form.onSubmit} action={formAction} noValidate>
       <div className="rounded-md bg-gray-50 p-4 md:p-6">
         {/* Customer Name */}
         <div className="mb-4">
