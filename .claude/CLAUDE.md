@@ -46,3 +46,11 @@ Think in English, output in Japanese. コード内コメントも日本語。
 - Better Auth: `https://www.better-auth.com/llms.txt`
 - Next.js: `https://nextjs.org/docs/llms-full.txt`
 - Effect-TS: `https://effect.website/llms-full.txt`
+
+## Pitfalls
+
+### Git / GitHub
+- **Stacked PR の上流マージで `--delete-branch` を付けない**: 下流 PR が auto-close され reopen 不可になる (理由: GitHub は base ブランチが merge されると下流を auto-retarget するが、delete されると orphan として close する)。下流をマージし終わってから手動でブランチ削除する。
+
+### Lint / Formatter
+- **`// eslint-disable-next-line` は formatter の改行で無効化される**: 行番号依存のため Biome 等が改行を入れると disable 対象がズレる。複数行に渡る式を suppress するときは disable コメントを実際の違反行の直上に置くか、ブロック形式 (`/* eslint-disable */ ... /* eslint-enable */`) を使う。
