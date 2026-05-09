@@ -1,16 +1,16 @@
 volumes:
   pg-data:
-  auth-pg-data:
 
-# 同一 network 内で network alias によりコンテナ名と独立した DNS 名を提供。
-# - app.taimei-code.local → application (taimei, port 3001)
-# - auth.taimei-code.local → auth-service (taimei-auth, port 3100)
+# 共有ネットワーク `taimei-network` は taimei-auth (sibling compose) が作成主 (define)。
+# taimei 側は external 参照のみ。先に `cd ../taimei-auth && docker compose up --build` で
+# network と auth-service を起動しておくこと。
+# - app.taimei-code.local → application (taimei, port 3001)         ← 本 compose で alias 付与
+# - auth.taimei-code.local → auth-service (taimei-auth, port 3100)  ← taimei-auth 側で alias 付与
 # Cookie domain (.taimei-code.local) を共有し cross-subdomain SSO を成立させる。
-# dev / e2e で同じ host name + port を採用しているため /etc/hosts 設定は 1 度で済む。
 networks:
   taimei-network:
     name: taimei-network
-    driver: bridge
+    external: true
 
 services:
   # taimei (Next.js) 用 DB
@@ -53,70 +53,8 @@ services:
     networks:
       - taimei-network
 
-  # taimei-auth (認証サーバー) 用 DB — Better Auth が利用
-  auth-postgres:
-    image: postgres:16.8-alpine3.21
-    volumes:
-      - auth-pg-data:/var/lib/postgresql/data
-    ports:
-      - "5435:5435"
-    environment:
-      - POSTGRES_DB=auth
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - PGPORT=5435
-    healthcheck:
-      test: pg_isready -U postgres -d auth
-      interval: 3s
-      timeout: 3s
-      retries: 5
-    networks:
-      - taimei-network
-
-  # taimei-auth 用 Redis (Better Auth secondary storage)
-  auth-redis:
-    image: redis:7-alpine
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 3s
-      timeout: 3s
-      retries: 5
-    networks:
-      - taimei-network
-
-  # taimei-auth (認証サーバー, Hono + Bun) — sibling repo (../taimei-auth) を build context にする。
-  # APP_ENV=development で taimei-auth 側 services.ts の allowlist が .local を許可する。
-  auth-service:
-    build:
-      context: '../taimei-auth'
-      dockerfile: Dockerfile
-      args:
-        APP_ENV: development
-    command: >
-      sh -c "bunx drizzle-kit migrate && bun run src/index.ts"
-    ports:
-      - "3100:3100"
-    environment:
-      - PORT=3100
-      - DATABASE_URL=postgres://postgres:password@auth-postgres:5435/auth
-      - REDIS_URL=redis://auth-redis:6379
-      - AUTH_SERVICE_URL=http://auth.taimei-code.local:3100
-      - AUTH_COOKIE_DOMAIN=taimei-code.local
-      - AUTH_TRUSTED_ORIGINS=http://app.taimei-code.local:3001,http://auth.taimei-code.local:3100
-      - APP_ENV=development
-      - APP_NAME=taimei
-      - AUTH_SECRET=dev-secret-for-local-development-32chars
-    depends_on:
-      auth-postgres:
-        condition: service_healthy
-      auth-redis:
-        condition: service_healthy
-    networks:
-      taimei-network:
-        aliases:
-          - auth.taimei-code.local
-
-  # taimei (Next.js dev server) — taimei-auth 経由でログインを行う
+  # taimei (Next.js dev server) — taimei-auth (sibling compose) の auth-service に依存。
+  # 別 compose のため depends_on で起動順を担保できない。先に taimei-auth 側 compose を起動すること。
   application:
     build:
       context: '.'
@@ -142,7 +80,13 @@ services:
       - AUTH_SERVICE_URL=http://auth.taimei-code.local:3100
       - AUTH_TRUSTED_ORIGINS=http://app.taimei-code.local:3001,http://auth.taimei-code.local:3100
       - AUTH_COOKIE_DOMAIN=taimei-code.local
+      # taimei-auth (auth-service) と Cookie 署名検証を一致させるため、両 compose で同じ dev secret を hardcoded。
+      # 本番はこの環境変数を docker-compose 経由ではなくホスト側の secret manager 等で注入すること。
       - AUTH_SECRET=dev-secret-for-local-development-32chars
+      # taimei → auth-service の ConnectRPC (verifySession 等) で送信する X-Service-Key。
+      # taimei-auth 側の AUTH_SERVICE_KEY と一致必須。一致しないと session 検証が落ち、
+      # after-signin page が getSession()===null を観測して signin_failed に飛ぶ症状になる。
+      - AUTH_SERVICE_KEY=local-dev-key
     develop:
       watch:
         - action: sync
@@ -153,8 +97,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      auth-service:
-        condition: service_started
     networks:
       taimei-network:
         aliases:

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionCookie } from "better-auth/cookies";
 import { buildAuthLoginUrl } from "@taimei-code/auth-client";
 
 // 未認証なら taimei-auth (認証サーバー) に redirect。
@@ -10,6 +9,15 @@ import { buildAuthLoginUrl } from "@taimei-code/auth-client";
 // - "/api/auth": Better Auth callback (OAuth 戻り URL の処理経路)
 // - "/auth/after-signin", "/auth/after-signup": taimei-auth からの着地点 (Cookie 設定の race condition
 //   回避のため proxy をスキップ、各ページ側で getSession() で null チェック実装済)
+//
+// session cookie 名は auth-guard.ts と同じ規約。HTTP は "better-auth.session_token"、HTTPS は
+// "__Secure-" prefix 付き (Better Auth の secure cookie 仕様)。better-auth dependency を直接持たず、
+// cookie 名のみ hardcoded で参照する (Phase 2 で @taimei-code/auth-client に hasAuthCookie helper
+// として集約予定)。
+const SESSION_COOKIE_NAMES = [
+  "better-auth.session_token",
+  "__Secure-better-auth.session_token",
+] as const;
 const AUTH_URL =
   process.env.NEXT_PUBLIC_AUTH_URL ?? "https://auth.taimei-code.com";
 
@@ -19,8 +27,31 @@ const AUTH_URL =
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? "https://app.taimei-code.com";
 
+const AFTER_SIGNIN_URL = `${APP_URL}/auth/after-signin`;
+const AFTER_SIGNUP_URL = `${APP_URL}/auth/after-signup`;
+
+const redirectToAuth = (returnTo: string) =>
+  NextResponse.redirect(
+    buildAuthLoginUrl({
+      authBaseUrl: AUTH_URL,
+      service: "taimei",
+      returnTo,
+      signUpUrl: AFTER_SIGNUP_URL,
+    }),
+  );
+
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // /auth はログイン入口 path。常に taimei-auth に redirect する (cookie 有無を問わず):
+  // - getSessionCookie は cookie の「存在」のみ判定するため、stale な session_token が
+  //   残ると next() に流れて app/auth/page.tsx 不在ゆえ Next.js が 404 を返す
+  // - Cookie 検証 (DB 接続) は proxy では行わず taimei-auth に委譲する責務分離
+  // returnTo は /auth/after-signin に固定 (publicPaths 含み、認証後の dispatch を担う)。
+  // signUpUrl=after-signup で sign-up 完了時の welcome=1 + 5 分窓 gate に乗せる。
+  if (pathname === "/auth") {
+    return redirectToAuth(AFTER_SIGNIN_URL);
+  }
 
   const publicPaths = [
     "/",
@@ -36,18 +67,13 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const sessionCookie = getSessionCookie(request, {
-    cookiePrefix: "better-auth",
-  });
+  const hasSessionCookie = SESSION_COOKIE_NAMES.some(
+    (name) => request.cookies.get(name)?.value,
+  );
 
-  if (!sessionCookie) {
-    const returnTo = `${APP_URL}${pathname}${request.nextUrl.search}`;
-    const url = buildAuthLoginUrl({
-      authBaseUrl: AUTH_URL,
-      service: "taimei",
-      returnTo,
-    });
-    return NextResponse.redirect(url);
+  if (!hasSessionCookie) {
+    // 保護ページに未認証アクセス → 元の path に戻すため returnTo は元 pathname を維持。
+    return redirectToAuth(`${APP_URL}${pathname}${request.nextUrl.search}`);
   }
 
   return NextResponse.next();
