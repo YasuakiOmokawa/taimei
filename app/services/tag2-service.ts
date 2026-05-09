@@ -1,13 +1,9 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
-import { Effect, Schema } from "effect";
-import { tags2 } from "@/db/drizzle/schema";
 import { eq } from "drizzle-orm";
+import { Effect, Schema } from "effect";
 import { Tag2Id } from "@/app/schema/tag2";
-import {
-  Tag2NotFound,
-  Tag2ParseError,
-  Tag2ServiceError,
-} from "./tag2-errors";
+import { tags2 } from "@/db/drizzle/schema";
+import { Tag2NotFound, Tag2ParseError, Tag2ServiceError } from "./tag2-errors";
 
 export class Tag2Service extends Effect.Service<Tag2Service>()(
   "services/Tag2Service",
@@ -23,8 +19,8 @@ export class Tag2Service extends Effect.Service<Tag2Service>()(
               (error) =>
                 new Tag2ParseError({
                   message: `Tag2ParseError: ${error.message}`,
-                })
-            )
+                }),
+            ),
           );
         });
 
@@ -59,5 +55,5 @@ export class Tag2Service extends Effect.Service<Tag2Service>()(
         find,
       } as const;
     }),
-  }
+  },
 ) {}

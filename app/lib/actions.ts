@@ -1,36 +1,35 @@
 "use server";
 
+import { parseWithZod } from "@conform-to/zod/v4";
+import { Effect, Either } from "effect";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { parseWithZod } from "@conform-to/zod/v4";
-import { buildAbsoluteCallbackURL } from "./url-helpers";
-import { emailLinkLoginSchema } from "@/app/schema/login";
+import { Email } from "@/app/domain/email";
 import { invoiceSchema } from "@/app/schema/invoice";
+import { emailLinkLoginSchema } from "@/app/schema/login";
+import {
+  AuthService,
+  InvoiceService,
+  runService,
+  UserService,
+} from "@/app/services";
+import {
+  AUTH_ERROR_MESSAGES,
+  AUTH_SUCCESS_MESSAGES,
+  AuthErrorCode,
+  AuthSuccessCode,
+} from "@/lib/auth/messages/auth-messages";
 import { setFlash } from "@/lib/flash-toaster";
 import { deleteUserSchema } from "../setting/profile/schema";
 import { fetchCurrentUser } from "./data";
-import { Effect, Either } from "effect";
-import {
-  runService,
-  UserService,
-  InvoiceService,
-  AuthService,
-} from "@/app/services";
-import { Email } from "@/app/domain/email";
-import {
-  AuthErrorCode,
-  AuthSuccessCode,
-  AUTH_ERROR_MESSAGES,
-  AUTH_SUCCESS_MESSAGES,
-} from "@/lib/auth/messages/auth-messages";
-
+import { buildAbsoluteCallbackURL } from "./url-helpers";
 
 export async function signOut() {
   const result = await runService(() =>
     Effect.gen(function* () {
       const service = yield* AuthService;
       yield* service.signOut();
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {
@@ -51,7 +50,7 @@ export async function signOut() {
 export async function sendAuthEmailLink(
   redirectPath: string,
   _prevState: unknown,
-  formData: FormData
+  formData: FormData,
 ) {
   const submission = parseWithZod(formData, {
     schema: emailLinkLoginSchema,
@@ -68,9 +67,9 @@ export async function sendAuthEmailLink(
       const service = yield* AuthService;
       yield* service.sendMagicLink(
         Email.fromTrusted(submission.value.email),
-        callbackURL
+        callbackURL,
       );
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {
@@ -105,7 +104,7 @@ export async function createInvoice(_prevState: unknown, formData: FormData) {
         amount: amountInCents,
         status,
       });
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {
@@ -121,7 +120,7 @@ export async function createInvoice(_prevState: unknown, formData: FormData) {
 export async function updateInvoice(
   id: string,
   _prevState: unknown,
-  formData: FormData
+  formData: FormData,
 ) {
   const submission = parseWithZod(formData, { schema: invoiceSchema });
 
@@ -141,7 +140,7 @@ export async function updateInvoice(
         amount: amountInCents,
         status,
       });
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {
@@ -166,7 +165,7 @@ export async function deleteInvoice(id: string, _prevState: unknown) {
     Effect.gen(function* () {
       const service = yield* InvoiceService;
       return yield* service.delete(id);
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {
@@ -203,7 +202,7 @@ export async function deleteUser(_prevState: unknown, formData: FormData) {
     Effect.gen(function* () {
       const service = yield* UserService;
       return yield* service.delete(submission.value.id);
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {

@@ -1,10 +1,9 @@
-import * as React from "react";
+import { BProgress } from "@bprogress/core";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-
-import { cn } from "@/lib/utils";
+import * as React from "react";
 import { useFormStatus } from "react-dom";
-import { BProgress } from "@bprogress/core";
+import { cn } from "@/lib/utils";
 
 BProgress.configure({ showSpinner: false });
 
@@ -34,7 +33,7 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
+  },
 );
 
 export interface ButtonProps
@@ -66,7 +65,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isSending}
       />
     );
-  }
+  },
 );
 Button.displayName = "Button";
 

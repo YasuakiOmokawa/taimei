@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthMessage } from "../useAuthMessage";
 
 const mockGet = vi.fn();
@@ -44,7 +44,7 @@ describe("useAuthMessage", () => {
   describe("エラーコード処理", () => {
     it("正常系: 有効なエラーコードでtoast.errorを呼び出す", () => {
       mockGet.mockImplementation((key: string) =>
-        key === "error" ? "signin_failed" : null
+        key === "error" ? "signin_failed" : null,
       );
 
       renderHook(() => useAuthMessage());
@@ -55,7 +55,7 @@ describe("useAuthMessage", () => {
 
     it("正常系: magic_link_failedエラーで適切なメッセージを表示", () => {
       mockGet.mockImplementation((key: string) =>
-        key === "error" ? "magic_link_failed" : null
+        key === "error" ? "magic_link_failed" : null,
       );
 
       renderHook(() => useAuthMessage());
@@ -65,7 +65,7 @@ describe("useAuthMessage", () => {
 
     it("異常系: 無効なエラーコードではtoastを呼び出さない", () => {
       mockGet.mockImplementation((key: string) =>
-        key === "error" ? "invalid_code" : null
+        key === "error" ? "invalid_code" : null,
       );
 
       renderHook(() => useAuthMessage());
@@ -78,7 +78,7 @@ describe("useAuthMessage", () => {
   describe("成功コード処理", () => {
     it("正常系: 有効な成功コードでtoast.successを呼び出す", () => {
       mockGet.mockImplementation((key: string) =>
-        key === "success" ? "logged_in" : null
+        key === "success" ? "logged_in" : null,
       );
 
       renderHook(() => useAuthMessage());
@@ -89,19 +89,19 @@ describe("useAuthMessage", () => {
 
     it("正常系: magic_link_sent成功で適切なメッセージを表示", () => {
       mockGet.mockImplementation((key: string) =>
-        key === "success" ? "magic_link_sent" : null
+        key === "success" ? "magic_link_sent" : null,
       );
 
       renderHook(() => useAuthMessage());
 
       expect(mockToastSuccess).toHaveBeenCalledWith(
-        "認証リンクをメールで送信しました。"
+        "認証リンクをメールで送信しました。",
       );
     });
 
     it("異常系: 無効な成功コードではtoastを呼び出さない", () => {
       mockGet.mockImplementation((key: string) =>
-        key === "success" ? "invalid_code" : null
+        key === "success" ? "invalid_code" : null,
       );
 
       renderHook(() => useAuthMessage());
@@ -114,7 +114,7 @@ describe("useAuthMessage", () => {
   describe("重複表示防止", () => {
     it("正常系: 同じコードで複数回呼び出されてもtoastは1回のみ", () => {
       mockGet.mockImplementation((key: string) =>
-        key === "error" ? "signin_failed" : null
+        key === "error" ? "signin_failed" : null,
       );
 
       const { rerender } = renderHook(() => useAuthMessage());

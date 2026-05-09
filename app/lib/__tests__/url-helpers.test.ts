@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { headers } from "next/headers";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildAbsoluteCallbackURL } from "../url-helpers";
 
 vi.mock("next/headers", () => ({ headers: vi.fn() }));
@@ -15,7 +15,7 @@ describe("buildAbsoluteCallbackURL", () => {
     } as any);
 
     expect(await buildAbsoluteCallbackURL("/dashboard")).toBe(
-      "http://localhost:3000/dashboard"
+      "http://localhost:3000/dashboard",
     );
   });
 
@@ -29,7 +29,7 @@ describe("buildAbsoluteCallbackURL", () => {
     } as any);
 
     expect(await buildAbsoluteCallbackURL("/dashboard")).toBe(
-      "https://app.taimei-code.com/dashboard"
+      "https://app.taimei-code.com/dashboard",
     );
   });
 
@@ -39,7 +39,7 @@ describe("buildAbsoluteCallbackURL", () => {
     } as any);
 
     expect(await buildAbsoluteCallbackURL("/foo")).toBe(
-      "http://localhost:3000/foo"
+      "http://localhost:3000/foo",
     );
   });
 });

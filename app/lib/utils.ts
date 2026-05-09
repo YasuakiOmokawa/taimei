@@ -18,7 +18,7 @@ export const formatCurrency = (amount: number) => {
 
 export const formatDateToLocal = (
   dateStr: string,
-  locale: string = "en-US"
+  locale: string = "en-US",
 ) => {
   const date = new Date(dateStr);
   const options: Intl.DateTimeFormatOptions = {

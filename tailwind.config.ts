@@ -1,5 +1,5 @@
-import type { Config } from "tailwindcss";
 import formsPlugin from "@tailwindcss/forms";
+import type { Config } from "tailwindcss";
 import animatePlugin from "tailwindcss-animate";
 
 const config: Config = {

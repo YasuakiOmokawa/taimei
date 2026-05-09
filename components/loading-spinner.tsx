@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Loader, Loader2, RefreshCw, RotateCw } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect } from "react";
 
 interface LoadingSpinnerProps {
   isLoading: boolean;

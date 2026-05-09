@@ -1,8 +1,10 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { PgTransaction } from "drizzle-orm/pg-core";
-import type { NodePgQueryResultHKT } from "drizzle-orm/node-postgres";
 import type { ExtractTablesWithRelations } from "drizzle-orm";
+import type {
+  NodePgDatabase,
+  NodePgQueryResultHKT,
+} from "drizzle-orm/node-postgres";
+import { drizzle } from "drizzle-orm/node-postgres";
+import type { PgTransaction } from "drizzle-orm/pg-core";
 import { Pool } from "pg";
 import * as appSchema from "@/db/drizzle/schema";
 import { testTableSchema } from "../factories";
@@ -20,14 +22,18 @@ export const testDb = drizzle(pool, { schema });
 type Schema = typeof schema;
 export type TestDb =
   | NodePgDatabase<Schema>
-  | PgTransaction<NodePgQueryResultHKT, Schema, ExtractTablesWithRelations<Schema>>;
+  | PgTransaction<
+      NodePgQueryResultHKT,
+      Schema,
+      ExtractTablesWithRelations<Schema>
+    >;
 
 /**
  * RSpec の transactional fixtures 相当。テスト間のデータ分離を実現。
  * TRUNCATE より高速（トランザクション中断のみ）
  */
 export async function withRollback<T>(
-  fn: (tx: TestDb) => Promise<T>
+  fn: (tx: TestDb) => Promise<T>,
 ): Promise<T> {
   return await testDb
     .transaction(async (tx) => {

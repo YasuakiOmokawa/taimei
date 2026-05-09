@@ -1,7 +1,7 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
+import { count, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { Effect } from "effect";
-import { invoices, customers } from "@/db/drizzle/schema";
-import { eq, or, ilike, sql, desc, count } from "drizzle-orm";
+import { customers, invoices } from "@/db/drizzle/schema";
 import { InvoiceNotFound, InvoiceServiceError } from "./invoice-errors";
 
 export type CreateInvoiceInput = {
@@ -146,8 +146,8 @@ export class InvoiceService extends Effect.Service<InvoiceService>()(
                     ilike(customers.email, searchPattern),
                     ilike(invoices.status, searchPattern),
                     sql`${invoices.amount}::text ILIKE ${searchPattern}`,
-                    sql`${invoices.date}::text ILIKE ${searchPattern}`
-                  )
+                    sql`${invoices.date}::text ILIKE ${searchPattern}`,
+                  ),
                 )
                 .orderBy(desc(invoices.date))
                 .limit(itemsPerPage)
@@ -174,8 +174,8 @@ export class InvoiceService extends Effect.Service<InvoiceService>()(
                     ilike(customers.email, searchPattern),
                     ilike(invoices.status, searchPattern),
                     sql`${invoices.amount}::text ILIKE ${searchPattern}`,
-                    sql`${invoices.date}::text ILIKE ${searchPattern}`
-                  )
+                    sql`${invoices.date}::text ILIKE ${searchPattern}`,
+                  ),
                 );
 
               return Math.ceil(Number(result[0].count) / itemsPerPage);
@@ -187,5 +187,5 @@ export class InvoiceService extends Effect.Service<InvoiceService>()(
           }),
       } as const;
     }),
-  }
+  },
 ) {}

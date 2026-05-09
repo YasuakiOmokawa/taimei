@@ -1,7 +1,7 @@
 import "@/app/globals.css";
-import { inter } from "@/lib/fonts";
-import FlashToaster from "@/lib/flash-toaster";
 import { ReactNode } from "react";
+import FlashToaster from "@/lib/flash-toaster";
+import { inter } from "@/lib/fonts";
 import Providers from "./providers";
 
 export default async function RootLayout({

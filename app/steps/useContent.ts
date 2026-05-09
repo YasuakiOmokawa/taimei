@@ -1,8 +1,8 @@
 "use client";
 
+import { useAtom } from "jotai/react";
 import { useCallback } from "react";
 import { stepsAtom } from "./atoms";
-import { useAtom } from "jotai/react";
 
 export type StepKey = "one" | "two" | "three";
 
@@ -22,32 +22,32 @@ export const useContent = () => {
               key: prevVal.key,
               isDone: state,
             }
-          : prevVal
+          : prevVal,
       );
       setStepProgress(newProgress);
     },
-    [setStepProgress, stepProgresses]
+    [setStepProgress, stepProgresses],
   );
 
   const getStepProgress = useCallback(
     (step: StepKey) => {
       return stepProgresses.find((value) => value.key === step)?.isDone;
     },
-    [stepProgresses]
+    [stepProgresses],
   );
 
   // 前段のステップがすべて終わってなければ完了ボタンを押せないようにしたい
   const isInactiveStep = useCallback(
     (currentStep: StepKey) => {
       const currentStepIndex = stepProgresses.findIndex(
-        (step) => step.key === currentStep
+        (step) => step.key === currentStep,
       );
       const prevSteps = stepProgresses.filter(
-        (_, index) => index < currentStepIndex
+        (_, index) => index < currentStepIndex,
       );
       return prevSteps.some((step) => step.isDone === false);
     },
-    [stepProgresses]
+    [stepProgresses],
   );
 
   return {

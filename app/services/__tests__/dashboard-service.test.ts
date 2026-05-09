@@ -1,11 +1,10 @@
-import { describe } from "vitest";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { describe } from "vitest";
 import { DashboardService } from "../dashboard-service";
 import { dbEffect } from "./db/effect-test-helpers";
 
 describe("DashboardService", () => {
-
   describe("fetchCardData", () => {
     dbEffect("正常系: データがない場合はゼロ値を返す", () =>
       Effect.gen(function* () {
@@ -16,7 +15,7 @@ describe("DashboardService", () => {
         expect(cardData.numberOfInvoices).toBe(0);
         expect(cardData.totalPaidInvoices).toBe("$0.00");
         expect(cardData.totalPendingInvoices).toBe("$0.00");
-      })
+      }),
     );
   });
 
@@ -27,7 +26,7 @@ describe("DashboardService", () => {
         const revenue = yield* service.fetchRevenue();
 
         expect(revenue).toHaveLength(0);
-      })
+      }),
     );
   });
 
@@ -38,7 +37,7 @@ describe("DashboardService", () => {
         const invoices = yield* service.fetchLatestInvoices();
 
         expect(invoices).toHaveLength(0);
-      })
+      }),
     );
   });
 });

@@ -1,18 +1,18 @@
+import { relations, sql } from "drizzle-orm";
 import {
-  pgTable,
-  varchar,
-  timestamp,
-  text,
-  integer,
-  uuid,
-  foreignKey,
-  date,
-  uniqueIndex,
-  index,
-  primaryKey,
   boolean,
+  date,
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
-import { sql, relations } from "drizzle-orm";
 
 export const customers = pgTable("customers", {
   id: uuid().defaultRandom().primaryKey().notNull(),
@@ -43,9 +43,7 @@ export const invoices = pgTable(
     id: uuid().defaultRandom().primaryKey().notNull(),
     amount: integer().notNull(),
     status: varchar({ length: 255 }).notNull(),
-    date: date()
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
+    date: date().default(sql`CURRENT_TIMESTAMP`).notNull(),
     customerId: uuid("customer_id").notNull(),
     createdAt: timestamp("created_at", { precision: 6, mode: "string" })
       .default(sql`CURRENT_TIMESTAMP`)
@@ -62,7 +60,7 @@ export const invoices = pgTable(
     })
       .onUpdate("cascade")
       .onDelete("cascade"),
-  ]
+  ],
 );
 
 export const revenue = pgTable(
@@ -80,9 +78,9 @@ export const revenue = pgTable(
   (table) => [
     uniqueIndex("revenue_month_key").using(
       "btree",
-      table.month.asc().nullsLast().op("text_ops")
+      table.month.asc().nullsLast().op("text_ops"),
     ),
-  ]
+  ],
 );
 
 // Better Auth 用テーブル（小文字テーブル名）
@@ -103,9 +101,9 @@ export const user = pgTable(
   (table) => [
     uniqueIndex("user_email_key").using(
       "btree",
-      table.email.asc().nullsLast().op("text_ops")
+      table.email.asc().nullsLast().op("text_ops"),
     ),
-  ]
+  ],
 );
 
 export const session = pgTable(
@@ -125,7 +123,7 @@ export const session = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
-  (table) => [index("session_userId_idx").on(table.userId)]
+  (table) => [index("session_userId_idx").on(table.userId)],
 );
 
 export const account = pgTable(
@@ -150,7 +148,7 @@ export const account = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index("account_userId_idx").on(table.userId)]
+  (table) => [index("account_userId_idx").on(table.userId)],
 );
 
 export const verification = pgTable(
@@ -166,7 +164,7 @@ export const verification = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index("verification_identifier_idx").on(table.identifier)]
+  (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
 // UserProfile（Better Auth とは独立したビジネスデータ）
@@ -187,9 +185,9 @@ export const userProfile = pgTable(
   (table) => [
     uniqueIndex("user_profile_userId_key").using(
       "btree",
-      table.userId.asc().nullsLast().op("text_ops")
+      table.userId.asc().nullsLast().op("text_ops"),
     ),
-  ]
+  ],
 );
 
 export const invoicesTotags = pgTable(
@@ -218,7 +216,7 @@ export const invoicesTotags = pgTable(
       columns: [table.a, table.b],
       name: "_invoicesTotags_AB_pkey",
     }),
-  ]
+  ],
 );
 
 // Better Auth Relations

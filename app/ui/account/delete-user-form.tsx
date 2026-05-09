@@ -1,10 +1,10 @@
 "use client";
 
+import { useActionState } from "react";
+import { toast } from "sonner";
 import { deleteUser } from "@/app/lib/actions";
 import { Button } from "@/components/ui/button";
 import { withCallbacks } from "@/lib/with-callbacks";
-import { useActionState } from "react";
-import { toast } from "sonner";
 
 export function DeleteUserForm() {
   const handleClick = (e: React.FormEvent<HTMLFormElement>) => {
@@ -25,7 +25,7 @@ export function DeleteUserForm() {
         }
       },
     }),
-    undefined
+    undefined,
   );
 
   return (

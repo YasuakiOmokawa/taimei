@@ -1,9 +1,9 @@
 // クライアントサイドでの誤用を防止（セッション検証はサーバーサイドでのみ安全）
 import "server-only";
-import { cache } from "react";
+import { createAuthClient, createAuthGuard } from "@taimei-code/auth-client";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createAuthClient, createAuthGuard } from "@taimei-code/auth-client";
+import { cache } from "react";
 
 const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://localhost:3100";
 const serviceKey = process.env.AUTH_SERVICE_KEY;

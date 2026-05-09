@@ -12,7 +12,7 @@ export function getResendClient(): Resend {
 
     if (!apiKey) {
       throw new Error(
-        "AUTH_RESEND_KEY is not configured. Please set it in .env file."
+        "AUTH_RESEND_KEY is not configured. Please set it in .env file.",
       );
     }
 

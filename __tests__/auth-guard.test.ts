@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
@@ -59,9 +59,7 @@ describe("auth-guard", () => {
       const { verifySession } = await import("@/app/lib/auth-guard");
       await verifySession();
 
-      expect(redirect).toHaveBeenCalledWith(
-        "/auth?callbackUrl=%2Fdashboard"
-      );
+      expect(redirect).toHaveBeenCalledWith("/auth?callbackUrl=%2Fdashboard");
     });
 
     test("認証済みの場合、セッションを返す", async () => {

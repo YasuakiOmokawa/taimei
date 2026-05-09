@@ -1,20 +1,19 @@
 "use client";
 
+import { BProgress } from "@bprogress/core";
 import { useCallback, useState } from "react";
-import type { Point } from "react-easy-crop";
+import type { Area, Point } from "react-easy-crop";
 import Cropper from "react-easy-crop";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import type { Area } from "react-easy-crop";
-import { BProgress } from "@bprogress/core";
+import { Slider } from "@/components/ui/slider";
 
 interface Props {
   image: string;

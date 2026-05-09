@@ -1,6 +1,6 @@
-import { describe } from "vitest";
-import { it, expect } from "@effect/vitest";
+import { expect, it } from "@effect/vitest";
 import { Effect } from "effect";
+import { describe } from "vitest";
 import { IdGenerator } from "../id-generator-service";
 
 describe("IdGenerator", () => {
@@ -13,7 +13,7 @@ describe("IdGenerator", () => {
         const uuidV4Regex =
           /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
         expect(id).toMatch(uuidV4Regex);
-      }).pipe(Effect.provide(IdGenerator.Live))
+      }).pipe(Effect.provide(IdGenerator.Live)),
     );
 
     it.effect("呼び出すたびに異なるUUIDを生成する", () =>
@@ -23,7 +23,7 @@ describe("IdGenerator", () => {
         const id2 = yield* idGenerator.generate;
 
         expect(id1).not.toBe(id2);
-      }).pipe(Effect.provide(IdGenerator.Live))
+      }).pipe(Effect.provide(IdGenerator.Live)),
     );
   });
 
@@ -34,7 +34,7 @@ describe("IdGenerator", () => {
         const id = yield* idGenerator.generate;
 
         expect(id).toBe("0000****-000000000000");
-      }).pipe(Effect.provide(IdGenerator.Test))
+      }).pipe(Effect.provide(IdGenerator.Test)),
     );
 
     it.effect("何度呼んでも同じ値を返す", () =>
@@ -45,7 +45,7 @@ describe("IdGenerator", () => {
 
         expect(id1).toBe("0000****-000000000000");
         expect(id2).toBe("0000****-000000000000");
-      }).pipe(Effect.provide(IdGenerator.Test))
+      }).pipe(Effect.provide(IdGenerator.Test)),
     );
   });
 
@@ -62,7 +62,7 @@ describe("IdGenerator", () => {
           "test-uuid-00001",
           "test-uuid-00002",
         ]);
-      }).pipe(Effect.provide(IdGenerator.TestSequence))
+      }).pipe(Effect.provide(IdGenerator.TestSequence)),
     );
 
     it.effect("カウンターは Layer ごとに独立している", () =>
@@ -71,7 +71,7 @@ describe("IdGenerator", () => {
         const idGenerator = yield* IdGenerator;
         const id1 = yield* idGenerator.generate;
         expect(id1).toBe("test-uuid-00000");
-      }).pipe(Effect.provide(IdGenerator.TestSequence))
+      }).pipe(Effect.provide(IdGenerator.TestSequence)),
     );
 
     // Layer 間の独立性を別テストで検証
@@ -80,7 +80,7 @@ describe("IdGenerator", () => {
         const idGenerator = yield* IdGenerator;
         const id = yield* idGenerator.generate;
         expect(id).toBe("test-uuid-00000");
-      }).pipe(Effect.provide(IdGenerator.TestSequence))
+      }).pipe(Effect.provide(IdGenerator.TestSequence)),
     );
   });
 
@@ -91,7 +91,7 @@ describe("IdGenerator", () => {
         const id = yield* idGenerator.generate;
 
         expect(id).toBe("custom-id-12345");
-      }).pipe(Effect.provide(IdGenerator.Custom(() => "custom-id-12345")))
+      }).pipe(Effect.provide(IdGenerator.Custom(() => "custom-id-12345"))),
     );
 
     it.effect("タイムスタンプベースのID生成", () =>
@@ -100,7 +100,7 @@ describe("IdGenerator", () => {
         const id = yield* idGenerator.generate;
 
         expect(id).toMatch(/^id-\d+$/);
-      }).pipe(Effect.provide(IdGenerator.Custom(() => `id-${Date.now()}`)))
+      }).pipe(Effect.provide(IdGenerator.Custom(() => `id-${Date.now()}`))),
     );
   });
 });

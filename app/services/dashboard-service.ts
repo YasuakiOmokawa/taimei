@@ -1,8 +1,8 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
+import { desc, eq, sql } from "drizzle-orm";
 import { Effect } from "effect";
-import { revenue, invoices, customers } from "@/db/drizzle/schema";
-import { sql, desc, eq } from "drizzle-orm";
 import { formatCurrency } from "@/app/lib/utils";
+import { customers, invoices, revenue } from "@/db/drizzle/schema";
 import { DashboardServiceError } from "./dashboard-errors";
 
 export type Revenue = {
@@ -152,5 +152,5 @@ export class DashboardService extends Effect.Service<DashboardService>()(
           }),
       } as const;
     }),
-  }
+  },
 ) {}

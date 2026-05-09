@@ -1,7 +1,10 @@
 "use client";
 
-import * as React from "react";
+import { Cog6ToothIcon, UserIcon } from "@heroicons/react/24/outline";
 import { Command } from "lucide-react";
+import Link from "next/link";
+import * as React from "react";
+import { CurrentUser } from "@/app/lib/data";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
@@ -12,10 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import Link from "next/link";
-import { Cog6ToothIcon, UserIcon } from "@heroicons/react/24/outline";
 import { NavProjects } from "./nav-projects";
-import { CurrentUser } from "@/app/lib/data";
 
 type Props = {
   currentUser: CurrentUser;

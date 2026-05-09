@@ -5,7 +5,7 @@ import { Area } from "react-easy-crop";
 export const setFileFromCroppedImage = (
   croppedImageUrl: string,
   fileInput: HTMLInputElement,
-  inputFileType: string
+  inputFileType: string,
 ) => {
   const dataTransfer = new DataTransfer();
   const fileExtension = inputFileType.split("/").at(1);
@@ -28,7 +28,7 @@ const dataURLtoFile = (dataurl: string, filename: string): File => {
 };
 
 export const generateCroppedImage = async (
-  url: string
+  url: string,
 ): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image();
@@ -41,7 +41,7 @@ export const generateCroppedImage = async (
 export const getCroppedImage = async (
   fileType: string,
   imageSrc: string,
-  pixelCrop: Area
+  pixelCrop: Area,
 ): Promise<string> => {
   const image = await generateCroppedImage(imageSrc);
   const canvas = document.createElement("canvas");
@@ -66,7 +66,7 @@ export const getCroppedImage = async (
   ctx.drawImage(
     image,
     safeArea / 2 - image.width * 0.5,
-    safeArea / 2 - image.height * 0.5
+    safeArea / 2 - image.height * 0.5,
   );
 
   // クロップした領域のデータを取得
@@ -80,7 +80,7 @@ export const getCroppedImage = async (
   ctx.putImageData(
     data,
     Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
-    Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
+    Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y),
   );
 
   // キャンバスをBase64文字列に変換

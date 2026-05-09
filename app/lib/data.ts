@@ -1,13 +1,13 @@
 import { Effect, Either } from "effect";
 import {
-  runService,
-  DashboardService,
-  UserProfileService,
-  InvoiceService,
-  CustomerService,
-  type Revenue,
-  type LatestInvoice,
   type CardData,
+  CustomerService,
+  DashboardService,
+  InvoiceService,
+  type LatestInvoice,
+  type Revenue,
+  runService,
+  UserProfileService,
 } from "@/app/services";
 import { getSession } from "./auth-guard";
 
@@ -18,7 +18,7 @@ export interface CurrentUser {
   image: string;
 }
 
-export type { Revenue, LatestInvoice, CardData };
+export type { CardData, LatestInvoice, Revenue };
 
 // cache() 付き getSession() から導出（二重 RPC 回避）
 export async function fetchCurrentUser(): Promise<CurrentUser> {
@@ -38,7 +38,7 @@ export async function fetchRevenue(): Promise<Revenue[]> {
     Effect.gen(function* () {
       const service = yield* DashboardService;
       return yield* service.fetchRevenue();
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {
@@ -54,7 +54,7 @@ export async function fetchLatestInvoices(): Promise<LatestInvoice[]> {
     Effect.gen(function* () {
       const service = yield* DashboardService;
       return yield* service.fetchLatestInvoices();
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {
@@ -70,13 +70,13 @@ export type UserProfileSelectionById = {
 };
 
 export async function fetchUserProfile(
-  userId: string
+  userId: string,
 ): Promise<UserProfileSelectionById | null> {
   const result = await runService(() =>
     Effect.gen(function* () {
       const service = yield* UserProfileService;
       return yield* service.findByUserId(userId);
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {
@@ -94,7 +94,7 @@ export async function fetchCardData(): Promise<CardData> {
     Effect.gen(function* () {
       const service = yield* DashboardService;
       return yield* service.fetchCardData();
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {
@@ -146,13 +146,13 @@ const formatCurrency = (amount: number) => {
 
 export async function fetchFilteredInvoices(
   query: string,
-  currentPage: number
+  currentPage: number,
 ): Promise<FilteredInvoice[]> {
   const result = await runService(() =>
     Effect.gen(function* () {
       const service = yield* InvoiceService;
       return yield* service.fetchFiltered(query, currentPage);
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {
@@ -176,7 +176,7 @@ export async function fetchInvoicesPages(query: string): Promise<number> {
     Effect.gen(function* () {
       const service = yield* InvoiceService;
       return yield* service.fetchPages(query);
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {
@@ -188,13 +188,13 @@ export async function fetchInvoicesPages(query: string): Promise<number> {
 }
 
 export async function fetchInvoiceById(
-  id: string
+  id: string,
 ): Promise<InvoiceSelectionById | null> {
   const result = await runService(() =>
     Effect.gen(function* () {
       const service = yield* InvoiceService;
       return yield* service.findById(id);
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {
@@ -218,7 +218,7 @@ export async function fetchCustomers(): Promise<CustomerField[]> {
     Effect.gen(function* () {
       const service = yield* CustomerService;
       return yield* service.findAll();
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {
@@ -230,13 +230,13 @@ export async function fetchCustomers(): Promise<CustomerField[]> {
 }
 
 export async function fetchFilteredCustomers(
-  query: string
+  query: string,
 ): Promise<FilteredCustomer[]> {
   const result = await runService(() =>
     Effect.gen(function* () {
       const service = yield* CustomerService;
       return yield* service.fetchFiltered(query);
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {

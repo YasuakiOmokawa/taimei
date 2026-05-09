@@ -1,12 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2023",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext",
-      "ES2023"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext", "ES2023"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -26,15 +21,10 @@
         "name": "@effect/language-service"
       }
     ],
-    "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     },
-    "types": [
-      "vitest/globals"
-    ]
+    "types": ["vitest/globals"]
   },
   "include": [
     "next-env.d.ts",
@@ -45,8 +35,5 @@
     "scripts/seed.js",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "e2e"
-  ]
+  "exclude": ["node_modules", "e2e"]
 }

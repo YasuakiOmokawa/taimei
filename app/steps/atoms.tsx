@@ -20,5 +20,5 @@ export const stepsAtom = atomWithStorage<StepProgress[]>(
   undefined,
   {
     getOnInit: true,
-  }
+  },
 );

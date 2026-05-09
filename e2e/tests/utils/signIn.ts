@@ -136,7 +136,9 @@ export function parseCookies(setCookieHeader: string): Array<{
   secure?: boolean;
   sameSite?: "Strict" | "Lax" | "None";
 }> {
-  const cookieStrings = setCookieHeader.split(/,(?=\s*[a-zA-Z_][a-zA-Z0-9_-]*=)/);
+  const cookieStrings = setCookieHeader.split(
+    /,(?=\s*[a-zA-Z_][a-zA-Z0-9_-]*=)/,
+  );
 
   return cookieStrings.map((cookieStr) => {
     const parts = cookieStr.split(";").map((p) => p.trim());
@@ -169,7 +171,11 @@ export function parseCookies(setCookieHeader: string): Array<{
         cookie.path = attr.split("=")[1];
       } else if (lowerAttr.startsWith("samesite=")) {
         const sameSiteValue = attr.split("=")[1];
-        if (sameSiteValue === "Strict" || sameSiteValue === "Lax" || sameSiteValue === "None") {
+        if (
+          sameSiteValue === "Strict" ||
+          sameSiteValue === "Lax" ||
+          sameSiteValue === "None"
+        ) {
           cookie.sameSite = sameSiteValue;
         }
       }

@@ -1,8 +1,8 @@
-import { describe } from "vitest";
 import { expect } from "@effect/vitest";
 import { Effect, Either } from "effect";
-import { UserProfileService } from "../user-profile-service";
+import { describe } from "vitest";
 import { UserProfileNotFound } from "../user-profile-errors";
+import { UserProfileService } from "../user-profile-service";
 import { dbEffect } from "./db/effect-test-helpers";
 
 describe("UserProfileService", () => {
@@ -13,7 +13,7 @@ describe("UserProfileService", () => {
         Effect.gen(function* () {
           const user = yield* Effect.promise(() => f.user.create());
           yield* Effect.promise(() =>
-            f.userProfile.create({ userId: user.id, bio: "テスト自己紹介" })
+            f.userProfile.create({ userId: user.id, bio: "テスト自己紹介" }),
           );
 
           const service = yield* UserProfileService;
@@ -21,7 +21,7 @@ describe("UserProfileService", () => {
 
           expect(profile.userId).toBe(user.id);
           expect(profile.bio).toBe("テスト自己紹介");
-        })
+        }),
     );
 
     dbEffect(
@@ -38,7 +38,7 @@ describe("UserProfileService", () => {
             expect(result.left).toBeInstanceOf(UserProfileNotFound);
             expect(result.left._tag).toBe("UserProfileNotFound");
           }
-        })
+        }),
     );
   });
 
@@ -52,14 +52,14 @@ describe("UserProfileService", () => {
 
         expect(profile.userId).toBe(user.id);
         expect(profile.bio).toBe("新しい自己紹介");
-      })
+      }),
     );
 
     dbEffect("正常系: 既存プロフィールを更新できる", ({ factory: f }) =>
       Effect.gen(function* () {
         const user = yield* Effect.promise(() => f.user.create());
         yield* Effect.promise(() =>
-          f.userProfile.create({ userId: user.id, bio: "古い自己紹介" })
+          f.userProfile.create({ userId: user.id, bio: "古い自己紹介" }),
         );
 
         const service = yield* UserProfileService;
@@ -67,7 +67,7 @@ describe("UserProfileService", () => {
 
         expect(profile.userId).toBe(user.id);
         expect(profile.bio).toBe("更新後の自己紹介");
-      })
+      }),
     );
   });
 });

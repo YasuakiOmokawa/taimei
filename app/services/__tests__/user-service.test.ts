@@ -1,8 +1,8 @@
-import { describe, it, expect } from "vitest";
 import { Effect, Either } from "effect";
-import { UserService } from "../user-service";
-import { UserNotFound, UserServiceError } from "../user-errors";
+import { describe, expect, it } from "vitest";
 import { Email } from "@/app/domain/email";
+import { UserNotFound, UserServiceError } from "../user-errors";
+import { UserService } from "../user-service";
 
 // ConnectRPC 移行後、UserService は auth-service への RPC 薄いラッパーとなったため、
 // DB 統合テストは成立しない（user テーブルは auth-service 側にある）。
@@ -29,9 +29,7 @@ const buildUser = (over: Partial<MockUser> = {}): MockUser => ({
   ...over,
 });
 
-const createMockUserService = (
-  impl: Partial<UserService> = {}
-): UserService =>
+const createMockUserService = (impl: Partial<UserService> = {}): UserService =>
   new UserService({
     existsByEmail: () => Effect.succeed(false),
     findByEmail: () => Effect.succeed(undefined),
@@ -44,12 +42,12 @@ const createMockUserService = (
 
 const runWithMock = <A, E>(
   effect: Effect.Effect<A, E, UserService>,
-  mock: UserService
+  mock: UserService,
 ) =>
   effect.pipe(
     Effect.provideService(UserService, mock),
     Effect.either,
-    Effect.runPromise
+    Effect.runPromise,
   );
 
 describe("UserService", () => {
@@ -63,7 +61,7 @@ describe("UserService", () => {
           const s = yield* UserService;
           return yield* s.existsByEmail(Email.makeSync("test@example.com"));
         }),
-        mock
+        mock,
       );
       expect(Either.isRight(result)).toBe(true);
       if (Either.isRight(result)) expect(result.right).toBe(true);
@@ -76,7 +74,7 @@ describe("UserService", () => {
           const s = yield* UserService;
           return yield* s.existsByEmail(Email.makeSync("none@example.com"));
         }),
-        mock
+        mock,
       );
       expect(Either.isRight(result)).toBe(true);
       if (Either.isRight(result)) expect(result.right).toBe(false);
@@ -92,7 +90,7 @@ describe("UserService", () => {
           const s = yield* UserService;
           return yield* s.existsByEmail(Email.makeSync("x@example.com"));
         }),
-        mock
+        mock,
       );
       expect(Either.isLeft(result)).toBe(true);
       if (Either.isLeft(result))
@@ -111,10 +109,11 @@ describe("UserService", () => {
           const s = yield* UserService;
           return yield* s.findByEmail(Email.makeSync("found@example.com"));
         }),
-        mock
+        mock,
       );
       expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) expect(result.right?.email).toBe("found@example.com");
+      if (Either.isRight(result))
+        expect(result.right?.email).toBe("found@example.com");
     });
 
     it("不在なら undefined", async () => {
@@ -124,7 +123,7 @@ describe("UserService", () => {
           const s = yield* UserService;
           return yield* s.findByEmail(Email.makeSync("none@example.com"));
         }),
-        mock
+        mock,
       );
       expect(Either.isRight(result)).toBe(true);
       if (Either.isRight(result)) expect(result.right).toBeUndefined();
@@ -142,7 +141,7 @@ describe("UserService", () => {
           const s = yield* UserService;
           return yield* s.findById("abc");
         }),
-        mock
+        mock,
       );
       expect(Either.isRight(result)).toBe(true);
       if (Either.isRight(result)) expect(result.right?.id).toBe("abc");
@@ -155,7 +154,7 @@ describe("UserService", () => {
           const s = yield* UserService;
           return yield* s.findById("none");
         }),
-        mock
+        mock,
       );
       expect(Either.isRight(result)).toBe(true);
       if (Either.isRight(result)) expect(result.right).toBeUndefined();
@@ -173,7 +172,7 @@ describe("UserService", () => {
           const s = yield* UserService;
           return yield* s.update("user-1", { name: "Updated" });
         }),
-        mock
+        mock,
       );
       expect(Either.isRight(result)).toBe(true);
       if (Either.isRight(result)) expect(result.right.name).toBe("Updated");
@@ -186,7 +185,7 @@ describe("UserService", () => {
           const s = yield* UserService;
           return yield* s.update("missing", { name: "x" });
         }),
-        mock
+        mock,
       );
       expect(Either.isLeft(result)).toBe(true);
       if (Either.isLeft(result))
@@ -204,7 +203,7 @@ describe("UserService", () => {
           const s = yield* UserService;
           return yield* s.delete("user-1");
         }),
-        mock
+        mock,
       );
       expect(Either.isRight(result)).toBe(true);
     });
@@ -216,7 +215,7 @@ describe("UserService", () => {
           const s = yield* UserService;
           return yield* s.delete("missing");
         }),
-        mock
+        mock,
       );
       expect(Either.isLeft(result)).toBe(true);
       if (Either.isLeft(result))
@@ -235,7 +234,7 @@ describe("UserService", () => {
           const s = yield* UserService;
           return yield* s.clearImage("user-1");
         }),
-        mock
+        mock,
       );
       expect(Either.isRight(result)).toBe(true);
       if (Either.isRight(result)) expect(result.right.image).toBeNull();
@@ -248,7 +247,7 @@ describe("UserService", () => {
           const s = yield* UserService;
           return yield* s.clearImage("missing");
         }),
-        mock
+        mock,
       );
       expect(Either.isLeft(result)).toBe(true);
       if (Either.isLeft(result))

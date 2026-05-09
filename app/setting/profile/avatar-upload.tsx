@@ -1,15 +1,14 @@
 "use client";
 
-import React from "react";
-
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trash2 } from "lucide-react";
 import { FieldMetadata } from "@conform-to/react";
-import { useAvatar } from "./useAvatar";
-import { getInitials } from "./utils";
+import { Trash2 } from "lucide-react";
+import React from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { CropModal } from "./crop-modal";
 import { FILE_SIZE_PREFIX } from "./schema";
+import { useAvatar } from "./useAvatar";
+import { getInitials } from "./utils";
 
 interface Props {
   avatarUrl: string;

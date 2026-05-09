@@ -1,13 +1,13 @@
-import { describe, it, expect } from "vitest";
 import { Effect, Either, Layer } from "effect";
-import {
-  AccountValidationService,
-  type AccountInput,
-} from "../account-validation-service";
-import { AccountAlreadyExists } from "../account-validation-errors";
-import { UserService } from "../user-service";
-import { UserNotFound } from "../user-errors";
+import { describe, expect, it } from "vitest";
 import { Email } from "@/app/domain/email";
+import { AccountAlreadyExists } from "../account-validation-errors";
+import {
+  type AccountInput,
+  AccountValidationService,
+} from "../account-validation-service";
+import { UserNotFound } from "../user-errors";
+import { UserService } from "../user-service";
 
 // UserService は ConnectRPC 経由で auth-service に問い合わせるため、
 // テスト用に Layer.succeed でモック実装を注入する。
@@ -16,21 +16,24 @@ const createMockUserServiceLayer = (existingEmails: Set<string>) =>
   Layer.succeed(
     UserService,
     new UserService({
-      existsByEmail: (email) => Effect.succeed(existingEmails.has(email as string)),
+      existsByEmail: (email) =>
+        Effect.succeed(existingEmails.has(email as string)),
       findByEmail: () => Effect.succeed(undefined),
       findById: () => Effect.succeed(undefined),
       update: (id) => Effect.fail(new UserNotFound({ id })),
       delete: (id) => Effect.fail(new UserNotFound({ id })),
       clearImage: (id) => Effect.fail(new UserNotFound({ id })),
-    })
+    }),
   );
 
 const runWithExisting = <A, E>(
   effect: Effect.Effect<A, E, AccountValidationService>,
-  existingEmails: Set<string> = new Set()
+  existingEmails: Set<string> = new Set(),
 ) => {
   const mockUserLayer = createMockUserServiceLayer(existingEmails);
-  const layer = AccountValidationService.Default.pipe(Layer.provide(mockUserLayer));
+  const layer = AccountValidationService.Default.pipe(
+    Layer.provide(mockUserLayer),
+  );
   return effect.pipe(Effect.provide(layer), Effect.either, Effect.runPromise);
 };
 
@@ -45,7 +48,7 @@ describe("AccountValidationService", () => {
       Effect.gen(function* () {
         const service = yield* AccountValidationService;
         return yield* service.validate(input);
-      })
+      }),
     );
 
     expect(Either.isRight(result)).toBe(true);
@@ -68,7 +71,7 @@ describe("AccountValidationService", () => {
           name: "U2",
         });
         return [v1, v2] as const;
-      })
+      }),
     );
 
     expect(Either.isRight(result)).toBe(true);
@@ -87,7 +90,7 @@ describe("AccountValidationService", () => {
           name: "Duplicate",
         });
       }),
-      new Set(["existing@example.com"])
+      new Set(["existing@example.com"]),
     );
 
     expect(Either.isLeft(result)).toBe(true);

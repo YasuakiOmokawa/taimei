@@ -1,12 +1,8 @@
-import { describe, it, expect } from "vitest";
 import { Effect, Either } from "effect";
-import { AuthService } from "../auth-service";
-import {
-  AuthServiceError,
-  MagicLinkError,
-  SignOutError,
-} from "../auth-errors";
+import { describe, expect, it } from "vitest";
 import { Email } from "@/app/domain/email";
+import { AuthServiceError, MagicLinkError, SignOutError } from "../auth-errors";
+import { AuthService } from "../auth-service";
 
 // Layer DI を利用したモック実装
 // テストでは providerId のみ使用するため、必要最小限の型定義
@@ -31,13 +27,15 @@ type MockSession = {
   };
 } | null;
 
-const createMockAuthService = (options: {
-  session?: MockSession;
-  signOutError?: boolean;
-  magicLinkError?: boolean;
-  accountQueryError?: boolean;
-  account?: MockAccount;
-} = {}) =>
+const createMockAuthService = (
+  options: {
+    session?: MockSession;
+    signOutError?: boolean;
+    magicLinkError?: boolean;
+    accountQueryError?: boolean;
+    account?: MockAccount;
+  } = {},
+) =>
   new AuthService({
     getSession: () => Effect.succeed(options.session ?? null),
 
@@ -48,27 +46,26 @@ const createMockAuthService = (options: {
 
     sendMagicLink: (_email: Email, _callbackURL: string) =>
       options.magicLinkError
-        ? Effect.fail(new MagicLinkError({ cause: new Error("Magic link failed") }))
+        ? Effect.fail(
+            new MagicLinkError({ cause: new Error("Magic link failed") }),
+          )
         : Effect.succeed(undefined as void),
 
     // テストでは providerId のみ使用するため、型アサーションで簡略化
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     findAccountByUserId: (_userId: string): any =>
       options.accountQueryError
-        ? Effect.fail(
-            new AuthServiceError({ message: "Account query failed" })
-          )
+        ? Effect.fail(new AuthServiceError({ message: "Account query failed" }))
         : Effect.succeed(options.account ?? undefined),
   });
 
 const runWithMock = <A, E>(
   effect: Effect.Effect<A, E, AuthService>,
-  mock: AuthService
+  mock: AuthService,
 ) =>
   effect.pipe(
     Effect.provideService(AuthService, mock),
     Effect.either,
-    Effect.runPromise
+    Effect.runPromise,
   );
 
 describe("AuthService", () => {
@@ -99,7 +96,7 @@ describe("AuthService", () => {
           const service = yield* AuthService;
           return yield* service.getSession();
         }),
-        mock
+        mock,
       );
 
       expect(Either.isRight(result)).toBe(true);
@@ -116,7 +113,7 @@ describe("AuthService", () => {
           const service = yield* AuthService;
           return yield* service.getSession();
         }),
-        mock
+        mock,
       );
 
       expect(Either.isRight(result)).toBe(true);
@@ -135,7 +132,7 @@ describe("AuthService", () => {
           const service = yield* AuthService;
           return yield* service.signOut();
         }),
-        mock
+        mock,
       );
 
       expect(Either.isRight(result)).toBe(true);
@@ -149,7 +146,7 @@ describe("AuthService", () => {
           const service = yield* AuthService;
           return yield* service.signOut();
         }),
-        mock
+        mock,
       );
 
       expect(Either.isLeft(result)).toBe(true);
@@ -169,10 +166,10 @@ describe("AuthService", () => {
           const service = yield* AuthService;
           return yield* service.sendMagicLink(
             Email.makeSync("test@example.com"),
-            "/dashboard"
+            "/dashboard",
           );
         }),
-        mock
+        mock,
       );
 
       expect(Either.isRight(result)).toBe(true);
@@ -186,10 +183,10 @@ describe("AuthService", () => {
           const service = yield* AuthService;
           return yield* service.sendMagicLink(
             Email.makeSync("test@example.com"),
-            "/dashboard"
+            "/dashboard",
           );
         }),
-        mock
+        mock,
       );
 
       expect(Either.isLeft(result)).toBe(true);
@@ -210,7 +207,7 @@ describe("AuthService", () => {
           const service = yield* AuthService;
           return yield* service.findAccountByUserId("user-1");
         }),
-        mock
+        mock,
       );
 
       expect(Either.isRight(result)).toBe(true);
@@ -227,7 +224,7 @@ describe("AuthService", () => {
           const service = yield* AuthService;
           return yield* service.findAccountByUserId("user-1");
         }),
-        mock
+        mock,
       );
 
       expect(Either.isRight(result)).toBe(true);
@@ -244,7 +241,7 @@ describe("AuthService", () => {
           const service = yield* AuthService;
           return yield* service.findAccountByUserId("user-1");
         }),
-        mock
+        mock,
       );
 
       expect(Either.isLeft(result)).toBe(true);

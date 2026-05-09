@@ -229,12 +229,8 @@
           "tableFrom": "invoices",
           "tableTo": "customers",
           "schemaTo": "public",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -434,12 +430,8 @@
           "tableFrom": "Session",
           "tableTo": "User",
           "schemaTo": "public",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -510,12 +502,8 @@
           "tableFrom": "UserProfile",
           "tableTo": "User",
           "schemaTo": "public",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -567,12 +555,8 @@
           "tableFrom": "_invoicesTotags",
           "tableTo": "invoices",
           "schemaTo": "public",
-          "columnsFrom": [
-            "A"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["A"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -581,12 +565,8 @@
           "tableFrom": "_invoicesTotags",
           "tableTo": "tags",
           "schemaTo": "public",
-          "columnsFrom": [
-            "B"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["B"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -594,10 +574,7 @@
       "compositePrimaryKeys": {
         "_invoicesTotags_AB_pkey": {
           "name": "_invoicesTotags_AB_pkey",
-          "columns": [
-            "A",
-            "B"
-          ]
+          "columns": ["A", "B"]
         }
       },
       "uniqueConstraints": {},
@@ -633,10 +610,7 @@
       "compositePrimaryKeys": {
         "VerificationToken_pkey": {
           "name": "VerificationToken_pkey",
-          "columns": [
-            "identifier",
-            "token"
-          ]
+          "columns": ["identifier", "token"]
         }
       },
       "uniqueConstraints": {},
@@ -721,12 +695,8 @@
           "tableFrom": "Authenticator",
           "tableTo": "User",
           "schemaTo": "public",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -734,10 +704,7 @@
       "compositePrimaryKeys": {
         "Authenticator_pkey": {
           "name": "Authenticator_pkey",
-          "columns": [
-            "credentialID",
-            "userId"
-          ]
+          "columns": ["credentialID", "userId"]
         }
       },
       "uniqueConstraints": {},
@@ -836,12 +803,8 @@
           "tableFrom": "Account",
           "tableTo": "User",
           "schemaTo": "public",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -849,10 +812,7 @@
       "compositePrimaryKeys": {
         "Account_pkey": {
           "name": "Account_pkey",
-          "columns": [
-            "provider",
-            "providerAccountId"
-          ]
+          "columns": ["provider", "providerAccountId"]
         }
       },
       "uniqueConstraints": {},

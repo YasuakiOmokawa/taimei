@@ -1,13 +1,13 @@
 "use server";
 
 import { parseWithZod } from "@conform-to/zod/v4";
-import { schema } from "./schema";
+import { Effect, Either } from "effect";
 import { redirect } from "next/navigation";
+import { Email } from "@/app/domain/email";
 import { runService } from "@/app/services";
 import { AccountValidationService } from "@/app/services/account-validation-service";
-import { Effect, Either } from "effect";
 import { setFlash } from "@/lib/flash-toaster";
-import { Email } from "@/app/domain/email";
+import { schema } from "./schema";
 
 export async function createData(_prevState: unknown, formData: FormData) {
   const submission = parseWithZod(formData, {
@@ -25,7 +25,7 @@ export async function createData(_prevState: unknown, formData: FormData) {
         email: Email.fromTrusted(submission.value.email),
         name: submission.value.name,
       });
-    })
+    }),
   );
 
   if (Either.isLeft(result)) {

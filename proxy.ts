@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { buildAuthLoginUrl } from "@taimei-code/auth-client";
+import { NextRequest, NextResponse } from "next/server";
 
 // 未認証なら taimei-auth (認証サーバー) に redirect。
 // @taimei-code/auth-client の buildAuthLoginUrl で URL 構築を集約し、クエリ名 typo / 順序ぶれを防ぐ。

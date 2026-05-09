@@ -6,7 +6,9 @@
     "start": "next start",
     "test": "vitest",
     "test:db": "docker compose up -d test_db --wait && vitest run; EXIT_CODE=$?; docker compose stop test_db; exit $EXIT_CODE",
-    "lint": "next lint",
+    "lint": "biome check . && eslint .",
+    "lint:fix": "biome check --write . && eslint . --fix",
+    "format": "biome format --write .",
     "deployable-test": "next build --turbopack",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
@@ -66,6 +68,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.4.14",
     "@chromatic-com/storybook": "^3",
     "@effect/language-service": "^0.63.0",
     "@effect/vitest": "^0.27.0",

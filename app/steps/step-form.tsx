@@ -1,8 +1,8 @@
 "use client";
 
-import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { StepKey, useContent } from "./useContent";
 
 const STEPS: { key: StepKey; label: string }[] = [
@@ -33,7 +33,7 @@ export default function StepForm() {
         </Button>
       );
     },
-    [getStepProgress, isInactiveStep, handleClickStep]
+    [getStepProgress, isInactiveStep, handleClickStep],
   );
 
   return (

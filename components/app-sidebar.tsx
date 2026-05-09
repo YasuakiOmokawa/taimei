@@ -1,9 +1,10 @@
 "use client";
 
-import * as React from "react";
-import { Command } from "lucide-react";
 import { BanknotesIcon } from "@heroicons/react/24/outline";
-
+import { Command } from "lucide-react";
+import Link from "next/link";
+import * as React from "react";
+import { CurrentUser } from "@/app/lib/data";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import {
@@ -15,8 +16,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import Link from "next/link";
-import { CurrentUser } from "@/app/lib/data";
 
 type Props = {
   currentUser: CurrentUser;

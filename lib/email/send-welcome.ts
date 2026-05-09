@@ -1,16 +1,16 @@
 import { render } from "@react-email/components";
 import {
-  getResendClient,
-  getWelcomeFromEmail,
   getAppName,
   getAppUrl,
+  getResendClient,
+  getWelcomeFromEmail,
   isTestEnvironment,
 } from "./client";
 import WelcomeEmail from "./welcome";
 
 export async function sendWelcomeEmail(
   email: string,
-  userName?: string | null
+  userName?: string | null,
 ): Promise<void> {
   if (isTestEnvironment()) {
     console.log(`[TEST] Welcome email for ${email}`);

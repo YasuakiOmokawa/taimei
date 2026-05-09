@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import {
   AUTH_BASE_URL,
   createTestUser,
@@ -75,9 +75,7 @@ test.describe("認証フロー", () => {
       });
       await page.goto(`${AUTH_BASE_URL}/auth/?${params.toString()}`);
       await page.getByLabel("メールアドレス").fill(newEmail);
-      await page
-        .getByRole("button", { name: "Magic Link を送信" })
-        .click();
+      await page.getByRole("button", { name: "Magic Link を送信" }).click();
 
       // Magic Link 送信完了 (画面に「メールを送信しました」表示)
       await expect(page.getByText(newEmail)).toBeVisible();
@@ -102,9 +100,7 @@ test.describe("認証フロー", () => {
       });
       await page.goto(`${AUTH_BASE_URL}/auth/?${params.toString()}`);
       await page.getByLabel("メールアドレス").fill(existingEmail);
-      await page
-        .getByRole("button", { name: "Magic Link を送信" })
-        .click();
+      await page.getByRole("button", { name: "Magic Link を送信" }).click();
 
       await expect(page.getByText(existingEmail)).toBeVisible();
 
