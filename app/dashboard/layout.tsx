@@ -1,4 +1,4 @@
-import { verifySession } from "@/app/lib/auth-guard";
+import { requireSession } from "@/app/lib/auth-guard";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -10,7 +10,7 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   const [, currentUser] = await Promise.all([
-    verifySession({ returnTo: "/dashboard" }),
+    requireSession({ returnTo: "/dashboard" }),
     fetchCurrentUser(),
   ]);
 
