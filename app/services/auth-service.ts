@@ -24,10 +24,11 @@ export class AuthService extends Effect.Service<AuthService>()(
       });
 
       // next/headers は Server Component / Server Action 文脈外で import すると build error になるため、
-      // tryPromise 内で動的 import する。ES module キャッシュが効くので 2 回目以降のオーバーヘッドはない。
+      // try callback まで評価を遅延する目的で動的 import を使う。ES module キャッシュが効くので
+      // 2 回目以降のオーバーヘッドはない。
       const readSessionToken = async (): Promise<string | undefined> => {
-        const { headers: h } = await import("next/headers");
-        const headersList = await h();
+        const nextHeadersModule = await import("next/headers");
+        const headersList = await nextHeadersModule.headers();
         return extractSessionTokenFromCookieHeader(
           headersList.get("cookie") || "",
         );

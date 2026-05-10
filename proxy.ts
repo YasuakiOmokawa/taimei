@@ -7,6 +7,9 @@ import { NextRequest, NextResponse } from "next/server";
 // - "/" : LP / 未認証で見える top page
 // - "/auth/after-signin", "/auth/after-signup": taimei-auth からの着地点 (Cookie 設定の race condition
 //   回避のため proxy をスキップ、各ページ側で getSession() で null チェック実装済)
+// 注意: 下の判定で `pathname.startsWith(publicPath + "/")` を使うため、prefix 的な path
+//   (例: "/public") を追加すると "/public/任意" が全て公開扱いになる。子 path が公開対象でない
+//   場合は完全一致用の別配列を新設すること。
 const PUBLIC_PATHS = ["/", "/auth/after-signin", "/auth/after-signup"] as const;
 
 const AUTH_URL =
@@ -45,7 +48,8 @@ export default async function proxy(request: NextRequest) {
   }
 
   const isPublicPath = PUBLIC_PATHS.some(
-    (path) => pathname === path || pathname.startsWith(path + "/"),
+    (publicPath) =>
+      pathname === publicPath || pathname.startsWith(publicPath + "/"),
   );
 
   if (isPublicPath) {
