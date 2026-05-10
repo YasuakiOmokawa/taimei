@@ -17,7 +17,7 @@ const createMockUserServiceLayer = (existingEmails: Set<string>) =>
     UserService,
     new UserService({
       existsByEmail: (email) =>
-        Effect.succeed(existingEmails.has(email as string)),
+        Effect.succeed(existingEmails.has(Email.asString(email))),
       findByEmail: () => Effect.succeed(undefined),
       findById: () => Effect.succeed(undefined),
       update: (id) => Effect.fail(new UserNotFound({ id })),
