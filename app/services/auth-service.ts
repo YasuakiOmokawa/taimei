@@ -1,9 +1,7 @@
-import {
-  createAuthClient,
-  extractSessionTokenFromCookieHeader,
-} from "@taimei-code/auth-client";
+import { extractSessionTokenFromCookieHeader } from "@taimei-code/auth-client";
 import { Effect } from "effect";
 import { Email } from "@/app/domain/email";
+import { authClient } from "@/lib/auth/client";
 import {
   AuthServiceError,
   MagicLinkError,
@@ -11,21 +9,18 @@ import {
   SignOutError,
 } from "./auth-errors";
 
-const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://localhost:3100";
-const serviceKey = process.env.AUTH_SERVICE_KEY;
-
 export class AuthService extends Effect.Service<AuthService>()(
   "services/AuthService",
   {
     effect: Effect.gen(function* () {
-      const { authService } = createAuthClient({
-        baseUrl: `${authServiceUrl}/rpc`,
-        serviceKey,
-      });
+      const { authService } = authClient;
 
       // next/headers は Server Component / Server Action 文脈外で import すると build error になるため、
       // try callback まで評価を遅延する目的で動的 import を使う。ES module キャッシュが効くので
       // 2 回目以降のオーバーヘッドはない。
+      // FIXME(ADR-005 Phase 2): auth-guard.ts は SDK helper (getSessionTokenFromCookieStore) 経由、
+      //   ここは生 cookie ヘッダ parse 経由と 2 系統に分裂している。CookieReader Effect.Service として
+      //   抽出し両者を統一する。新規 Service でこの動的 import パターンを真似しないこと。
       const readSessionToken = async (): Promise<string | undefined> => {
         const nextHeadersModule = await import("next/headers");
         const headersList = await nextHeadersModule.headers();

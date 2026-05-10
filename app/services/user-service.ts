@@ -1,19 +1,13 @@
-import { createAuthClient } from "@taimei-code/auth-client";
 import { Effect } from "effect";
 import { Email } from "@/app/domain/email";
+import { authClient } from "@/lib/auth/client";
 import { UserNotFound, UserServiceError } from "./user-errors";
-
-const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://localhost:3100";
-const serviceKey = process.env.AUTH_SERVICE_KEY;
 
 export class UserService extends Effect.Service<UserService>()(
   "services/UserService",
   {
     effect: Effect.gen(function* () {
-      const { userService } = createAuthClient({
-        baseUrl: `${authServiceUrl}/rpc`,
-        serviceKey,
-      });
+      const { userService } = authClient;
 
       return {
         existsByEmail: (email: Email) =>
