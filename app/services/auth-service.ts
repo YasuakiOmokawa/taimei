@@ -1,4 +1,3 @@
-import { extractSessionTokenFromCookieHeader } from "@taimei-code/auth-client";
 import { Effect } from "effect";
 import { Email } from "@/app/domain/email";
 import { authClient } from "@/lib/auth/client";
@@ -8,70 +7,69 @@ import {
   SessionError,
   SignOutError,
 } from "./auth-errors";
+import type { CookieReadError } from "./cookie-reader-errors";
+import { CookieReader } from "./cookie-reader-service";
 
 export class AuthService extends Effect.Service<AuthService>()(
   "services/AuthService",
   {
     effect: Effect.gen(function* () {
       const { authService } = authClient;
+      const cookieReader = yield* CookieReader;
 
-      // next/headers は Server Component / Server Action 文脈外で import すると build error になるため、
-      // try callback まで評価を遅延する目的で動的 import を使う。ES module キャッシュが効くので
-      // 2 回目以降のオーバーヘッドはない。
-      // FIXME(ADR-005 Phase 2): auth-guard.ts は SDK helper (getSessionTokenFromCookieStore) 経由、
-      //   ここは生 cookie ヘッダ parse 経由と 2 系統に分裂している。CookieReader Effect.Service として
-      //   抽出し両者を統一する。新規 Service でこの動的 import パターンを真似しないこと。
-      const readSessionToken = async (): Promise<string | undefined> => {
-        const nextHeadersModule = await import("next/headers");
-        const headersList = await nextHeadersModule.headers();
-        return extractSessionTokenFromCookieHeader(
-          headersList.get("cookie") || "",
+      // CookieReadError を呼出側のエラー型 (SessionError / SignOutError 等) に wrap して
+      // 消費側 (Server Action) のエラーハンドリングを増やさない。
+      // toError の引数は CookieReadError として型付け、cause chain を呼出側で型安全に辿れるようにする。
+      const readToken = <E>(toError: (cause: CookieReadError) => E) =>
+        cookieReader.readSessionToken.pipe(
+          Effect.catchTag("CookieReadError", (e) => Effect.fail(toError(e))),
         );
-      };
 
       return {
         getSession: () =>
-          Effect.tryPromise({
-            try: async () => {
-              const token = await readSessionToken();
+          Effect.gen(function* () {
+            const token = yield* readToken(
+              (cause) => new SessionError({ cause }),
+            );
 
-              if (!token) return null;
+            if (!token) return null;
 
-              const result = await authService.verifySession({
-                sessionToken: token,
-              });
+            const result = yield* Effect.tryPromise({
+              try: () => authService.verifySession({ sessionToken: token }),
+              catch: (e) => new SessionError({ cause: e }),
+            });
 
-              if (!result.user || !result.session) return null;
+            if (!result.user || !result.session) return null;
 
-              return {
-                user: {
-                  id: result.user.id,
-                  name: result.user.name,
-                  email: result.user.email,
-                  emailVerified: result.user.emailVerified,
-                  image: result.user.image ?? null,
-                  createdAt: new Date(result.user.createdAt),
-                  updatedAt: new Date(result.user.updatedAt),
-                },
-                session: {
-                  id: result.session.id,
-                  expiresAt: new Date(result.session.expiresAt),
-                },
-              };
-            },
-            catch: (e) => new SessionError({ cause: e }),
+            return {
+              user: {
+                id: result.user.id,
+                name: result.user.name,
+                email: result.user.email,
+                emailVerified: result.user.emailVerified,
+                image: result.user.image ?? null,
+                createdAt: new Date(result.user.createdAt),
+                updatedAt: new Date(result.user.updatedAt),
+              },
+              session: {
+                id: result.session.id,
+                expiresAt: new Date(result.session.expiresAt),
+              },
+            };
           }),
 
         signOut: () =>
-          Effect.tryPromise({
-            try: async () => {
-              const token = await readSessionToken();
+          Effect.gen(function* () {
+            const token = yield* readToken(
+              (cause) => new SignOutError({ cause }),
+            );
 
-              if (token) {
-                await authService.signOut({ sessionToken: token });
-              }
-            },
-            catch: (e) => new SignOutError({ cause: e }),
+            if (token) {
+              yield* Effect.tryPromise({
+                try: () => authService.signOut({ sessionToken: token }),
+                catch: (e) => new SignOutError({ cause: e }),
+              });
+            }
           }),
 
         sendMagicLink: (email: Email, callbackURL: string) =>
