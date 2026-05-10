@@ -9,7 +9,7 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn(),
 }));
 
-const mockVerifySession = vi.fn();
+const mockRequireSession = vi.fn();
 const mockGetSession = vi.fn();
 
 vi.mock("@taimei-code/auth-client", () => ({
@@ -18,7 +18,7 @@ vi.mock("@taimei-code/auth-client", () => ({
     userService: {},
   }),
   createAuthGuard: () => ({
-    verifySession: mockVerifySession,
+    requireSession: mockRequireSession,
     getSession: mockGetSession,
   }),
 }));
@@ -50,23 +50,23 @@ describe("auth-guard", () => {
     } as any);
   });
 
-  describe("verifySession", () => {
+  describe("requireSession", () => {
     test("未認証の場合、/auth へリダイレクト", async () => {
-      mockVerifySession.mockImplementation(() => {
+      mockRequireSession.mockImplementation(() => {
         redirect("/auth?callbackUrl=%2Fdashboard");
       });
 
-      const { verifySession } = await import("@/app/lib/auth-guard");
-      await verifySession();
+      const { requireSession } = await import("@/app/lib/auth-guard");
+      await requireSession({ returnTo: "/dashboard" });
 
       expect(redirect).toHaveBeenCalledWith("/auth?callbackUrl=%2Fdashboard");
     });
 
     test("認証済みの場合、セッションを返す", async () => {
-      mockVerifySession.mockResolvedValue(mockSession);
+      mockRequireSession.mockResolvedValue(mockSession);
 
-      const { verifySession } = await import("@/app/lib/auth-guard");
-      const result = await verifySession();
+      const { requireSession } = await import("@/app/lib/auth-guard");
+      const result = await requireSession({ returnTo: "/dashboard" });
 
       expect(redirect).not.toHaveBeenCalled();
       expect(result).toEqual(mockSession);
