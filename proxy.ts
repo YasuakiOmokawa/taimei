@@ -1,14 +1,14 @@
 import { buildAuthLoginUrl, hasAuthCookie } from "@taimei-code/auth-client";
 import { NextRequest, NextResponse } from "next/server";
 
-// 未認証なら taimei-auth (認証サーバー) に redirect。
-// @taimei-code/auth-client の buildAuthLoginUrl で URL 構築を、hasAuthCookie で session cookie の
-// 存在判定を SDK に集約する (cookie 名は SDK 内部詳細、ADR-004 Stage A)。
+// 未認証なら taimei-auth (認証サーバー) に redirect。IdP 隠蔽方針は ADR-004 Stage A 参照。
 //
-// publicPaths:
+// PUBLIC_PATHS:
 // - "/" : LP / 未認証で見える top page
 // - "/auth/after-signin", "/auth/after-signup": taimei-auth からの着地点 (Cookie 設定の race condition
 //   回避のため proxy をスキップ、各ページ側で getSession() で null チェック実装済)
+const PUBLIC_PATHS = ["/", "/auth/after-signin", "/auth/after-signup"] as const;
+
 const AUTH_URL =
   process.env.NEXT_PUBLIC_AUTH_URL ?? "https://auth.taimei-code.com";
 
@@ -44,8 +44,7 @@ export default async function proxy(request: NextRequest) {
     return redirectToAuth(AFTER_SIGNIN_URL);
   }
 
-  const publicPaths = ["/", "/auth/after-signin", "/auth/after-signup"];
-  const isPublicPath = publicPaths.some(
+  const isPublicPath = PUBLIC_PATHS.some(
     (path) => pathname === path || pathname.startsWith(path + "/"),
   );
 
