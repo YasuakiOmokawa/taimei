@@ -62,6 +62,18 @@
         "noCommonJs": "error",
         "noHeadElement": "warn",
         "noNamespace": "error",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "better-auth": "ADR-004 により taimei では better-auth を直接 import 禁止。@taimei-code/auth-client を経由すること。",
+              "better-auth/react": "ADR-004 により React UI は taimei-auth でホスト。taimei では better-auth/react import 禁止。",
+              "better-auth/api": "ADR-004 により taimei では better-auth/api 直接 import 禁止。@taimei-code/auth-client/server を経由すること。",
+              "better-auth/client": "ADR-004 により taimei では better-auth/client 直接 import 禁止。@taimei-code/auth-client を経由すること。",
+              "better-auth/plugins": "ADR-004 により taimei では better-auth/plugins 直接 import 禁止。@taimei-code/auth-client が wrap した API を使うこと。"
+            }
+          }
+        },
         "useArrayLiterals": "error",
         "useAsConstAssertion": "error"
       },
