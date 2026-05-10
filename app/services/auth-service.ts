@@ -1,4 +1,7 @@
-import { createAuthClient, mapConnectError } from "@taimei-code/auth-client";
+import {
+  createAuthClient,
+  extractSessionTokenFromCookieHeader,
+} from "@taimei-code/auth-client";
 import { Effect } from "effect";
 import { Email } from "@/app/domain/email";
 import {
@@ -20,19 +23,22 @@ export class AuthService extends Effect.Service<AuthService>()(
         serviceKey,
       });
 
+      // next/headers は Server Component / Server Action 文脈外で import すると build error になるため、
+      // try callback まで評価を遅延する目的で動的 import を使う。ES module キャッシュが効くので
+      // 2 回目以降のオーバーヘッドはない。
+      const readSessionToken = async (): Promise<string | undefined> => {
+        const nextHeadersModule = await import("next/headers");
+        const headersList = await nextHeadersModule.headers();
+        return extractSessionTokenFromCookieHeader(
+          headersList.get("cookie") || "",
+        );
+      };
+
       return {
         getSession: () =>
           Effect.tryPromise({
             try: async () => {
-              // Cookie からセッショントークンを取得するのは呼び出し側の責務
-              // ここでは headers() を直接使わず、auth-guard.ts 経由で呼ばれる
-              const { headers: h } = await import("next/headers");
-              const headersList = await h();
-              const cookieHeader = headersList.get("cookie") || "";
-              const tokenMatch = cookieHeader.match(
-                /(?:better-auth\.session_token|__Secure-better-auth\.session_token)=([^;]+)/,
-              );
-              const token = tokenMatch?.[1];
+              const token = await readSessionToken();
 
               if (!token) return null;
 
@@ -54,9 +60,7 @@ export class AuthService extends Effect.Service<AuthService>()(
                 },
                 session: {
                   id: result.session.id,
-                  token: result.session.token,
                   expiresAt: new Date(result.session.expiresAt),
-                  userId: result.session.userId,
                 },
               };
             },
@@ -66,13 +70,7 @@ export class AuthService extends Effect.Service<AuthService>()(
         signOut: () =>
           Effect.tryPromise({
             try: async () => {
-              const { headers: h } = await import("next/headers");
-              const headersList = await h();
-              const cookieHeader = headersList.get("cookie") || "";
-              const tokenMatch = cookieHeader.match(
-                /(?:better-auth\.session_token|__Secure-better-auth\.session_token)=([^;]+)/,
-              );
-              const token = tokenMatch?.[1];
+              const token = await readSessionToken();
 
               if (token) {
                 await authService.signOut({ sessionToken: token });

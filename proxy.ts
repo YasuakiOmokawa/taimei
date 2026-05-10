@@ -1,23 +1,17 @@
-import { buildAuthLoginUrl } from "@taimei-code/auth-client";
+import { buildAuthLoginUrl, hasAuthCookie } from "@taimei-code/auth-client";
 import { NextRequest, NextResponse } from "next/server";
 
-// 未認証なら taimei-auth (認証サーバー) に redirect。
-// @taimei-code/auth-client の buildAuthLoginUrl で URL 構築を集約し、クエリ名 typo / 順序ぶれを防ぐ。
+// 未認証なら taimei-auth (認証サーバー) に redirect。IdP 隠蔽方針は ADR-004 Stage A 参照。
 //
-// publicPaths:
+// PUBLIC_PATHS:
 // - "/" : LP / 未認証で見える top page
-// - "/api/auth": Better Auth callback (OAuth 戻り URL の処理経路)
 // - "/auth/after-signin", "/auth/after-signup": taimei-auth からの着地点 (Cookie 設定の race condition
 //   回避のため proxy をスキップ、各ページ側で getSession() で null チェック実装済)
-//
-// session cookie 名は auth-guard.ts と同じ規約。HTTP は "better-auth.session_token"、HTTPS は
-// "__Secure-" prefix 付き (Better Auth の secure cookie 仕様)。better-auth dependency を直接持たず、
-// cookie 名のみ hardcoded で参照する (Phase 2 で @taimei-code/auth-client に hasAuthCookie helper
-// として集約予定)。
-const SESSION_COOKIE_NAMES = [
-  "better-auth.session_token",
-  "__Secure-better-auth.session_token",
-] as const;
+// 注意: 下の判定で `pathname.startsWith(publicPath + "/")` を使うため、prefix 的な path
+//   (例: "/public") を追加すると "/public/任意" が全て公開扱いになる。子 path が公開対象でない
+//   場合は完全一致用の別配列を新設すること。
+const PUBLIC_PATHS = ["/", "/auth/after-signin", "/auth/after-signup"] as const;
+
 const AUTH_URL =
   process.env.NEXT_PUBLIC_AUTH_URL ?? "https://auth.taimei-code.com";
 
@@ -53,25 +47,16 @@ export default async function proxy(request: NextRequest) {
     return redirectToAuth(AFTER_SIGNIN_URL);
   }
 
-  const publicPaths = [
-    "/",
-    "/api/auth",
-    "/auth/after-signin",
-    "/auth/after-signup",
-  ];
-  const isPublicPath = publicPaths.some(
-    (path) => pathname === path || pathname.startsWith(path + "/"),
+  const isPublicPath = PUBLIC_PATHS.some(
+    (publicPath) =>
+      pathname === publicPath || pathname.startsWith(publicPath + "/"),
   );
 
   if (isPublicPath) {
     return NextResponse.next();
   }
 
-  const hasSessionCookie = SESSION_COOKIE_NAMES.some(
-    (name) => request.cookies.get(name)?.value,
-  );
-
-  if (!hasSessionCookie) {
+  if (!hasAuthCookie(request)) {
     // 保護ページに未認証アクセス → 元の path に戻すため returnTo は元 pathname を維持。
     return redirectToAuth(`${APP_URL}${pathname}${request.nextUrl.search}`);
   }

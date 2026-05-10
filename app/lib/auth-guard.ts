@@ -1,6 +1,10 @@
 // クライアントサイドでの誤用を防止（セッション検証はサーバーサイドでのみ安全）
 import "server-only";
-import { createAuthClient, createAuthGuard } from "@taimei-code/auth-client";
+import {
+  createAuthClient,
+  createAuthGuard,
+  getSessionTokenFromCookieStore,
+} from "@taimei-code/auth-client";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
@@ -19,10 +23,7 @@ const guard = createAuthGuard({
   redirect,
   getSessionToken: async () => {
     const cookieStore = await cookies();
-    const token =
-      cookieStore.get("better-auth.session_token")?.value ??
-      cookieStore.get("__Secure-better-auth.session_token")?.value;
-    return token;
+    return getSessionTokenFromCookieStore(cookieStore);
   },
 });
 
