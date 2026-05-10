@@ -44,7 +44,7 @@ const createMockAuthService = (
         ? Effect.fail(new SignOutError({ cause: new Error("Sign out failed") }))
         : Effect.succeed(undefined as void),
 
-    sendMagicLink: (_email: Email, _callbackURL: string) =>
+    sendMagicLink: (_email: Email, _callbackUrl: string) =>
       options.magicLinkError
         ? Effect.fail(
             new MagicLinkError({ cause: new Error("Magic link failed") }),

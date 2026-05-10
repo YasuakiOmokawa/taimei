@@ -1,6 +1,7 @@
 import { Effect, Layer, ManagedRuntime } from "effect";
 import { PgDrizzleLive } from "../layers/lives/pg_drizzle_live";
 import { AccountValidationService } from "./account-validation-service";
+import { AuthClient } from "./auth-client-service";
 import { AuthService } from "./auth-service";
 import { CookieReader } from "./cookie-reader-service";
 import { CustomerService } from "./customer-service";
@@ -60,9 +61,10 @@ export { UserService } from "./user-service";
 
 // すべてのサービスの依存関係を一箇所で解決するため Layer.mergeAll で統合
 // Effect.Service は .Default、Effect.Tag は .Live を使用
-// AuthService / UserService は ConnectRPC クライアント (lib/auth/client.ts の singleton) を使うため
-// PgDrizzleLive 不要。AuthService は Phase 2 で CookieReader.Default を別途 provide する (下記参照)。
-const UserServiceLive = UserService.Default;
+// AuthClient.Default は ConnectRPC client (lib/auth/client.ts の singleton) を返すため PgDrizzleLive 不要。
+// AuthService / UserService は AuthClient.Default に依存、AuthService は更に CookieReader.Default にも依存。
+const AuthClientLive = AuthClient.Default;
+const UserServiceLive = UserService.Default.pipe(Layer.provide(AuthClientLive));
 
 export const Live = Layer.mergeAll(
   Tag2Service.Default.pipe(Layer.provide(PgDrizzleLive)),
@@ -75,7 +77,10 @@ export const Live = Layer.mergeAll(
   InvoiceService.Default.pipe(Layer.provide(PgDrizzleLive)),
   CustomerService.Default.pipe(Layer.provide(PgDrizzleLive)),
   AccountValidationService.Default.pipe(Layer.provide(UserServiceLive)),
-  AuthService.Default.pipe(Layer.provide(CookieReader.Default)),
+  AuthService.Default.pipe(
+    Layer.provide(CookieReader.Default),
+    Layer.provide(AuthClientLive),
+  ),
 );
 
 // Next.js の Server Actions から Effect を実行するため、

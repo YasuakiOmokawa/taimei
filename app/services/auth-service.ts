@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { Email } from "@/app/domain/email";
-import { authClient } from "@/lib/auth/client";
+import { AuthClient } from "./auth-client-service";
 import {
   AuthServiceError,
   MagicLinkError,
@@ -14,7 +14,7 @@ export class AuthService extends Effect.Service<AuthService>()(
   "services/AuthService",
   {
     effect: Effect.gen(function* () {
-      const { authService } = authClient;
+      const { authService } = yield* AuthClient;
       const cookieReader = yield* CookieReader;
 
       // CookieReadError を呼出側のエラー型 (SessionError / SignOutError 等) に wrap して
@@ -34,26 +34,26 @@ export class AuthService extends Effect.Service<AuthService>()(
 
             if (!token) return null;
 
-            const result = yield* Effect.tryPromise({
+            const verifyResult = yield* Effect.tryPromise({
               try: () => authService.verifySession({ sessionToken: token }),
               catch: (e) => new SessionError({ cause: e }),
             });
 
-            if (!result.user || !result.session) return null;
+            if (!verifyResult.user || !verifyResult.session) return null;
 
             return {
               user: {
-                id: result.user.id,
-                name: result.user.name,
-                email: result.user.email,
-                emailVerified: result.user.emailVerified,
-                image: result.user.image ?? null,
-                createdAt: new Date(result.user.createdAt),
-                updatedAt: new Date(result.user.updatedAt),
+                id: verifyResult.user.id,
+                name: verifyResult.user.name,
+                email: verifyResult.user.email,
+                emailVerified: verifyResult.user.emailVerified,
+                image: verifyResult.user.image ?? null,
+                createdAt: new Date(verifyResult.user.createdAt),
+                updatedAt: new Date(verifyResult.user.updatedAt),
               },
               session: {
-                id: result.session.id,
-                expiresAt: new Date(result.session.expiresAt),
+                id: verifyResult.session.id,
+                expiresAt: new Date(verifyResult.session.expiresAt),
               },
             };
           }),
@@ -72,36 +72,40 @@ export class AuthService extends Effect.Service<AuthService>()(
             }
           }),
 
-        sendMagicLink: (email: Email, callbackURL: string) =>
+        sendMagicLink: (email: Email, callbackUrl: string) =>
           Effect.tryPromise({
             try: async () => {
               await authService.sendMagicLink({
-                email: email as string,
-                callbackUrl: callbackURL,
+                email: Email.asString(email),
+                callbackUrl,
               });
             },
             catch: (e) => new MagicLinkError({ cause: e }),
           }),
 
+        // FIXME(ADR-005 DA2): null / new Date() の padding は proto contract が optional 化されて
+        //   いないため呼出側型を満たす目的の偽値。OAuth provider 連携拡張時に proto 側で optional
+        //   化し、ここの padding を削除する。`createdAt: new Date()` は事実と異なるため、呼出側で
+        //   この値を信用しないこと (account 作成日時としては使えない)。
         findAccountByUserId: (userId: string) =>
           Effect.tryPromise({
             try: async () => {
-              const result = await authService.findAccountByUserId({
+              const accountResult = await authService.findAccountByUserId({
                 userId,
               });
-              if (!result.account) return undefined;
+              if (!accountResult.account) return undefined;
 
               return {
-                id: result.account.id,
-                accountId: result.account.accountId,
-                providerId: result.account.providerId,
-                userId: result.account.userId,
-                accessToken: result.account.accessToken ?? null,
-                refreshToken: result.account.refreshToken ?? null,
+                id: accountResult.account.id,
+                accountId: accountResult.account.accountId,
+                providerId: accountResult.account.providerId,
+                userId: accountResult.account.userId,
+                accessToken: accountResult.account.accessToken ?? null,
+                refreshToken: accountResult.account.refreshToken ?? null,
                 idToken: null,
                 accessTokenExpiresAt: null,
                 refreshTokenExpiresAt: null,
-                scope: result.account.scope ?? null,
+                scope: accountResult.account.scope ?? null,
                 password: null,
                 createdAt: new Date(),
                 updatedAt: new Date(),

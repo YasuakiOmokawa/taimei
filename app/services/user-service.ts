@@ -1,20 +1,20 @@
 import { Effect } from "effect";
 import { Email } from "@/app/domain/email";
-import { authClient } from "@/lib/auth/client";
+import { AuthClient } from "./auth-client-service";
 import { UserNotFound, UserServiceError } from "./user-errors";
 
 export class UserService extends Effect.Service<UserService>()(
   "services/UserService",
   {
     effect: Effect.gen(function* () {
-      const { userService } = authClient;
+      const { userService } = yield* AuthClient;
 
       return {
         existsByEmail: (email: Email) =>
           Effect.tryPromise({
             try: async () => {
               const result = await userService.findUserByEmail({
-                email: email as string,
+                email: Email.asString(email),
               });
               return result.user !== undefined;
             },
@@ -26,7 +26,7 @@ export class UserService extends Effect.Service<UserService>()(
           Effect.tryPromise({
             try: async () => {
               const result = await userService.findUserByEmail({
-                email: email as string,
+                email: Email.asString(email),
               });
               if (!result.user) return undefined;
 
