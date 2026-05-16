@@ -3,4 +3,7 @@
 # ADR-0001 参照
 minimumReleaseAge = 604800
 # excludes は空配列で明示し、緊急避難で除外を増やすときレビューを必須化する
-minimumReleaseAgeExcludes = []
+minimumReleaseAgeExcludes = ["@taimei-code/auth-client"]
+# bun audit は bun.lock テキスト形式を未サポート (bun v1.3.5 時点)
+# バイナリ形式 bun.lockb を維持するため saveTextLockfile = false に設定
+saveTextLockfile = false
