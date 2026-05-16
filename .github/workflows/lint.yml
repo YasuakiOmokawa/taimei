@@ -23,6 +23,9 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Security audit
+        run: bun audit --audit-level=high
+
       - name: Biome + ESLint
         run: bun run lint
 
