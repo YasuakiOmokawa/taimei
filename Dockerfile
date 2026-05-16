@@ -21,7 +21,7 @@ WORKDIR /app
 # ${NPM_TOKEN} の展開は Docker build 時に --build-arg NPM_TOKEN=$NPM_TOKEN で渡す。
 COPY --chown=${username}:${username} .npmrc ./
 COPY --chown=${username}:${username} package.json ./
-COPY --chown=${username}:${username} bun.lockb ./
+COPY --chown=${username}:${username} bun.lock ./
 ARG NPM_TOKEN
 RUN bun install --frozen-lockfile --ignore-scripts
 
