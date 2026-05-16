@@ -23,7 +23,7 @@ COPY --chown=${username}:${username} .npmrc ./
 COPY --chown=${username}:${username} package.json ./
 COPY --chown=${username}:${username} bun.lockb ./
 ARG NPM_TOKEN
-RUN bun install
+RUN bun install --frozen-lockfile --ignore-scripts
 
 # アプリケーションコードをコピー
 COPY --chown=${username}:${username} . .
