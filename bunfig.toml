@@ -1,0 +1,4 @@
+[install]
+# publish 直後 7 日間の version を install しない (Shai-Hulud worm 等の即時拡散を防ぐ)
+# ADR-0001 参照
+minimumReleaseAge = 604800
