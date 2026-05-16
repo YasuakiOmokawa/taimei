@@ -1,0 +1,6 @@
+[install]
+# publish 直後 7 日間 (604800 秒) の version を install しない (Shai-Hulud worm 等の即時拡散を防ぐ)
+# ADR-0001 参照
+minimumReleaseAge = 604800
+# @taimei-code/auth-client は内部 publish のため 7 日待たない (実害の判定はレビューで担保)
+minimumReleaseAgeExcludes = ["@taimei-code/auth-client"]
