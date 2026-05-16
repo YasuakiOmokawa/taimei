@@ -56,7 +56,7 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (!hasAuthCookie(request)) {
+  if (!hasAuthCookie((name) => request.cookies.get(name)?.value)) {
     // 保護ページに未認証アクセス → 元の path に戻すため returnTo は元 pathname を維持。
     return redirectToAuth(`${APP_URL}${pathname}${request.nextUrl.search}`);
   }

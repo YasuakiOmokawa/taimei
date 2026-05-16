@@ -9,18 +9,25 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn(),
 }));
 
-const mockRequireSession = vi.fn();
 const mockGetSession = vi.fn();
 
+// SDK 0.5.0 (ADR-007) で createAuthGuard 戻り値は { getSession } のみ。
+// requireSession は consumer 側 wrapper (`app/lib/auth-guard.ts`) で実装するため
+// mock せず実装ごとテストする (session の有無で redirect が呼ばれることを assert)。
 vi.mock("@taimei-code/auth-client", () => ({
   createAuthClient: () => ({
     authService: { verifySession: vi.fn() },
     userService: {},
   }),
   createAuthGuard: () => ({
-    requireSession: mockRequireSession,
     getSession: mockGetSession,
   }),
+  createServiceKeyInterceptor: vi.fn(() => () => ({})),
+  getSessionToken: vi.fn(),
+}));
+
+vi.mock("@connectrpc/connect-node", () => ({
+  createConnectTransport: vi.fn(() => ({})),
 }));
 
 const mockSession = {
@@ -35,9 +42,7 @@ const mockSession = {
   },
   session: {
     id: "session-id",
-    token: "test-token",
     expiresAt: new Date(Date.now() + 86400000).toISOString(),
-    userId: "user-id",
   },
 };
 
@@ -50,11 +55,9 @@ describe("auth-guard", () => {
     } as any);
   });
 
-  describe("requireSession", () => {
+  describe("requireSession (consumer wrapper)", () => {
     test("未認証の場合、/auth へリダイレクト", async () => {
-      mockRequireSession.mockImplementation(() => {
-        redirect("/auth?callbackUrl=%2Fdashboard");
-      });
+      mockGetSession.mockResolvedValue(null);
 
       const { requireSession } = await import("@/app/lib/auth-guard");
       await requireSession({ returnTo: "/dashboard" });
@@ -63,7 +66,7 @@ describe("auth-guard", () => {
     });
 
     test("認証済みの場合、セッションを返す", async () => {
-      mockRequireSession.mockResolvedValue(mockSession);
+      mockGetSession.mockResolvedValue(mockSession);
 
       const { requireSession } = await import("@/app/lib/auth-guard");
       const result = await requireSession({ returnTo: "/dashboard" });
