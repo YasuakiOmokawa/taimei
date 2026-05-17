@@ -39,21 +39,28 @@ export class AuthService extends Effect.Service<AuthService>()(
               catch: (e) => new SessionError({ cause: e }),
             });
 
-            if (!verifyResult.user || !verifyResult.session) return null;
+            // ADR-001 R2: VerifySessionResponse は oneof outcome に再設計済。
+            // outcome === "ok" 以外 (error / 未設定) は全て null に集約し、consumer は
+            // SDK の VerifyResult ではなく自前 SessionError でハンドリングする (Effect 層)。
+            if (verifyResult.outcome.case !== "ok") return null;
+            const okValue = verifyResult.outcome.value;
+            const user = okValue.user;
+            const session = okValue.session;
+            if (!user || !session) return null;
 
             return {
               user: {
-                id: verifyResult.user.id,
-                name: verifyResult.user.name,
-                email: verifyResult.user.email,
-                emailVerified: verifyResult.user.emailVerified,
-                image: verifyResult.user.image ?? null,
-                createdAt: new Date(verifyResult.user.createdAt),
-                updatedAt: new Date(verifyResult.user.updatedAt),
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                emailVerified: user.emailVerified,
+                image: user.image ?? null,
+                createdAt: new Date(user.createdAt),
+                updatedAt: new Date(user.updatedAt),
               },
               session: {
-                id: verifyResult.session.id,
-                expiresAt: new Date(verifyResult.session.expiresAt),
+                id: session.id,
+                expiresAt: new Date(session.expiresAt),
               },
             };
           }),

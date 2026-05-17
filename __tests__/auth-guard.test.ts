@@ -11,9 +11,9 @@ vi.mock("next/headers", () => ({
 
 const mockGetSession = vi.fn();
 
-// SDK 0.5.0 (ADR-007) で createAuthGuard 戻り値は { getSession } のみ。
-// requireSession は consumer 側 wrapper (`app/lib/auth-guard.ts`) で実装するため
-// mock せず実装ごとテストする (session の有無で redirect が呼ばれることを assert)。
+// SDK 1.0.0 (ADR-001 R2) で createAuthGuard().getSession() の戻り型が VerifyResult に変更:
+//   { ok: true; data: SessionData } | { ok: false; reason: Result }
+// auth-guard.ts の thin wrap で { result.ok ? result.data : null } に変換する形を維持。
 vi.mock("@taimei-code/auth-client", () => ({
   createAuthClient: () => ({
     authService: { verifySession: vi.fn() },
@@ -24,13 +24,14 @@ vi.mock("@taimei-code/auth-client", () => ({
   }),
   createServiceKeyInterceptor: vi.fn(() => () => ({})),
   getSessionToken: vi.fn(),
+  Result: { UNSPECIFIED: 0, SESSION_NOT_FOUND: 2 },
 }));
 
 vi.mock("@connectrpc/connect-node", () => ({
   createConnectTransport: vi.fn(() => ({})),
 }));
 
-const mockSession = {
+const mockSessionData = {
   user: {
     id: "user-id",
     name: "Test User",
@@ -43,6 +44,7 @@ const mockSession = {
   session: {
     id: "session-id",
     expiresAt: new Date(Date.now() + 86400000).toISOString(),
+    kind: "user",
   },
 };
 
@@ -57,7 +59,7 @@ describe("auth-guard", () => {
 
   describe("requireSession (consumer wrapper)", () => {
     test("未認証の場合、/auth へリダイレクト", async () => {
-      mockGetSession.mockResolvedValue(null);
+      mockGetSession.mockResolvedValue({ ok: false, reason: 2 });
 
       const { requireSession } = await import("@/app/lib/auth-guard");
       await requireSession({ returnTo: "/dashboard" });
@@ -66,19 +68,19 @@ describe("auth-guard", () => {
     });
 
     test("認証済みの場合、セッションを返す", async () => {
-      mockGetSession.mockResolvedValue(mockSession);
+      mockGetSession.mockResolvedValue({ ok: true, data: mockSessionData });
 
       const { requireSession } = await import("@/app/lib/auth-guard");
       const result = await requireSession({ returnTo: "/dashboard" });
 
       expect(redirect).not.toHaveBeenCalled();
-      expect(result).toEqual(mockSession);
+      expect(result).toEqual(mockSessionData);
     });
   });
 
   describe("getSession", () => {
     test("未認証の場合、null を返す（リダイレクトなし）", async () => {
-      mockGetSession.mockResolvedValue(null);
+      mockGetSession.mockResolvedValue({ ok: false, reason: 2 });
 
       const { getSession } = await import("@/app/lib/auth-guard");
       const result = await getSession();
@@ -88,12 +90,12 @@ describe("auth-guard", () => {
     });
 
     test("認証済みの場合、セッションを返す", async () => {
-      mockGetSession.mockResolvedValue(mockSession);
+      mockGetSession.mockResolvedValue({ ok: true, data: mockSessionData });
 
       const { getSession } = await import("@/app/lib/auth-guard");
       const result = await getSession();
 
-      expect(result).toEqual(mockSession);
+      expect(result).toEqual(mockSessionData);
     });
   });
 });
