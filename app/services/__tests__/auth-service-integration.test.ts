@@ -38,7 +38,7 @@ describe("AuthService.getSession (Phase 2.5 統合テスト)", () => {
       authService: {
         verifySession: (async () => {
           verifyCalled = true;
-          return { user: undefined, session: undefined };
+          return { outcome: { case: "error", value: { reason: 2 } } };
         }) as any,
       },
     });
@@ -57,19 +57,30 @@ describe("AuthService.getSession (Phase 2.5 統合テスト)", () => {
   });
 
   it("token あり + verifySession が user/session を返すとセッションが返る", async () => {
+    // ADR-001 R2: VerifySessionResponse は oneof outcome へ変更
     const layer = provideMocks("test-token", {
       authService: {
         verifySession: (async () => ({
-          user: {
-            id: "user-1",
-            name: "Alice",
-            email: "alice@example.com",
-            emailVerified: true,
-            image: undefined,
-            createdAt: "2026-01-01T00:00:00Z",
-            updatedAt: "2026-01-02T00:00:00Z",
+          outcome: {
+            case: "ok",
+            value: {
+              user: {
+                id: "user-1",
+                name: "Alice",
+                email: "alice@example.com",
+                emailVerified: true,
+                image: undefined,
+                createdAt: "2026-01-01T00:00:00Z",
+                updatedAt: "2026-01-02T00:00:00Z",
+                revision: 0,
+              },
+              session: {
+                id: "sess-1",
+                expiresAt: "2026-12-31T00:00:00Z",
+                sessionKind: "user",
+              },
+            },
           },
-          session: { id: "sess-1", expiresAt: "2026-12-31T00:00:00Z" },
         })) as any,
       },
     });
@@ -90,12 +101,11 @@ describe("AuthService.getSession (Phase 2.5 統合テスト)", () => {
     }
   });
 
-  it("token あり + verifySession が user undefined を返すと null (期限切れ等)", async () => {
+  it("token あり + verifySession が error outcome を返すと null (期限切れ / REVISION_OUTDATED 等)", async () => {
     const layer = provideMocks("stale-token", {
       authService: {
         verifySession: (async () => ({
-          user: undefined,
-          session: undefined,
+          outcome: { case: "error", value: { reason: 7 } }, // RESULT_REVISION_OUTDATED
         })) as any,
       },
     });
