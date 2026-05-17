@@ -57,7 +57,7 @@ describe("AuthService.getSession (Phase 2.5 統合テスト)", () => {
   });
 
   it("token あり + verifySession が user/session を返すとセッションが返る", async () => {
-    // ADR-001 R2: VerifySessionResponse は oneof outcome へ変更
+    // VerifySessionResponse は oneof outcome へ変更
     const layer = provideMocks("test-token", {
       authService: {
         verifySession: (async () => ({

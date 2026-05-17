@@ -11,7 +11,7 @@ vi.mock("next/headers", () => ({
 
 const mockGetSession = vi.fn();
 
-// SDK 1.0.0 (ADR-001 R2) で createAuthGuard().getSession() の戻り型が VerifyResult に変更:
+// SDK 1.0.0 で createAuthGuard().getSession() の戻り型が VerifyResult に変更:
 //   { ok: true; data: SessionData } | { ok: false; reason: Result }
 // auth-guard.ts の thin wrap で { result.ok ? result.data : null } に変換する形を維持。
 vi.mock("@taimei-code/auth-client", () => ({
