@@ -39,7 +39,7 @@ export class AuthService extends Effect.Service<AuthService>()(
               catch: (e) => new SessionError({ cause: e }),
             });
 
-            // ADR-001 R2: VerifySessionResponse は oneof outcome に再設計済。
+            // VerifySessionResponse は oneof outcome に再設計済。
             // outcome === "ok" 以外 (error / 未設定) は全て null に集約し、consumer は
             // SDK の VerifyResult ではなく自前 SessionError でハンドリングする (Effect 層)。
             if (verifyResult.outcome.case !== "ok") return null;
