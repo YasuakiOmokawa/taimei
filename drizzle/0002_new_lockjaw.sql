@@ -11,8 +11,7 @@
 -- 注: drizzle-kit generate は古い 0000_snapshot.json (Prisma 由来) を base に diff を取り、
 -- 本 ADR scope 外のテーブル (User / Session / Account / UserProfile / VerificationToken /
 -- Authenticator / _prisma_migrations) の DROP まで生成したため、本 migration は手動で
--- user_profile のみに絞り直している。drizzle snapshot chain の整合 (0001_snapshot.json
--- 欠落 / 0002.prevId が 0000 を指す) は ADR-001 Phase 3 follow-up Issue で別途扱う —
--- それまで本リポで `bunx drizzle-kit generate` を実行する者は事前に follow-up Issue の
--- status を必ず確認すること (誤生成 migration を merge すると本番認証 table を破壊する)。
+-- user_profile のみに絞り直している。snapshot chain (0001_snapshot.json 欠落 / 0002.prevId
+-- が 0000 を指す) は cosmetic な不整合だが drizzle-kit は許容している (`drizzle-kit check`
+-- / `generate` / `migrate` いずれも正常動作、2026-05-23 ADR-008 実装中に検証済)。
 DROP TABLE IF EXISTS "user_profile";
