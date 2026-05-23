@@ -24,10 +24,7 @@ type MockSession = {
 } | null;
 
 const createMockAuthService = (
-  options: {
-    session?: MockSession;
-    magicLinkError?: boolean;
-  } = {},
+  options: { session?: MockSession; magicLinkError?: boolean } = {},
 ) =>
   new AuthService({
     getSession: () => Effect.succeed(options.session ?? null),

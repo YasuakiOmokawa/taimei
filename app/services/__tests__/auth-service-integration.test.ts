@@ -144,4 +144,3 @@ describe("AuthService.getSession (Phase 2.5 統合テスト)", () => {
     if (Either.isLeft(result)) expect(result.left._tag).toBe("SessionError");
   });
 });
-
