@@ -1,8 +1,10 @@
 import { Effect } from "effect";
 import { Email } from "@/app/domain/email";
 import { AuthClient } from "./auth-client-service";
-import { UserNotFound, UserServiceError } from "./user-errors";
+import { UserServiceError } from "./user-errors";
 
+// account の identity mutation (name / image / 削除) は taimei-auth /account に集約済 (ADR-008)。
+// 本 Service は read-only ACL として findByEmail / findById / existsByEmail を提供する。
 export class UserService extends Effect.Service<UserService>()(
   "services/UserService",
   {
@@ -62,78 +64,6 @@ export class UserService extends Effect.Service<UserService>()(
             },
             catch: (e) =>
               new UserServiceError({ message: `findById failed: ${e}` }),
-          }),
-
-        update: (id: string, data: { name?: string; image?: string | null }) =>
-          Effect.gen(function* () {
-            const result = yield* Effect.tryPromise({
-              try: async () => {
-                const res = await userService.updateUser({
-                  userId: id,
-                  name: data.name,
-                  image: data.image ?? undefined,
-                  clearImage: data.image === null,
-                });
-                if (!res.user) return undefined;
-
-                return {
-                  id: res.user.id,
-                  name: res.user.name,
-                  email: res.user.email,
-                  emailVerified: res.user.emailVerified,
-                  image: res.user.image ?? null,
-                  createdAt: new Date(res.user.createdAt),
-                  updatedAt: new Date(res.user.updatedAt),
-                };
-              },
-              catch: (e) =>
-                new UserServiceError({ message: `update failed: ${e}` }),
-            });
-            if (!result) {
-              return yield* new UserNotFound({ id });
-            }
-            return result;
-          }),
-
-        delete: (id: string) =>
-          Effect.gen(function* () {
-            const result = yield* Effect.tryPromise({
-              try: () => userService.deleteUser({ userId: id }),
-              catch: (e) =>
-                new UserServiceError({ message: `delete failed: ${e}` }),
-            });
-            if (!result.success) {
-              return yield* new UserNotFound({ id });
-            }
-          }),
-
-        clearImage: (id: string) =>
-          Effect.gen(function* () {
-            const result = yield* Effect.tryPromise({
-              try: async () => {
-                const res = await userService.updateUser({
-                  userId: id,
-                  clearImage: true,
-                });
-                if (!res.user) return undefined;
-
-                return {
-                  id: res.user.id,
-                  name: res.user.name,
-                  email: res.user.email,
-                  emailVerified: res.user.emailVerified,
-                  image: res.user.image ?? null,
-                  createdAt: new Date(res.user.createdAt),
-                  updatedAt: new Date(res.user.updatedAt),
-                };
-              },
-              catch: (e) =>
-                new UserServiceError({ message: `clearImage failed: ${e}` }),
-            });
-            if (!result) {
-              return yield* new UserNotFound({ id });
-            }
-            return result;
           }),
       } as const;
     }),

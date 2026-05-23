@@ -7,12 +7,7 @@ import { redirect } from "next/navigation";
 import { Email } from "@/app/domain/email";
 import { invoiceSchema } from "@/app/schema/invoice";
 import { emailLinkLoginSchema } from "@/app/schema/login";
-import {
-  AuthService,
-  InvoiceService,
-  runService,
-  UserService,
-} from "@/app/services";
+import { AuthService, InvoiceService, runService } from "@/app/services";
 import {
   AUTH_ERROR_MESSAGES,
   AUTH_SUCCESS_MESSAGES,
@@ -20,32 +15,7 @@ import {
   AuthSuccessCode,
 } from "@/lib/auth/messages/auth-messages";
 import { setFlash } from "@/lib/flash-toaster";
-import { deleteUserSchema } from "../setting/profile/schema";
-import { fetchCurrentUser } from "./data";
 import { buildAbsoluteCallbackURL } from "./url-helpers";
-
-export async function signOut() {
-  const result = await runService(() =>
-    Effect.gen(function* () {
-      const service = yield* AuthService;
-      yield* service.signOut();
-    }),
-  );
-
-  if (Either.isLeft(result)) {
-    await setFlash({
-      type: "error",
-      message: AUTH_ERROR_MESSAGES[AuthErrorCode.SIGNOUT_FAILED],
-    });
-    redirect("/");
-  }
-
-  await setFlash({
-    type: "success",
-    message: AUTH_SUCCESS_MESSAGES[AuthSuccessCode.LOGGED_OUT],
-  });
-  redirect("/");
-}
 
 export async function sendAuthEmailLink(
   redirectPath: string,
@@ -185,40 +155,4 @@ export async function deleteInvoice(id: string, _prevState: unknown) {
 
   await setFlash({ type: "success", message: "Invoice deleted successfully." });
   revalidatePath("/dashboard/invoices");
-}
-
-export async function deleteUser(_prevState: unknown, formData: FormData) {
-  formData.set("id", (await fetchCurrentUser()).id);
-
-  const submission = parseWithZod(formData, { schema: deleteUserSchema });
-
-  if (submission.status !== "success") {
-    return submission.reply({
-      formErrors: ["user id is not defined."],
-    });
-  }
-
-  const result = await runService(() =>
-    Effect.gen(function* () {
-      const service = yield* UserService;
-      return yield* service.delete(submission.value.id);
-    }),
-  );
-
-  if (Either.isLeft(result)) {
-    switch (result.left._tag) {
-      case "UserNotFound":
-        return submission.reply({
-          formErrors: ["User not found."],
-        });
-      default:
-        return submission.reply({
-          formErrors: [`Failed to delete user: ${result.left._tag}`],
-        });
-    }
-  }
-
-  await setFlash({ type: "success", message: "user deleted." });
-  await signOut();
-  return submission.reply();
 }

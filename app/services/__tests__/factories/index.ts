@@ -6,7 +6,6 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { userProfile } from "@/db/drizzle/schema";
 
 // user テーブルは auth-service DB に移動済みだが、テストでは taimei DB に
 // 残存する user テーブルに直接書き込む（テスト用の暫定措置）
@@ -33,7 +32,7 @@ const user = pgTable(
 );
 
 // test-db.ts からも参照するため export
-export const testTableSchema = { user, userProfile };
+export const testTableSchema = { user };
 
 export const userFactory = defineFactory({
   schema: testTableSchema,
@@ -60,23 +59,6 @@ export const userFactory = defineFactory({
   },
 });
 
-export const userProfileFactory = defineFactory({
-  schema: testTableSchema,
-  table: "userProfile",
-  resolver: ({ sequence, use: useFactory }) => ({
-    id: `test-profile-${sequence}`,
-    bio: `Test bio ${sequence}`,
-    userId: () =>
-      // eslint-disable-next-line react-hooks/rules-of-hooks -- drizzle-factory の use API、React Hook ではない
-      useFactory(userFactory)
-        .create()
-        .then((u) => u.id),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }),
-});
-
 export const factory = composeFactory({
   user: userFactory,
-  userProfile: userProfileFactory,
 });

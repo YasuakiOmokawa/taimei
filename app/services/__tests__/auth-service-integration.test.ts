@@ -6,11 +6,12 @@ import { AuthClient } from "../auth-client-service";
 import { AuthService } from "../auth-service";
 import { CookieReader } from "../cookie-reader-service";
 
-// ADR-005 Phase 2.5: AuthClient.Custom + CookieReader.Custom の組合せで getSession / signOut の
+// ADR-005 Phase 2.5: AuthClient.Custom + CookieReader.Custom の組合せで getSession の
 // 内部 RPC 結果分岐 (token 有無 + verifySession の user/session 有無 + RPC throw) を網羅する。
 // 既存の auth-service.test.ts は AuthService instance 全体を mock する consumer 視点だが、
 // 本ファイルは AuthService 内部の Effect.gen フロー (CookieReadError → SessionError wrap、
 // 早期 return、tryPromise の catch) を実 instance で検証する。
+// ADR-008: signOut は taimei-auth /account の SignOutButton に集約済のためテスト削除。
 
 const provideMocks = (
   cookieToken: string | undefined,
@@ -141,53 +142,5 @@ describe("AuthService.getSession (Phase 2.5 統合テスト)", () => {
 
     expect(Either.isLeft(result)).toBe(true);
     if (Either.isLeft(result)) expect(result.left._tag).toBe("SessionError");
-  });
-});
-
-describe("AuthService.signOut (Phase 2.5 統合テスト)", () => {
-  it("token が無いと RPC を呼ばずに完了 (no-op)", async () => {
-    let signOutCalled = false;
-    const layer = provideMocks(undefined, {
-      authService: {
-        signOut: (async () => {
-          signOutCalled = true;
-          return {};
-        }) as any,
-      },
-    });
-
-    const result = await runAuth(
-      Effect.gen(function* () {
-        const service = yield* AuthService;
-        return yield* service.signOut();
-      }),
-      layer,
-    );
-
-    expect(Either.isRight(result)).toBe(true);
-    expect(signOutCalled).toBe(false);
-  });
-
-  it("token あり + signOut が成功すると RPC が呼ばれる", async () => {
-    let calledToken: string | undefined;
-    const layer = provideMocks("test-token", {
-      authService: {
-        signOut: (async ({ sessionToken }: { sessionToken: string }) => {
-          calledToken = sessionToken;
-          return {};
-        }) as any,
-      },
-    });
-
-    const result = await runAuth(
-      Effect.gen(function* () {
-        const service = yield* AuthService;
-        return yield* service.signOut();
-      }),
-      layer,
-    );
-
-    expect(Either.isRight(result)).toBe(true);
-    expect(calledToken).toBe("test-token");
   });
 });

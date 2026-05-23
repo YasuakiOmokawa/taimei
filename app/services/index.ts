@@ -6,10 +6,8 @@ import { AuthService } from "./auth-service";
 import { CookieReader } from "./cookie-reader-service";
 import { CustomerService } from "./customer-service";
 import { DashboardService } from "./dashboard-service";
-import { IdGenerator } from "./id-generator-service";
 import { InvoiceService } from "./invoice-service";
 import { Tag2Service } from "./tag2-service";
-import { UserProfileService } from "./user-profile-service";
 import { UserService } from "./user-service";
 
 export { AccountAlreadyExists } from "./account-validation-errors";
@@ -21,9 +19,6 @@ export {
   AuthServiceError,
   MagicLinkError,
   SessionError,
-  SignOutError,
-  UserAlreadyExistsError,
-  UserNotFoundError,
 } from "./auth-errors";
 export { AuthService } from "./auth-service";
 // CookieReader / CookieReadError は AuthService の内部依存として非公開
@@ -51,12 +46,7 @@ export {
   Tag2ServiceError,
 } from "./tag2-errors";
 export { Tag2Service } from "./tag2-service";
-export { UserNotFound, UserServiceError } from "./user-errors";
-export {
-  UserProfileNotFound,
-  UserProfileServiceError,
-} from "./user-profile-errors";
-export { UserProfileService } from "./user-profile-service";
+export { UserServiceError } from "./user-errors";
 export { UserService } from "./user-service";
 
 // すべてのサービスの依存関係を一箇所で解決するため Layer.mergeAll で統合
@@ -69,10 +59,6 @@ const UserServiceLive = UserService.Default.pipe(Layer.provide(AuthClientLive));
 export const Live = Layer.mergeAll(
   Tag2Service.Default.pipe(Layer.provide(PgDrizzleLive)),
   UserServiceLive,
-  UserProfileService.Default.pipe(
-    Layer.provide(IdGenerator.Live),
-    Layer.provide(PgDrizzleLive),
-  ),
   DashboardService.Default.pipe(Layer.provide(PgDrizzleLive)),
   InvoiceService.Default.pipe(Layer.provide(PgDrizzleLive)),
   CustomerService.Default.pipe(Layer.provide(PgDrizzleLive)),

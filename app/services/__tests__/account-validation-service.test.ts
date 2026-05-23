@@ -6,7 +6,6 @@ import {
   type AccountInput,
   AccountValidationService,
 } from "../account-validation-service";
-import { UserNotFound } from "../user-errors";
 import { UserService } from "../user-service";
 
 // UserService は ConnectRPC 経由で auth-service に問い合わせるため、
@@ -20,9 +19,6 @@ const createMockUserServiceLayer = (existingEmails: Set<string>) =>
         Effect.succeed(existingEmails.has(Email.asString(email))),
       findByEmail: () => Effect.succeed(undefined),
       findById: () => Effect.succeed(undefined),
-      update: (id) => Effect.fail(new UserNotFound({ id })),
-      delete: (id) => Effect.fail(new UserNotFound({ id })),
-      clearImage: (id) => Effect.fail(new UserNotFound({ id })),
     }),
   );
 

@@ -6,9 +6,7 @@ import { AccountValidationService } from "../../account-validation-service";
 import { AuthClient } from "../../auth-client-service";
 import { CustomerService } from "../../customer-service";
 import { DashboardService } from "../../dashboard-service";
-import { IdGenerator } from "../../id-generator-service";
 import { InvoiceService } from "../../invoice-service";
-import { UserProfileService } from "../../user-profile-service";
 import { UserService } from "../../user-service";
 import { factory } from "../factories";
 import { type TestDb, withRollback } from "./test-db";
@@ -22,7 +20,6 @@ export interface DbTestContext {
 
 type ServiceLayer =
   | UserService
-  | UserProfileService
   | CustomerService
   | InvoiceService
   | DashboardService
@@ -48,7 +45,6 @@ const createTestServiceLayer = (tx: TestDb) => {
 
   return Layer.mergeAll(
     UserServiceLayer,
-    UserProfileService.Default.pipe(Layer.provide(IdGenerator.TestSequence)),
     CustomerService.Default,
     InvoiceService.Default,
     DashboardService.Default,

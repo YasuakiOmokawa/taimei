@@ -1,36 +1,22 @@
-import { Effect, Either } from "effect";
 import { redirect } from "next/navigation";
 
 import { getSession } from "@/app/lib/auth-guard";
-import { runService, UserProfileService } from "@/app/services";
 
 // Better Auth のログイン後着地点。taimei-auth から callbackURL=https://app.taimei-code.com/auth/after-signin に飛んでくる。
 //
 // 分岐:
 // (1) 未認証 (session なし) → taimei-auth の error 画面に誘導 (signin_failed)
-// (2) profile が DB に存在しない (初回ログイン) → /setting/profile で補完誘導
-// (3) profile 既存 → /dashboard
+// (2) 認証済み → /dashboard 直行
 //
-// (2) の判定: UserProfileService.findByUserId が UserProfileNotFound を返す or null/undefined を返した場合。
-// Effect 結果を Either で受け取り、Left (NotFound) or Right が空なら未補完と判断。
+// account profile 補完誘導は taimei-auth /account に集約済 (ADR-008)。
+// `||` (truthy fallback) で空文字も fallback 対象にする (ADR-008、nav-user.tsx と統一)。
 const AUTH_URL =
-  process.env.NEXT_PUBLIC_AUTH_URL ?? "https://auth.taimei-code.com";
+  process.env.NEXT_PUBLIC_AUTH_URL || "https://auth.taimei-code.com";
 
 export default async function AfterSignInPage() {
   const session = await getSession();
   if (!session) {
     redirect(`${AUTH_URL}/auth/error?reason=signin_failed`);
-  }
-
-  const result = await runService(() =>
-    Effect.gen(function* () {
-      const service = yield* UserProfileService;
-      return yield* service.findByUserId(session.user.id);
-    }),
-  );
-
-  if (Either.isLeft(result) || result.right == null) {
-    redirect("/setting/profile");
   }
 
   redirect("/dashboard");
