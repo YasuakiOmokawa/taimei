@@ -4,6 +4,13 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig = {
   turbopack: {},
+  // Next.js 16 から dev server の cross-origin 保護が default 有効化された結果、
+  // `app.taimei-code.local` のような custom host で dev resources (RSC stream / HMR) が
+  // silently blocked され client-side hydration が完全停止する。本リポは README で
+  // /etc/hosts に `app.taimei-code.local` を追加して dev 動作確認する運用なので、
+  // この host を明示的に allowlist する。turbopack mode では warning も出ず原因特定が
+  // 困難なため、開発者導線として必須設定。
+  allowedDevOrigins: ["app.taimei-code.local"],
   images: {
     remotePatterns: [
       {
