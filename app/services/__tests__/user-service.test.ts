@@ -1,12 +1,14 @@
 import { Effect, Either } from "effect";
 import { describe, expect, it } from "vitest";
 import { Email } from "@/app/domain/email";
-import { UserNotFound, UserServiceError } from "../user-errors";
+import { UserServiceError } from "../user-errors";
 import { UserService } from "../user-service";
 
 // ConnectRPC 移行後、UserService は auth-service への RPC 薄いラッパーとなったため、
 // DB 統合テストは成立しない（user テーブルは auth-service 側にある）。
 // auth-service.test.ts と同じく Layer DI でモック注入する単体テストパターンに切替。
+// ADR-008: identity mutation (update / delete / clearImage) は taimei-auth /account に集約済、
+// 本 Service は read-only ACL として findByEmail / findById / existsByEmail のみ提供。
 
 type MockUser = {
   readonly id: string;
@@ -34,9 +36,6 @@ const createMockUserService = (impl: Partial<UserService> = {}): UserService =>
     existsByEmail: () => Effect.succeed(false),
     findByEmail: () => Effect.succeed(undefined),
     findById: () => Effect.succeed(undefined),
-    update: (id) => Effect.fail(new UserNotFound({ id })),
-    delete: (id) => Effect.fail(new UserNotFound({ id })),
-    clearImage: (id) => Effect.fail(new UserNotFound({ id })),
     ...impl,
   });
 
@@ -158,100 +157,6 @@ describe("UserService", () => {
       );
       expect(Either.isRight(result)).toBe(true);
       if (Either.isRight(result)) expect(result.right).toBeUndefined();
-    });
-  });
-
-  describe("update", () => {
-    it("成功時に更新後 user", async () => {
-      const updated = buildUser({ name: "Updated" });
-      const mock = createMockUserService({
-        update: () => Effect.succeed(updated),
-      });
-      const result = await runWithMock(
-        Effect.gen(function* () {
-          const s = yield* UserService;
-          return yield* s.update("user-1", { name: "Updated" });
-        }),
-        mock,
-      );
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) expect(result.right.name).toBe("Updated");
-    });
-
-    it("UserNotFound エラー", async () => {
-      const mock = createMockUserService();
-      const result = await runWithMock(
-        Effect.gen(function* () {
-          const s = yield* UserService;
-          return yield* s.update("missing", { name: "x" });
-        }),
-        mock,
-      );
-      expect(Either.isLeft(result)).toBe(true);
-      if (Either.isLeft(result))
-        expect(result.left).toBeInstanceOf(UserNotFound);
-    });
-  });
-
-  describe("delete", () => {
-    it("成功時 void", async () => {
-      const mock = createMockUserService({
-        delete: (_id: string) => Effect.succeed(undefined),
-      });
-      const result = await runWithMock(
-        Effect.gen(function* () {
-          const s = yield* UserService;
-          return yield* s.delete("user-1");
-        }),
-        mock,
-      );
-      expect(Either.isRight(result)).toBe(true);
-    });
-
-    it("UserNotFound エラー", async () => {
-      const mock = createMockUserService();
-      const result = await runWithMock(
-        Effect.gen(function* () {
-          const s = yield* UserService;
-          return yield* s.delete("missing");
-        }),
-        mock,
-      );
-      expect(Either.isLeft(result)).toBe(true);
-      if (Either.isLeft(result))
-        expect(result.left).toBeInstanceOf(UserNotFound);
-    });
-  });
-
-  describe("clearImage", () => {
-    it("成功時 image=null の user", async () => {
-      const u = buildUser({ image: null });
-      const mock = createMockUserService({
-        clearImage: () => Effect.succeed(u),
-      });
-      const result = await runWithMock(
-        Effect.gen(function* () {
-          const s = yield* UserService;
-          return yield* s.clearImage("user-1");
-        }),
-        mock,
-      );
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) expect(result.right.image).toBeNull();
-    });
-
-    it("UserNotFound エラー", async () => {
-      const mock = createMockUserService();
-      const result = await runWithMock(
-        Effect.gen(function* () {
-          const s = yield* UserService;
-          return yield* s.clearImage("missing");
-        }),
-        mock,
-      );
-      expect(Either.isLeft(result)).toBe(true);
-      if (Either.isLeft(result))
-        expect(result.left).toBeInstanceOf(UserNotFound);
     });
   });
 });

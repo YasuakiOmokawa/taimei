@@ -6,7 +6,6 @@ import {
   integer,
   pgTable,
   primaryKey,
-  text,
   timestamp,
   uniqueIndex,
   uuid,
@@ -78,27 +77,6 @@ export const revenue = pgTable(
     uniqueIndex("revenue_month_key").using(
       "btree",
       table.month.asc().nullsLast().op("text_ops"),
-    ),
-  ],
-);
-
-// UserProfile（認証サービス分離後は userId が論理参照。FK なし）
-export const userProfile = pgTable(
-  "user_profile",
-  {
-    id: text("id").primaryKey().notNull(),
-    bio: text("bio").notNull(),
-    userId: text("user_id").notNull(), // auth-service DB の user.id への論理参照（FK 制約なし）
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
-  },
-  (table) => [
-    uniqueIndex("user_profile_userId_key").using(
-      "btree",
-      table.userId.asc().nullsLast().op("text_ops"),
     ),
   ],
 );

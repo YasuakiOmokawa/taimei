@@ -12,14 +12,15 @@ import { NextRequest, NextResponse } from "next/server";
 //   場合は完全一致用の別配列を新設すること。
 const PUBLIC_PATHS = ["/", "/auth/after-signin", "/auth/after-signup"] as const;
 
+// `||` (truthy fallback) で空文字も fallback 対象にする (ADR-008)。
 const AUTH_URL =
-  process.env.NEXT_PUBLIC_AUTH_URL ?? "https://auth.taimei-code.com";
+  process.env.NEXT_PUBLIC_AUTH_URL || "https://auth.taimei-code.com";
 
 // Next.js v16 middleware の request.url は internal listen address (例: localhost:3001) を
 // 返すケースがあり、taimei-auth の URL allowlist で弾かれる。NEXT_PUBLIC_APP_URL を base に
 // pathname + search を組んで明示的に絶対 URL を作る。
 const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL ?? "https://app.taimei-code.com";
+  process.env.NEXT_PUBLIC_APP_URL || "https://app.taimei-code.com";
 
 const AFTER_SIGNIN_URL = `${APP_URL}/auth/after-signin`;
 const AFTER_SIGNUP_URL = `${APP_URL}/auth/after-signup`;

@@ -1,0 +1,18 @@
+-- ADR-008: account 管理機能を taimei-auth /account に集約。
+-- bio (= user_profile.bio) は廃止、user_profile table を完全に DROP する。
+--
+-- 本番 user 0 前提のため CSV export / S3 retention は実施しない。
+--
+-- 非 CASCADE を採用する理由: dependent view / FK が想定外に存在する場合、CASCADE で silent
+-- に巻き添え削除されると rollback で復元不能になる。CASCADE を外すと apply が fail-fast
+-- し、原因を手動調査してから対処できる安全側挙動。本番 user 0 = 依存 0 という前提の検証
+-- も兼ねる。
+--
+-- 注: drizzle-kit generate は古い 0000_snapshot.json (Prisma 由来) を base に diff を取り、
+-- 本 ADR scope 外のテーブル (User / Session / Account / UserProfile / VerificationToken /
+-- Authenticator / _prisma_migrations) の DROP まで生成したため、本 migration は手動で
+-- user_profile のみに絞り直している。drizzle snapshot chain の整合 (0001_snapshot.json
+-- 欠落 / 0002.prevId が 0000 を指す) は ADR-001 Phase 3 follow-up Issue で別途扱う —
+-- それまで本リポで `bunx drizzle-kit generate` を実行する者は事前に follow-up Issue の
+-- status を必ず確認すること (誤生成 migration を merge すると本番認証 table を破壊する)。
+DROP TABLE IF EXISTS "user_profile";

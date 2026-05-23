@@ -1,18 +1,8 @@
 "use client";
 
-import { BProgress } from "@bprogress/core";
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
-import {
-  Bell,
-  ChevronsUpDown,
-  CreditCard,
-  LogOut,
-  Sparkles,
-} from "lucide-react";
-import Link from "next/link";
-import { signOut } from "@/app/lib/actions";
+import { Bell, ChevronsUpDown, CreditCard, Sparkles } from "lucide-react";
 import { CurrentUser } from "@/app/lib/data";
-import { getInitials } from "@/app/setting/profile/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -29,13 +19,19 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { getInitials } from "@/lib/initials";
+
+// 「設定」リンクは taimei-auth の /account SPA を新規タブで開く (ADR-008)。
+// 戻り link を実装しない分、新規タブを閉じれば自然に dashboard に戻れる UX。
+// rel="noopener noreferrer" は tabnabbing 防止の必須セキュリティ要件。
+// `||` で truthy fallback: 空文字を fallback 対象にすることで、incident 時に
+// NEXT_PUBLIC_AUTH_URL='' に切替えると href が空文字 = 「クリック無効化」になる運用 (ADR-008)。
+// `??` は null/undefined のみ catch するため空文字を素通りさせて誤遷移を起こす。
+const AUTH_URL =
+  process.env.NEXT_PUBLIC_AUTH_URL || "https://auth.taimei-code.com";
 
 export function NavUser({ image, name, email }: CurrentUser) {
   const { isMobile } = useSidebar();
-  const handleSignOut = () => {
-    BProgress.start();
-    signOut();
-  };
 
   return (
     <SidebarMenu>
@@ -88,12 +84,18 @@ export function NavUser({ image, name, email }: CurrentUser) {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <Link href="/setting/profile">
-                <DropdownMenuItem>
+              {/* asChild で <a> に menuitem role を merge する。<a> で <DropdownMenuItem> を
+                  wrap するとキーボード Enter で navigate しない Radix anti-pattern になる。 */}
+              <DropdownMenuItem asChild>
+                <a
+                  href={`${AUTH_URL}/account`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <Cog6ToothIcon />
                   設定
-                </DropdownMenuItem>
-              </Link>
+                </a>
+              </DropdownMenuItem>
               <DropdownMenuItem>
                 <CreditCard />
                 支払い
@@ -103,11 +105,6 @@ export function NavUser({ image, name, email }: CurrentUser) {
                 通知
               </DropdownMenuItem>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut />
-              ログアウト
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
