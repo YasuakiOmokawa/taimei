@@ -99,12 +99,8 @@
           "name": "invoices_customer_id_fkey",
           "tableFrom": "invoices",
           "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -155,12 +151,8 @@
           "name": "_invoicesTotags_A_fkey",
           "tableFrom": "_invoicesTotags",
           "tableTo": "invoices",
-          "columnsFrom": [
-            "A"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["A"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -168,12 +160,8 @@
           "name": "_invoicesTotags_B_fkey",
           "tableFrom": "_invoicesTotags",
           "tableTo": "tags",
-          "columnsFrom": [
-            "B"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["B"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -181,10 +169,7 @@
       "compositePrimaryKeys": {
         "_invoicesTotags_AB_pkey": {
           "name": "_invoicesTotags_AB_pkey",
-          "columns": [
-            "A",
-            "B"
-          ]
+          "columns": ["A", "B"]
         }
       },
       "uniqueConstraints": {},
