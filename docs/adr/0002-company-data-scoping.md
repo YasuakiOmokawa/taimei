@@ -49,7 +49,8 @@ per-request の companyId / role を保持する Effect サービス。`effect-p
 // app/services/company-context.ts
 export interface CompanyContextShape {
   readonly companyId: string;
-  readonly role: string; // SDK の open Role 型 (proto enum re-export、exhaustive switch 回避: ADR-009 NC2)
+  // role は持たない (scoping のみ。認可は別層)。SDK 1.1.0 が実際に提供するのは companyId のみで
+  // currentCompanyName / currentCompanyRole は未提供 (PR-2 実装時に node_modules 型で観測)。
 }
 
 export class CompanyContext extends Effect.Tag("services/CompanyContext")<
@@ -90,7 +91,7 @@ create: (input) =>
 
 **create / update の外部参照 (`customerId`) は別途自社帰属を検証する (MECE CR1)**: `companyFilter` は invoices 行の read/update/delete を絞るが、INSERT/UPDATE 入力の外部 FK (`customerId`) の帰属は絞らない。`customers` FK はグローバルなので、他社 `customerId` を渡すと invoice 自体は自社 companyId で作られてしまう (cross-company 参照注入)。create/update は context の companyId で `customerId` の自社帰属を検証し、スコープ外なら `InvoiceNotFound` 相当で拒否する (型・`companyFilter` だけでは塞がらない = D3 の 3 重閉じの例外)。
 
-**`CompanyContext` は companyId のみ持ち role は入れない (freee 調査で裏付け)**: `CompanyContext` は scoping (= どの company のデータか) のみを担い、authorization (= 何ができるか) を持たない。freee も認可を session/membership とは別の専用層に置く — membership が持つのは「属性」(従業員 / アドバイザー) で、実際の権限判定は `AclKit` / `sekisyo` 権限セット (`PrivilegeControlService#xxx:read/:write` を controller `before_action` でチェック → 401/403) という別レイヤー (Sources「freee 参考調査」)。よって taimei も RBAC が必要になった時は `CompanyContext` を拡張せず、別の authorization 層 (例: `AuthorizationContext` + permission チェック) を新規に足す (Phase E+)。role は `requireCompany` が nav 表示用に session から返すので page 層では参照可能。
+**`CompanyContext` は companyId のみ持ち role は入れない (freee 調査で裏付け)**: `CompanyContext` は scoping (= どの company のデータか) のみを担い、authorization (= 何ができるか) を持たない。freee も認可を session/membership とは別の専用層に置く — membership が持つのは「属性」(従業員 / アドバイザー) で、実際の権限判定は `AclKit` / `sekisyo` 権限セット (`PrivilegeControlService#xxx:read/:write` を controller `before_action` でチェック → 401/403) という別レイヤー (Sources「freee 参考調査」)。よって taimei も RBAC が必要になった時は `CompanyContext` を拡張せず、別の authorization 層 (例: `AuthorizationContext` + permission チェック) を新規に足す (Phase E+)。なお SDK 1.1.0 は role を提供しない (companyId のみ) ため、role を要する nav 表示・認可は SDK 側が role を返すようになってから着手する (PR-2 実装時に観測)。
 
 ### D3. companyId の source は scoping 境界の内側で session から導出する (呼出側に渡させない)
 
@@ -121,10 +122,10 @@ export const runScopedService = async <A, E>(
   body: () => Effect.Effect<A, E, AllScopedServices | CompanyContext>,
 ) => {
   // 未選択判定 + redirect は requireCompany と共有 (redirect SSOT、D5)。Next 境界でしか取れない。
-  const { companyId, role } = await resolveCompanyIdOrRedirect();
+  const { companyId } = await resolveCompanyIdOrRedirect();
   return runtime.runPromise(
     Effect.either(
-      body().pipe(Effect.provideService(CompanyContext, { companyId, role })),
+      body().pipe(Effect.provideService(CompanyContext, { companyId })),
     ),
   );
 };
@@ -181,8 +182,8 @@ RLS は採らない (Alternatives Considered、本番課金前には過剰)。as
 ```ts
 // app/lib/auth-guard.ts — page UX 用の thin wrapper (redirect/companyId 導出は resolveCompanyIdOrRedirect に集約)
 export const requireCompany = async ({ returnTo }: { returnTo: string }) => {
-  const { companyId, role, session } = await resolveCompanyIdOrRedirect(returnTo);
-  return { ...session, companyId, role }; // nav 表示用に session も返す
+  const { companyId, session } = await resolveCompanyIdOrRedirect(returnTo);
+  return { ...session, companyId }; // nav 表示用に session も返す
 };
 ```
 
@@ -196,11 +197,11 @@ export const resolveCompanyIdOrRedirect = async (returnTo = "/dashboard") => {
   const session = await getSession(); // react.cache 済
   if (!session) redirect(`/auth?callbackUrl=${encodeURIComponent(returnTo)}`); // 未認証 → login
   if (!session.companyId) redirect(buildCompanySignupUrl(returnTo)); // 認証済・事業所未選択 → 登録
-  return { companyId: session.companyId, role: session.currentCompanyRole ?? "MEMBER", session };
+  return { companyId: session.companyId, session };
 };
 ```
 
-`requireCompany` は nav 表示用に `session` も返す薄い wrapper、`runScopedService` は `{ companyId, role }` のみ使う。
+`requireCompany` は nav 表示用に `session` も返す薄い wrapper、`runScopedService` は `{ companyId }` のみ使う。
 
 ### D6. cross-company アクセスは 404 (403 ではない)
 
@@ -281,7 +282,7 @@ Phase は手動 QA できる end-to-end 単位で分割 (ADR-009 流)。
 ### Phase 0: SDK upgrade (前提・極小 PR)
 
 - [ ] `package.json` の `@taimei-code/auth-client` を `^1.0.0` → `1.1.0` (**caret なし exact pin** — auth 側の `last_used_company_id` 意味変更を意図せず取り込まないため、DA #4) に上げ `bun install`。SDK contract test を CI 常時実行 (Phase 0 単発でなく)
-- [ ] `SessionData.companyId` / `currentCompanyName` / `currentCompanyRole` 型が consumer で見えることを確認
+- [ ] `SessionData.companyId` 型が consumer で見えることを確認 (1.1.0 は `currentCompanyName` / `currentCompanyRole` を提供せず companyId のみだった。PR-2 実装時に node_modules 型で観測)
 - [ ] `/api/auth/get-session` レスポンスに `companyId` が乗ることを Network tab / curl で確認
 - **AC**: SDK contract test 緑 + `bun tsc --noEmit` で companyId 型可視
 
@@ -357,7 +358,7 @@ dbEffect("InvoiceService は他社 invoice を返さない", ({ factory: f }) =>
     const svc = yield* InvoiceService;
     const res = yield* Effect.either(svc.findById(b.id)); // A context で B の id
     expect(Either.isLeft(res)).toBe(true); // InvoiceNotFound (404 相当)
-  }).pipe(Effect.provide(CompanyContext.of({ companyId: "cmp_aaa", role: "OWNER" }))),
+  }).pipe(Effect.provide(CompanyContext.layer({ companyId: "cmp_aaa" }))),
 );
 ```
 
@@ -457,7 +458,7 @@ PR ガイドライン (≤2 commits / ≤5 files) 超過は PR-2 (機構 + テ�
 
 ### 自動QA (Vitest、テストコード仕様)
 
-**前提 (全 isolation テストのブロッカー、PR-2)**: factory net-new (`customer`/`invoice`/`revenue`、companyId は **デフォルト無し=override 必須**) + `effect-test-helpers` は CompanyContext を**注入しない**設計 (各テストが `.pipe(Effect.provide(CompanyContext.of({ companyId, role })))`、provide 漏れがコンパイルエラー=backstop)。
+**前提 (全 isolation テストのブロッカー、PR-2)**: factory net-new (`customer`/`invoice`/`revenue`、companyId は **デフォルト無し=override 必須**) + `effect-test-helpers` は CompanyContext を**注入しない**設計 (各テストが `.pipe(Effect.provide(CompanyContext.layer({ companyId })))`、provide 漏れがコンパイルエラー=backstop)。
 
 自動カバー (dbEffect isolation / 型 / migration SQL):
 - **QA-E-04 ★** (閉じ1): `index.ts` の `_NoCompanyContextInLive` 番兵 + `bun tsc --noEmit` 緑 + `@ts-expect-error` で「scoped Service を runService に渡すと型エラー」を negative type test 固定。Live に CompanyContext を故意 merge して tsc が落ちることを 1 度確認 (Phase 1 手動チェック)
