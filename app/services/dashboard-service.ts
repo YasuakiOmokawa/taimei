@@ -1,8 +1,10 @@
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { Effect } from "effect";
 import { formatCurrency } from "@/app/lib/utils";
 import { customers, invoices, revenue } from "@/db/drizzle/schema";
+import { companyFilter } from "@/db/scoped";
+import { CompanyContext } from "./company-context";
 import { DashboardServiceError } from "./dashboard-errors";
 
 export type Revenue = {
@@ -27,13 +29,15 @@ export type CardData = {
   totalPendingInvoices: string;
 };
 
+// overview の全集計を CompanyContext の companyId で scope する。scope しないと
+// 売上チャート・カード・最新請求書が全社横断で漏れる。設計詳細: docs/adr/0002-company-data-scoping.md。
 export class DashboardService extends Effect.Service<DashboardService>()(
   "services/DashboardService",
   {
     effect: Effect.gen(function* () {
       const pgdrizzle = yield* PgDrizzle.PgDrizzle;
 
-      const fetchRevenueData = () =>
+      const fetchRevenueData = (companyId: string) =>
         Effect.tryPromise({
           try: () =>
             pgdrizzle
@@ -41,14 +45,15 @@ export class DashboardService extends Effect.Service<DashboardService>()(
                 month: revenue.month,
                 revenue: revenue.revenue,
               })
-              .from(revenue),
+              .from(revenue)
+              .where(companyFilter(revenue, companyId)),
           catch: (e) =>
             new DashboardServiceError({
               message: `fetchRevenue failed: ${e}`,
             }),
         });
 
-      const fetchLatestInvoicesData = () =>
+      const fetchLatestInvoicesData = (companyId: string) =>
         Effect.tryPromise({
           try: () =>
             pgdrizzle
@@ -60,7 +65,16 @@ export class DashboardService extends Effect.Service<DashboardService>()(
                 customerImageUrl: customers.imageUrl,
               })
               .from(invoices)
-              .innerJoin(customers, eq(invoices.customerId, customers.id))
+              // join 先 customers にも companyFilter を AND する。invoices を scope しても、
+              // stray な他社 customer を参照する行があると顧客名が漏れるため (innerJoin で除外)。
+              .innerJoin(
+                customers,
+                and(
+                  eq(invoices.customerId, customers.id),
+                  companyFilter(customers, companyId),
+                ),
+              )
+              .where(companyFilter(invoices, companyId))
               .orderBy(desc(invoices.date))
               .limit(5),
           catch: (e) =>
@@ -69,12 +83,13 @@ export class DashboardService extends Effect.Service<DashboardService>()(
             }),
         });
 
-      const fetchInvoiceCount = () =>
+      const fetchInvoiceCount = (companyId: string) =>
         Effect.tryPromise({
           try: async () => {
             const result = await pgdrizzle
               .select({ count: sql<number>`count(*)` })
-              .from(invoices);
+              .from(invoices)
+              .where(companyFilter(invoices, companyId));
             return Number(result[0].count);
           },
           catch: (e) =>
@@ -83,12 +98,13 @@ export class DashboardService extends Effect.Service<DashboardService>()(
             }),
         });
 
-      const fetchCustomerCount = () =>
+      const fetchCustomerCount = (companyId: string) =>
         Effect.tryPromise({
           try: async () => {
             const result = await pgdrizzle
               .select({ count: sql<number>`count(*)` })
-              .from(customers);
+              .from(customers)
+              .where(companyFilter(customers, companyId));
             return Number(result[0].count);
           },
           catch: (e) =>
@@ -97,15 +113,16 @@ export class DashboardService extends Effect.Service<DashboardService>()(
             }),
         });
 
-      const fetchInvoiceStatus = () =>
+      const fetchInvoiceStatus = (companyId: string) =>
         Effect.tryPromise({
           try: async () => {
             const result = await pgdrizzle
               .select({
-                paid: sql<number>`SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END)`,
-                pending: sql<number>`SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END)`,
+                paid: sql<number>`SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.amount} ELSE 0 END)`,
+                pending: sql<number>`SUM(CASE WHEN ${invoices.status} = 'pending' THEN ${invoices.amount} ELSE 0 END)`,
               })
-              .from(invoices);
+              .from(invoices)
+              .where(companyFilter(invoices, companyId));
             return {
               paid: Number(result[0].paid) || 0,
               pending: Number(result[0].pending) || 0,
@@ -118,11 +135,16 @@ export class DashboardService extends Effect.Service<DashboardService>()(
         });
 
       return {
-        fetchRevenue: () => fetchRevenueData(),
+        fetchRevenue: () =>
+          Effect.gen(function* () {
+            const { companyId } = yield* CompanyContext;
+            return yield* fetchRevenueData(companyId);
+          }),
 
         fetchLatestInvoices: () =>
           Effect.gen(function* () {
-            const data = yield* fetchLatestInvoicesData();
+            const { companyId } = yield* CompanyContext;
+            const data = yield* fetchLatestInvoicesData(companyId);
             return data.map((invoice) => ({
               id: invoice.id,
               amount: formatCurrency(invoice.amount),
@@ -136,11 +158,12 @@ export class DashboardService extends Effect.Service<DashboardService>()(
 
         fetchCardData: () =>
           Effect.gen(function* () {
+            const { companyId } = yield* CompanyContext;
             const [invoiceCount, customerCount, invoiceStatus] =
               yield* Effect.all([
-                fetchInvoiceCount(),
-                fetchCustomerCount(),
-                fetchInvoiceStatus(),
+                fetchInvoiceCount(companyId),
+                fetchCustomerCount(companyId),
+                fetchInvoiceStatus(companyId),
               ]);
 
             return {

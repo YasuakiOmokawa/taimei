@@ -7,7 +7,6 @@ import {
   type LatestInvoice,
   type Revenue,
   runScopedService,
-  runService,
 } from "@/app/services";
 import { getSession } from "./auth-guard";
 
@@ -34,7 +33,7 @@ export async function fetchCurrentUser(): Promise<CurrentUser> {
 }
 
 export async function fetchRevenue(): Promise<Revenue[]> {
-  const result = await runService(() =>
+  const result = await runScopedService(() =>
     Effect.gen(function* () {
       const service = yield* DashboardService;
       return yield* service.fetchRevenue();
@@ -50,7 +49,7 @@ export async function fetchRevenue(): Promise<Revenue[]> {
 }
 
 export async function fetchLatestInvoices(): Promise<LatestInvoice[]> {
-  const result = await runService(() =>
+  const result = await runScopedService(() =>
     Effect.gen(function* () {
       const service = yield* DashboardService;
       return yield* service.fetchLatestInvoices();
@@ -66,7 +65,7 @@ export async function fetchLatestInvoices(): Promise<LatestInvoice[]> {
 }
 
 export async function fetchCardData(): Promise<CardData> {
-  const result = await runService(() =>
+  const result = await runScopedService(() =>
     Effect.gen(function* () {
       const service = yield* DashboardService;
       return yield* service.fetchCardData();

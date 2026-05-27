@@ -1,4 +1,4 @@
-import { requireSession } from "@/app/lib/auth-guard";
+import { requireCompany } from "@/app/lib/auth-guard";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -9,8 +9,11 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
+  // requireCompany は page レベル UX ガード: 事業所未選択なら data fetch 前に redirect して
+  // 描画チラつきを防ぐ。security backstop は各 runScopedService 自身。
+  // 設計詳細: docs/adr/0002-company-data-scoping.md
   const [, currentUser] = await Promise.all([
-    requireSession({ returnTo: "/dashboard" }),
+    requireCompany({ returnTo: "/dashboard" }),
     fetchCurrentUser(),
   ]);
 
