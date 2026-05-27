@@ -12,12 +12,20 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-export const customers = pgTable("customers", {
-  id: uuid().defaultRandom().primaryKey().notNull(),
-  name: varchar({ length: 255 }).notNull(),
-  email: varchar({ length: 255 }).notNull(),
-  imageUrl: varchar("image_url", { length: 255 }).notNull(),
-});
+export const customers = pgTable(
+  "customers",
+  {
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    name: varchar({ length: 255 }).notNull(),
+    email: varchar({ length: 255 }).notNull(),
+    imageUrl: varchar("image_url", { length: 255 }).notNull(),
+    // company_id は auth (taimei-auth) の company.id (cmp_<nanoid24>) への論理参照。
+    // cross-DB のため FK は張らない。nullable で追加し NOT NULL 化は別 migration (expand-contract)。
+    // 設計詳細: docs/adr/0002-company-data-scoping.md (D9)
+    companyId: varchar("company_id", { length: 32 }),
+  },
+  (table) => [index("customers_company_id_idx").on(table.companyId)],
+);
 
 export const tags2 = pgTable("tags2", {
   id: uuid().defaultRandom().primaryKey().notNull(),
@@ -49,6 +57,8 @@ export const invoices = pgTable(
     updatedAt: timestamp("updated_at", { precision: 6, mode: "string" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
+    // auth company.id への論理参照 (FK なし)。詳細は customers.companyId と docs/adr/0002 を参照。
+    companyId: varchar("company_id", { length: 32 }),
   },
   (table) => [
     foreignKey({
@@ -58,6 +68,7 @@ export const invoices = pgTable(
     })
       .onUpdate("cascade")
       .onDelete("cascade"),
+    index("invoices_company_id_idx").on(table.companyId),
   ],
 );
 
@@ -72,12 +83,16 @@ export const revenue = pgTable(
     updatedAt: timestamp("updated_at", { precision: 6, mode: "string" })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
+    // auth company.id への論理参照 (FK なし)。詳細は customers.companyId と docs/adr/0002 を参照。
+    // month 単独 unique は別 migration で (company_id, month) に変更する (社ごと同月行を許可)。
+    companyId: varchar("company_id", { length: 32 }),
   },
   (table) => [
     uniqueIndex("revenue_month_key").using(
       "btree",
       table.month.asc().nullsLast().op("text_ops"),
     ),
+    index("revenue_company_id_idx").on(table.companyId),
   ],
 );
 
