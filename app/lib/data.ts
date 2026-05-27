@@ -6,6 +6,7 @@ import {
   InvoiceService,
   type LatestInvoice,
   type Revenue,
+  runScopedService,
   runService,
 } from "@/app/services";
 import { getSession } from "./auth-guard";
@@ -123,7 +124,7 @@ export async function fetchFilteredInvoices(
   query: string,
   currentPage: number,
 ): Promise<FilteredInvoice[]> {
-  const result = await runService(() =>
+  const result = await runScopedService(() =>
     Effect.gen(function* () {
       const service = yield* InvoiceService;
       return yield* service.fetchFiltered(query, currentPage);
@@ -147,7 +148,7 @@ export async function fetchFilteredInvoices(
 }
 
 export async function fetchInvoicesPages(query: string): Promise<number> {
-  const result = await runService(() =>
+  const result = await runScopedService(() =>
     Effect.gen(function* () {
       const service = yield* InvoiceService;
       return yield* service.fetchPages(query);
@@ -165,7 +166,7 @@ export async function fetchInvoicesPages(query: string): Promise<number> {
 export async function fetchInvoiceById(
   id: string,
 ): Promise<InvoiceSelectionById | null> {
-  const result = await runService(() =>
+  const result = await runScopedService(() =>
     Effect.gen(function* () {
       const service = yield* InvoiceService;
       return yield* service.findById(id);
@@ -189,7 +190,7 @@ export async function fetchInvoiceById(
 }
 
 export async function fetchCustomers(): Promise<CustomerField[]> {
-  const result = await runService(() =>
+  const result = await runScopedService(() =>
     Effect.gen(function* () {
       const service = yield* CustomerService;
       return yield* service.findAll();
@@ -207,7 +208,7 @@ export async function fetchCustomers(): Promise<CustomerField[]> {
 export async function fetchFilteredCustomers(
   query: string,
 ): Promise<FilteredCustomer[]> {
-  const result = await runService(() =>
+  const result = await runScopedService(() =>
     Effect.gen(function* () {
       const service = yield* CustomerService;
       return yield* service.fetchFiltered(query);
