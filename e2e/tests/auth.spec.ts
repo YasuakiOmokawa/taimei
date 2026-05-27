@@ -85,8 +85,9 @@ test.describe("認証フロー", () => {
       const authedPage = await context.newPage();
       await authedPage.goto("/dashboard");
 
-      await expect(authedPage).toHaveURL(/\/dashboard/);
-      await expect(authedPage.locator("h1")).toContainText("Dashboard");
+      // 新規ユーザーは事業所未所属のため、dashboard ではなく事業所登録画面へ redirect される
+      // (ADR-0002 の company 必須フロー)。アカウント自体は作成済み。
+      await expect(authedPage).toHaveURL(/\/auth\/signup\/company/);
 
       await context.close();
     });

@@ -1,8 +1,8 @@
 import { Browser, BrowserContext } from "@playwright/test";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import { authDb } from "../../db/auth-client";
-import { user, verification } from "../../db/auth-schema";
+import { company, membership, user, verification } from "../../db/auth-schema";
 
 // taimei-auth (認証サーバー) 経由ログイン用の e2e signIn helper。
 // taimei (app.taimei-code.local:3001) と taimei-auth (auth.taimei-code.local:3100) は別オリジン。
@@ -20,13 +20,40 @@ const COOKIE_DOMAIN = ".taimei-code.local";
 
 export async function createTestUser(): Promise<string> {
   const uuid = crypto.randomUUID();
+  const email = `e2e-${uuid}@example.com`;
   await authDb.insert(user).values({
     id: uuid,
     name: "E2E Test User",
-    email: `e2e-${uuid}@example.com`,
+    email,
     emailVerified: false,
   });
-  return `e2e-${uuid}@example.com`;
+  // dashboard は事業所所属を要求する (ADR-0002)。sign-in (verify) の前に company /
+  // membership / last_used_company_id を用意し、companyId を session cookie へ焼き込ませる。
+  await provisionCompanyForUser(uuid);
+  return email;
+}
+
+// 指定 user に company + membership を作成し last_used_company_id を set する。
+// session の companyId source は user.last_used_company_id (ADR-009)。
+export async function provisionCompanyForUser(userId: string): Promise<string> {
+  const companyId = `cmp_e2e${userId.replace(/-/g, "").slice(0, 22)}`;
+  await authDb
+    .insert(company)
+    .values({
+      id: companyId,
+      name: "E2E Company",
+      orgCode: `e2e-${userId.slice(0, 8)}`,
+    })
+    .onConflictDoNothing();
+  await authDb
+    .insert(membership)
+    .values({ id: crypto.randomUUID(), userId, companyId, role: "OWNER" })
+    .onConflictDoNothing();
+  await authDb
+    .update(user)
+    .set({ lastUsedCompanyId: companyId })
+    .where(eq(user.id, userId));
+  return companyId;
 }
 
 // Server Action の非同期処理完了を待つため、トークンが見つかるまでポーリング (最大 20s)。
