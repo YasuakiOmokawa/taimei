@@ -7,7 +7,12 @@ import { redirect } from "next/navigation";
 import { Email } from "@/app/domain/email";
 import { invoiceSchema } from "@/app/schema/invoice";
 import { emailLinkLoginSchema } from "@/app/schema/login";
-import { AuthService, InvoiceService, runService } from "@/app/services";
+import {
+  AuthService,
+  InvoiceService,
+  runScopedService,
+  runService,
+} from "@/app/services";
 import {
   AUTH_ERROR_MESSAGES,
   AUTH_SUCCESS_MESSAGES,
@@ -66,7 +71,7 @@ export async function createInvoice(_prevState: unknown, formData: FormData) {
   const { amount, status, customerId } = submission.value;
   const amountInCents = Math.round(amount * 100);
 
-  const result = await runService(() =>
+  const result = await runScopedService(() =>
     Effect.gen(function* () {
       const service = yield* InvoiceService;
       return yield* service.create({
@@ -78,9 +83,16 @@ export async function createInvoice(_prevState: unknown, formData: FormData) {
   );
 
   if (Either.isLeft(result)) {
-    return submission.reply({
-      formErrors: [`請求書の作成に失敗しました: ${result.left._tag}`],
-    });
+    switch (result.left._tag) {
+      case "CustomerNotInScope":
+        return submission.reply({
+          fieldErrors: { customerId: ["指定した顧客が見つかりません"] },
+        });
+      default:
+        return submission.reply({
+          formErrors: ["請求書の作成に失敗しました"],
+        });
+    }
   }
 
   revalidatePath("/dashboard/invoices");
@@ -101,7 +113,7 @@ export async function updateInvoice(
   const { amount, status, customerId } = submission.value;
   const amountInCents = Math.round(amount * 100);
 
-  const result = await runService(() =>
+  const result = await runScopedService(() =>
     Effect.gen(function* () {
       const service = yield* InvoiceService;
       return yield* service.update({
@@ -119,9 +131,13 @@ export async function updateInvoice(
         return submission.reply({
           formErrors: ["請求書が見つかりません"],
         });
+      case "CustomerNotInScope":
+        return submission.reply({
+          fieldErrors: { customerId: ["指定した顧客が見つかりません"] },
+        });
       default:
         return submission.reply({
-          formErrors: [`請求書の更新に失敗しました: ${result.left._tag}`],
+          formErrors: ["請求書の更新に失敗しました"],
         });
     }
   }
@@ -131,7 +147,7 @@ export async function updateInvoice(
 }
 
 export async function deleteInvoice(id: string, _prevState: unknown) {
-  const result = await runService(() =>
+  const result = await runScopedService(() =>
     Effect.gen(function* () {
       const service = yield* InvoiceService;
       return yield* service.delete(id);
@@ -146,7 +162,7 @@ export async function deleteInvoice(id: string, _prevState: unknown) {
       default:
         await setFlash({
           type: "error",
-          message: `Failed to delete invoice: ${result.left._tag}`,
+          message: "Failed to delete invoice.",
         });
     }
     revalidatePath("/dashboard/invoices");

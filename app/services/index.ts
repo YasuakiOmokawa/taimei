@@ -37,7 +37,11 @@ export {
 } from "./dashboard-service";
 // 外部から直接 import できるようにエクスポート（パス簡略化のため）
 export { IdGenerator } from "./id-generator-service";
-export { InvoiceNotFound, InvoiceServiceError } from "./invoice-errors";
+export {
+  CustomerNotInScope,
+  InvoiceNotFound,
+  InvoiceServiceError,
+} from "./invoice-errors";
 export {
   type CreateInvoiceInput,
   InvoiceService,
