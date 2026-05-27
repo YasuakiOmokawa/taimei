@@ -29,7 +29,7 @@
         "@react-email/components": "^1.0.2",
         "@sentry/nextjs": "^9",
         "@tailwindcss/forms": "^0.5.7",
-        "@taimei-code/auth-client": "^1.0.0",
+        "@taimei-code/auth-client": "1.1.0",
         "@vercel/blob": "^1.0.0",
         "autoprefixer": "10.4.19",
         "bcrypt": "^5.1.1",
@@ -848,7 +848,7 @@
 
     "@tailwindcss/forms": ["@tailwindcss/forms@0.5.11", "", { "dependencies": { "mini-svg-data-uri": "^1.2.3" }, "peerDependencies": { "tailwindcss": ">=3.0.0 || >= 3.0.0-alpha.1 || >= 4.0.0-alpha.20 || >= 4.0.0-beta.1" } }, "sha512-h9wegbZDPurxG22xZSoWtdzc41/OlNEUQERNqI/0fOwa2aVlWGu7C35E/x6LDyD3lgtztFSSjKZyuVM0hxhbgA=="],
 
-    "@taimei-code/auth-client": ["@taimei-code/auth-client@1.0.0", "https://npm.pkg.github.com/download/@taimei-code/auth-client/1.0.0/be2d088674dbcc01116218a7521ce3f47d10a07a", { "dependencies": { "effect": "^3.19.0" }, "peerDependencies": { "@bufbuild/protobuf": "^2.0.0", "@connectrpc/connect": "^2.0.0" } }, "sha512-ms/DQPoO2nbyRqrD60uScsPalDguPAtkp6qtlVnJkgueeQRb3mu88yrOLUCZNEf1vCvwilbytygFtgsCXBRglg=="],
+    "@taimei-code/auth-client": ["@taimei-code/auth-client@1.1.0", "https://npm.pkg.github.com/download/@taimei-code/auth-client/1.1.0/e2bae519f5862ba41c9b4c0394824726fe6d3138", { "dependencies": { "effect": "^3.19.0" }, "peerDependencies": { "@bufbuild/protobuf": "^2.0.0", "@connectrpc/connect": "^2.0.0" } }, "sha512-LjfWq79JuBgHmN2n3E3AUSHqNFAnhSuDiIP1hV54PtU6+tnU0/KkBMuTrSxD72xkickWGcJxluFggfYRnWmWrw=="],
 
     "@testing-library/dom": ["@testing-library/dom@10.4.1", "", { "dependencies": { "@babel/code-frame": "^7.10.4", "@babel/runtime": "^7.12.5", "@types/aria-query": "^5.0.1", "aria-query": "5.3.0", "dom-accessibility-api": "^0.5.9", "lz-string": "^1.5.0", "picocolors": "1.1.1", "pretty-format": "^27.0.2" } }, "sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg=="],
 
