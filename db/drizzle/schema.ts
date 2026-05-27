@@ -20,9 +20,8 @@ export const customers = pgTable(
     email: varchar({ length: 255 }).notNull(),
     imageUrl: varchar("image_url", { length: 255 }).notNull(),
     // company_id は auth (taimei-auth) の company.id (cmp_<nanoid24>) への論理参照。
-    // cross-DB のため FK は張らない。nullable で追加し NOT NULL 化は別 migration (expand-contract)。
-    // 設計詳細: docs/adr/0002-company-data-scoping.md (D9)
-    companyId: varchar("company_id", { length: 32 }),
+    // cross-DB のため FK は張らない。設計詳細: docs/adr/0002-company-data-scoping.md
+    companyId: varchar("company_id", { length: 32 }).notNull(),
   },
   (table) => [index("customers_company_id_idx").on(table.companyId)],
 );
@@ -58,7 +57,7 @@ export const invoices = pgTable(
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
     // auth company.id への論理参照 (FK なし)。詳細は customers.companyId と docs/adr/0002 を参照。
-    companyId: varchar("company_id", { length: 32 }),
+    companyId: varchar("company_id", { length: 32 }).notNull(),
   },
   (table) => [
     foreignKey({
@@ -84,14 +83,11 @@ export const revenue = pgTable(
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
     // auth company.id への論理参照 (FK なし)。詳細は customers.companyId と docs/adr/0002 を参照。
-    // month 単独 unique は別 migration で (company_id, month) に変更する (社ごと同月行を許可)。
-    companyId: varchar("company_id", { length: 32 }),
+    companyId: varchar("company_id", { length: 32 }).notNull(),
   },
   (table) => [
-    uniqueIndex("revenue_month_key").using(
-      "btree",
-      table.month.asc().nullsLast().op("text_ops"),
-    ),
+    // unique は (company_id, month) 複合。社ごとに同じ月の行を持てるようにする。
+    uniqueIndex("revenue_company_month_key").on(table.companyId, table.month),
     index("revenue_company_id_idx").on(table.companyId),
   ],
 );
