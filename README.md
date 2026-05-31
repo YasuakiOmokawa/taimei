@@ -56,7 +56,7 @@ docker compose up --build --watch
 - `taimei-auth/.env` に `AUTH_SECRET` 等が設定済 (詳細は taimei-auth リポの README 参照)
 - 以下の port が空いていること (占有時は `docker ps | grep <port>` で特定して `docker stop <container>` で解放):
   - 3001 (taimei application) / 3100 (auth-service)
-  - 5432 (taimei postgres) / 5434 (taimei test_db) / 5435 (auth-postgres) / 6380 (auth-redis)
+  - 5433 (taimei postgres) / 5434 (taimei test_db) / 5435 (auth-postgres) / 6380 (auth-redis)
 
 ### 停止順
 

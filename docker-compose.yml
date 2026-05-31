@@ -22,7 +22,10 @@ services:
         source: "./dump"
         target: "/dump"
     ports:
-      - "5432:5432"
+      # host 側は 5433 に退避。default の 5432 は他のローカル postgres スタックと衝突しやすいため
+      # 常時共存できるようズラす (port 割り当て一覧は README.md「前提」参照)。
+      # container 側 5432 は据え置き — application は service 名 postgres:5432 で繋ぐので無影響。
+      - "5433:5432"
     environment:
       - POSTGRES_DATABASE=postgres
       - POSTGRES_USER=postgres
