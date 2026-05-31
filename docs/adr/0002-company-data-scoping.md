@@ -1,6 +1,7 @@
 # ADR-0002: taimei 本体ドメインデータの company_id scoping
 
-- **Status**: Proposed
+- **Status**: Accepted
+- **実装**: 完了 (2026-05-31)。PR-0〜PR-6 を全 merge ([#514](https://github.com/YasuakiOmokawa/taimei/pull/514)〜[#522](https://github.com/YasuakiOmokawa/taimei/pull/522))。本番 (Neon) migrate-deploy 全 success、`tags` / `tags2` = NOT NULL + index + NULL 行 0 を psql 確認済。各 PR の内訳は plans/taimei `README.md`「直近の次タスク」を参照
 - **Date**: 2026-05-26
 - **References**: taimei-auth 事業所概念 ADR ([#55](https://github.com/taimei-code/taimei-auth/pull/55)〜[#63](https://github.com/taimei-code/taimei-auth/pull/63)、設計ログは plans/taimei `ADR-009`)。本 ADR 内の `ADR-009 §...` 参照はこの事業所概念 ADR を指す
 
