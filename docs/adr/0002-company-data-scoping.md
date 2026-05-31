@@ -337,6 +337,16 @@ Phase は手動 QA できる end-to-end 単位で分割 (ADR-009 流)。
 - **rollback**: NOT NULL / unique 変更は forward migration で「アプリだけ rollback」が効かない (新 schema 上で旧アプリが violation)。drizzle-kit に down が無いため revert 用 nullable 戻し SQL を `drizzle/manual/` に用意し、**「rollback は forward-only (戻し migration を別 push)」を運用方針に固定**。
 - **RLS 前倒しトリガー**: 「**最初の実顧客受入前**に RLS を defense-in-depth で入れる」を時系列トリガーに追加 (『pen-test 指摘後』= 漏れた後では遅い)。
 
+**D-4. migration の環境間スキーマ出自差 (PR-5 で実際に踏んだ本番障害)**: PR-5 (0004) の本番 migrate-deploy が `cannot drop index "revenue_month_key" because constraint "revenue_month_key" requires it` で失敗した。原因は **同名オブジェクトの内部種別が環境で食い違っていた**こと —
+- **本番**: `revenue_month_key` は UNIQUE **constraint** (旧ツール由来。drizzle 0000 は introspect で起こされたため、本番には drizzle 以前から constraint が存在し、0000 の `CREATE UNIQUE INDEX IF NOT EXISTS` は本番では既存ヒットで skip されていた)。
+- **test/dev**: 同名が drizzle 0000 由来の **index** (空 DB に 0000 を流すと `CREATE UNIQUE INDEX` で index として作られる)。
+- `DROP INDEX` は constraint を落とせない → 本番だけ失敗、空の test DB では再現せず。
+
+対策:
+- **両構え drop**: 種別が環境で異なりうる drop は `ALTER TABLE ... DROP CONSTRAINT IF EXISTS` + `DROP INDEX IF EXISTS` を併記する (constraint を落とせば裏付け index も消え、後段の `DROP INDEX IF EXISTS` は no-op で安全)。
+- **本番出自での dry-run を検証段に組み込む**: 「空の test DB で通る ≠ 本番で通る」。破壊的 DDL を含む migration は、本番スキーマのダンプ (構造のみ) or 本番への `BEGIN; \i <migration>; ROLLBACK;` dry-run で**適用前に**検証する。
+- **drizzle-kit migrate はトランザクション migration (実機確認済み)**: 1 migration ファイルを単一トランザクションで包み、途中失敗時は**前段の文 (backfill UPDATE 等) も含め全ロールバック・journal にも未記録**。よって失敗 migration は「部分適用」を残さず、**ファイルを修正して再 push すれば未適用とみなして atomically 再実行**される (journal 手動編集や手動 DDL 復旧は不要)。これが本 migration 群の forward-only 運用の安全性の根拠。
+
 ### Phase E+ (将来トリガー時)
 
 - RLS を defense-in-depth で追加 (Alternatives Considered のトリガー: 本番課金 / 実顧客企業 / pen-test 指摘)
