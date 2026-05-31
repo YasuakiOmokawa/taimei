@@ -1,43 +1,8 @@
 import { composeFactory, defineFactory } from "@praha/drizzle-factory";
-import {
-  boolean,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-} from "drizzle-orm/pg-core";
-import * as appSchema from "@/db/drizzle/schema";
+import { factorySchema } from "./test-schema";
 
-// user テーブルは auth-service DB に移動済みだが、テストでは taimei DB に
-// 残存する user テーブルに直接書き込む（テスト用の暫定措置）
-const user = pgTable(
-  "user",
-  {
-    id: text("id").primaryKey().notNull(),
-    name: text("name").notNull(),
-    email: text("email").notNull().unique(),
-    emailVerified: boolean("email_verified").default(false).notNull(),
-    image: text("image"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
-  },
-  (table) => [
-    uniqueIndex("user_email_key").using(
-      "btree",
-      table.email.asc().nullsLast().op("text_ops"),
-    ),
-  ],
-);
-
-// test-db.ts からも参照するため export
-export const testTableSchema = { user };
-
-// composeFactory は全 factory が同一 Schema 型を共有する必要があるため、
-// アプリスキーマ (customers/invoices/revenue 等) と test 用 user を統合した schema を使う。
-const factorySchema = { ...appSchema, user };
+// test-db.ts が既存の import パス (../factories) を維持できるよう re-export する。
+export { testTableSchema } from "./test-schema";
 
 // company_id は sequence ユニークな default にする。設計意図: docs/adr/0002 のテスト戦略。
 // 固定 default だと isolation テストで override 忘れ時に 2 社が同一 company になり誤 pass するが、
@@ -109,11 +74,24 @@ export const revenueFactory = defineFactory({
   schema: factorySchema,
   table: "revenue",
   resolver: ({ sequence }) => ({
-    // month 単独 unique (PR-5 で (company_id, month) 化) のため sequence でユニークにする。
+    // revenue unique は (company_id, month) 複合 (PR-5 で month 単独から変更)。同一 company で
+    // 複数行を作るテストでも (company_id, month) 衝突しないよう month を sequence でユニーク化する。
     month: String(sequence).padStart(4, "0"),
     revenue: 10000 + sequence,
     createdAt: "2026-01-01 00:00:00",
     updatedAt: "2026-01-01 00:00:00",
+    companyId: defaultCompanyId(sequence),
+  }),
+});
+
+export const tag2Factory = defineFactory({
+  schema: factorySchema,
+  table: "tags2",
+  resolver: ({ sequence }) => ({
+    id: crypto.randomUUID(),
+    name: `Tag ${sequence}`,
+    createdAt: new Date("2026-01-01T00:00:00Z"),
+    updatedAt: new Date("2026-01-01T00:00:00Z"),
     companyId: defaultCompanyId(sequence),
   }),
 });
@@ -123,4 +101,5 @@ export const factory = composeFactory({
   customer: customerFactory,
   invoice: invoiceFactory,
   revenue: revenueFactory,
+  tag2: tag2Factory,
 });

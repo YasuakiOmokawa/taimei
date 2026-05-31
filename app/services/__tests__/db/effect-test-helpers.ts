@@ -7,6 +7,7 @@ import { AuthClient } from "../../auth-client-service";
 import { CustomerService } from "../../customer-service";
 import { DashboardService } from "../../dashboard-service";
 import { InvoiceService } from "../../invoice-service";
+import { Tag2Service } from "../../tag2-service";
 import { UserService } from "../../user-service";
 import { factory } from "../factories";
 import { type TestDb, withRollback } from "./test-db";
@@ -23,6 +24,7 @@ type ServiceLayer =
   | CustomerService
   | InvoiceService
   | DashboardService
+  | Tag2Service
   | AccountValidationService;
 
 const createTestServiceLayer = (tx: TestDb) => {
@@ -48,6 +50,7 @@ const createTestServiceLayer = (tx: TestDb) => {
     CustomerService.Default,
     InvoiceService.Default,
     DashboardService.Default,
+    Tag2Service.Default,
     AccountValidationService.Default.pipe(Layer.provide(UserServiceLayer)),
   ).pipe(Layer.provide(TestPgDrizzleLayer));
 };
