@@ -26,21 +26,33 @@ export const customers = pgTable(
   (table) => [index("customers_company_id_idx").on(table.companyId)],
 );
 
-export const tags2 = pgTable("tags2", {
-  id: uuid().defaultRandom().primaryKey().notNull(),
-  name: varchar({ length: 255 }).notNull(),
-  createdAt: timestamp("created_at", { precision: 6, mode: "date" })
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-  updatedAt: timestamp("updated_at", { precision: 6, mode: "date" })
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-});
+export const tags2 = pgTable(
+  "tags2",
+  {
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    name: varchar({ length: 255 }).notNull(),
+    createdAt: timestamp("created_at", { precision: 6, mode: "date" })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at", { precision: 6, mode: "date" })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    // auth company.id への論理参照 (FK なし)。詳細は customers.companyId と docs/adr/0002 を参照。
+    companyId: varchar("company_id", { length: 32 }).notNull(),
+  },
+  (table) => [index("tags2_company_id_idx").on(table.companyId)],
+);
 
-export const tags = pgTable("tags", {
-  id: uuid().defaultRandom().primaryKey().notNull(),
-  name: varchar({ length: 255 }).notNull(),
-});
+export const tags = pgTable(
+  "tags",
+  {
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    name: varchar({ length: 255 }).notNull(),
+    // auth company.id への論理参照 (FK なし)。詳細は customers.companyId と docs/adr/0002 を参照。
+    companyId: varchar("company_id", { length: 32 }).notNull(),
+  },
+  (table) => [index("tags_company_id_idx").on(table.companyId)],
+);
 
 export const invoices = pgTable(
   "invoices",
