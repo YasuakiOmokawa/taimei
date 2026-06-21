@@ -3,4 +3,5 @@
 # ADR-0001 参照
 minimumReleaseAge = 604800
 # @taimei-code/auth-client は内部 publish のため 7 日待たない (実害の判定はレビューで担保)
-minimumReleaseAgeExcludes = ["@taimei-code/auth-client"]
+# undici は high advisory 3 件の唯一の修正版 (7.28.0) が 7 日窓に 1 日足りないため例外除外。詳細: ADR-0001 §除外履歴
+minimumReleaseAgeExcludes = ["@taimei-code/auth-client", "undici"]

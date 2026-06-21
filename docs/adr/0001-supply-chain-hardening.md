@@ -36,6 +36,14 @@ taimei の現状:
 | L7 | direct dep bump | `drizzle-orm` / `effect` / `next` (lockfile) | `package.json` + `bun.lockb` |
 | L8 | transitive 固定 | `overrides` | `package.json` |
 
+## minimumReleaseAge 除外履歴 (L1 例外)
+
+security fix の修正版が 7 日窓に間に合わず L4 (`bun audit --audit-level=high`) を通せない場合に限り、official package かつ yank/worm リスクが低いと判断できるものを `minimumReleaseAgeExcludes` に追加する。追加したら本表に記録し、当該 version が枯れたら除外を外すか再評価する。
+
+| 日付 | package | 理由 |
+|---|---|---|
+| 2026-06-21 | `undici` | GHSA-vmh5-mc38-953g / GHSA-vxpw-j846-p89q / GHSA-hm92-r4w5-c3mj (high×3) の唯一の修正版 7.28.0 が公開 6 日目で 7 日窓に 1 日足りず L4 を通せない。nodejs 公式 package で yank/worm リスクは低い。7.28.x が枯れ次第 (>7 日) 除外を外す。|
+
 ## Alternatives Considered
 
 ### publish environment (採用せず)
