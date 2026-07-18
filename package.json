@@ -9,6 +9,7 @@
     "lint": "biome check . && eslint .",
     "lint:fix": "biome check --write . && eslint . --fix",
     "format": "biome format --write .",
+    "typecheck": "node_modules/typescript7/bin/tsc --noEmit",
     "deployable-test": "next build --turbopack",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
@@ -87,7 +88,6 @@
     "@types/node": "20.14.8",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
-    "@typescript/native-preview": "^7.0.0-dev.20250523.1",
     "@vitejs/plugin-react": "^4.3.1",
     "@vitest/browser": "^3.2.6",
     "@vitest/coverage-v8": "^3.2.6",
@@ -100,7 +100,8 @@
     "playwright": "^1.52.0",
     "storybook": "^8.6.14",
     "ts-node": "^10.9.2",
-    "typescript": "5.9.2",
+    "typescript7": "npm:typescript@7.0.2",
+    "typescript": "npm:typescript@6.0.2",
     "use-debounce": "^10.0.1",
     "vitest": "^3.2.6"
   },
