@@ -23,6 +23,17 @@ npm --prefix ./e2e install ./e2e
 bunx drizzle-kit migrate
 ```
 
+## TypeScript 7 移行の暫定構成
+
+型チェックは native TypeScript 7 で実行しつつ、eslint と next build は TypeScript 6.0 の JS Compiler API を使う 2 本立て構成を採っている。
+
+- **型チェック**: `typescript7` (`npm:typescript@7.0.2`, native) を `bun run typecheck` で実行する。CI (`lint.yml`) も同コマンドを使う。
+- **bare `typescript`**: `npm:typescript@6.0.2` を維持する。TypeScript 7 は JS Compiler API を同梱せず typescript-eslint が未対応 ([typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)、安定 API を出す TS7.1 待ち) なため、`import "typescript"` する eslint / next build 用に API 実装が必要。
+
+`bun tsc` は 6.0 を指す (害はない) ので、型チェックは必ず `bun run typecheck` を使うこと。
+
+typescript-eslint が TS7 に対応したら `typescript7` を除去して `"typescript": "7.x"` に一本化し、`typecheck` script を `tsc` に戻す。
+
 ## 開発環境起動
 
 taimei は認証を別 compose (`taimei-auth`) に依存する。**先に taimei-auth、次に taimei** の順でマニュアル起動する。共有ネットワーク `taimei-network` は taimei-auth 側 compose が作成主 (taimei 側は external 参照)。

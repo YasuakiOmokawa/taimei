@@ -7,7 +7,7 @@ bun install                        # パッケージインストール
 bun run test:db                    # DB起動→全テスト→DB停止（推奨）
 bun vitest run <file_path>         # 特定ファイルテスト（test_db起動済み前提）
 bun eslint . --fix                 # ESLint自動修正
-bun tsc --noEmit                   # 型チェック
+bun run typecheck                  # 型チェック (native TS7 = typescript7)
 bunx drizzle-kit generate          # マイグレーションSQL生成
 bunx drizzle-kit migrate           # マイグレーション適用
 ```
