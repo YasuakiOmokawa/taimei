@@ -72,6 +72,10 @@ services:
     build:
       context: '../taimei-auth'
       dockerfile: Dockerfile
+      # target を明示する理由: 既定 target (最終 stage) 頼みだと taimei-auth 側の stage 追加で
+      # silent に別 image を掴む。e2e に必要な full toolchain (drizzle-kit) + web/dist は
+      # dev stage (詳細: taimei-auth の docs/adr/0014-docker-runner-dev-stage-separation.md)。
+      target: dev
       args:
         APP_ENV: test
     ports:
