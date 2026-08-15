@@ -44,6 +44,14 @@ security fix の修正版が 7 日窓に間に合わず L4 (`bun audit --audit-l
 |---|---|---|
 | 2026-06-21 | `undici` | GHSA-vmh5-mc38-953g / GHSA-vxpw-j846-p89q / GHSA-hm92-r4w5-c3mj (high×3) の唯一の修正版 7.28.0 が公開 6 日目で 7 日窓に 1 日足りず L4 を通せない。nodejs 公式 package で yank/worm リスクは低い。7.28.x が枯れ次第 (>7 日) 除外を外す。|
 
+## bun audit 除外履歴 (L4 例外)
+
+high 以上の advisory に安定版の修正版が存在しない場合に限り、CI で許容する依存経路を検証したうえで `bun audit --ignore` を適用する。修正版の公開後は依存関係を更新し、除外を削除する。
+
+| 日付 | package | advisory | 理由 |
+|---|---|---|---|
+| 2026-08-15 | `image-size` | GHSA-w3rx-r6r6-pgpr / GHSA-5p2g-fcmc-qvqq | 最新安定版 2.0.2 までが影響を受け、修正版は未公開。`@storybook/experimental-nextjs-vite` 経由の開発時依存に限定されるため、修正版公開まで監査から除外する。|
+
 ## Alternatives Considered
 
 ### publish environment (採用せず)
