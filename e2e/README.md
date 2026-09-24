@@ -8,29 +8,20 @@ Playwright + Docker Compose で taimei + taimei-auth (認証サーバー) を統
 docker-compose.e2e.yml
 ├── e2e-postgres        (taimei DB, port 5433)
 ├── e2e-auth-postgres   (taimei-auth DB, port 5435)
-├── e2e-auth-redis      (Better Auth secondary storage)
 ├── e2e-auth-service    (taimei-auth, port 3100, alias: auth.taimei-code.local)
 ├── e2e-application     (taimei Next.js, port 3001, alias: app.taimei-code.local)
 └── e2e                 (Playwright runner)
 ```
 
-すべて同じ `e2e-network` 内で `app/auth.taimei-code.local` を network alias で解決する。Cookie domain `.taimei-code.local` で cross-subdomain SSO を成立させる。
+host には port を公開しない (Playwright UI の 9323 のみ) ので、dev 環境の compose と並行して動かせる。すべて同じ `e2e-network` 内で `app/auth.taimei-code.local` を network alias で解決する。Cookie domain `.taimei-code.local` で cross-subdomain SSO を成立させる。
 
 ## 前提
 
-### 1. `/etc/hosts` 設定 (一度だけ)
-
-ブラウザから host port 経由でアクセスする場合のみ必要。Playwright runner は同 network 内で動くため不要。
-
-```bash
-sudo sh -c 'echo "127.0.0.1 app.taimei-code.local auth.taimei-code.local" >> /etc/hosts'
-```
-
-### 2. `NPM_TOKEN`
+### 1. `NPM_TOKEN`
 
 `@taimei-code/auth-client` (GitHub Packages, private) を build 時に install するため `read:packages` 権限を持つ GitHub PAT が必要。プロジェクトルート `.env` に書いておけば docker compose が自動読み込み。
 
-### 3. taimei-auth sibling repo
+### 2. taimei-auth sibling repo
 
 `docker-compose.e2e.yml` は `context: '../taimei-auth'` を参照する。同じ親ディレクトリに taimei-auth を clone しておく:
 
@@ -40,14 +31,9 @@ parent/
 └── taimei-auth/   ← 必須
 ```
 
-### 4. port 衝突回避
+### 3. TLS 復号 proxy 配下の場合
 
-他の container や process が port 3001/3100/5433/5435 を占有していないこと。占有時は以下で特定して停止:
-
-```bash
-docker ps | grep -E '3001|3100|5433|5435'   # 占有 container を特定
-docker stop <container>                      # 該当 container を停止
-```
+proxy の CA を `certs/palo-root.pem` に置く (gitignore 済み)。無いと image build 中の `bun install` / `npm ci` / `next build` が `SELF_SIGNED_CERT_IN_CHAIN` で落ちる。
 
 ## 実行
 
