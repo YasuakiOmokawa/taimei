@@ -20,7 +20,7 @@
 import { Schema } from "effect";
 
 const XxxSchema = Schema.String.pipe(
-  Schema.filter(...),
+  Schema.check(Schema.makeFilter(...)),
   Schema.brand("Xxx")
 );
 
@@ -28,7 +28,7 @@ export type Xxx = typeof XxxSchema.Type;
 
 export const Xxx = {
   Schema: XxxSchema,
-  make: Schema.decodeUnknownEither(XxxSchema),    // Either を返す（未検証の外部入力用）
+  make: Schema.decodeUnknownResult(XxxSchema),    // Result を返す（未検証の外部入力用）
   makeSync: Schema.decodeUnknownSync(XxxSchema),  // 例外を投げる（テスト用）
   fromTrusted: (value: string): Xxx => ..., // 検証済み値用（Zod検証後、DB取得値）
 } as const;

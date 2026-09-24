@@ -69,7 +69,7 @@ it.effect("UUID を生成する", () =>
     const idGen = yield* IdGenerator;
     const id = yield* idGen.generate;
     expect(id).toMatch(/^[0-9a-f-]+$/);
-  }).pipe(Effect.provide(IdGenerator.Live))
+  }).pipe(Effect.provide(IdGenerator.layer))
 );
 ```
 

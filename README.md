@@ -1,118 +1,24 @@
 # Taimei
 
-心安らかなソリューション。
-それが Taimei
+## 前提
 
-## パッケージインストール
+- 親ディレクトリに `taimei-auth` を clone
+- `/etc/hosts` に `127.0.0.1 app.taimei-code.local auth.taimei-code.local`
+- `.env` に `NPM_TOKEN=<read:packages 権限の GitHub PAT>` (`@taimei-code/auth-client` の取得用)
+- port 3001 / 3100 / 5433 / 5434 / 5435 が空いていること
 
-### アプリケーション用
+## 開発環境
 
-```console
-bun install
-```
-
-### e2e 用
+taimei-auth が共有ネットワーク `taimei-network` を作るため、taimei-auth → taimei の順に起動し、逆順に停止する。
 
 ```console
-npm --prefix ./e2e install ./e2e
+cd ../taimei-auth && docker compose up --build --watch
+docker compose up --build --watch   # 別ターミナルで taimei 側
 ```
 
-## データベースマイグレーション
+`http://app.taimei-code.local:3001` を開く。Magic Link は `docker logs taimei-auth-auth-service-1 | grep "Magic Link"` で取得する。
 
-```console
-bunx drizzle-kit migrate
-```
-
-## TypeScript 7 移行の暫定構成
-
-型チェックは native TypeScript 7 で実行しつつ、eslint と next build は TypeScript 6.0 の JS Compiler API を使う 2 本立て構成を採っている。
-
-- **型チェック**: `typescript7` (`npm:typescript@7.0.2`, native) を `bun run typecheck` で実行する。CI (`lint.yml`) も同コマンドを使う。
-- **bare `typescript`**: `npm:typescript@6.0.2` を維持する。TypeScript 7 は JS Compiler API を同梱せず typescript-eslint が未対応 ([typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)、安定 API を出す TS7.1 待ち) なため、`import "typescript"` する eslint / next build 用に API 実装が必要。
-
-`bun tsc` は 6.0 を指す (害はない) ので、型チェックは必ず `bun run typecheck` を使うこと。
-
-typescript-eslint が TS7 に対応したら `typescript7` を除去して `"typescript": "7.x"` に一本化し、`typecheck` script を `tsc` に戻す。
-
-## 開発環境起動
-
-taimei は認証を別 compose (`taimei-auth`) に依存する。**先に taimei-auth、次に taimei** の順でマニュアル起動する。共有ネットワーク `taimei-network` は taimei-auth 側 compose が作成主 (taimei 側は external 参照)。
-
-### Step 1: taimei-auth (認証サーバー + DB)
-
-```console
-cd ../taimei-auth
-docker compose up --build --watch
-```
-
-`auth-postgres` / `auth-migrate` / `auth-service` が起動し、共有ネットワーク `taimei-network` を作成する。`auth-service` は alias `auth.taimei-code.local:3100` で公開される。
-
-### Step 2: taimei (Next.js + DB×2)
-
-別ターミナルで:
-
-```console
-docker compose up --build --watch
-```
-
-`postgres` / `test_db` / `application` が起動し、external network `taimei-network` に join する。`application` は alias `app.taimei-code.local:3001` で公開される。
-
-ブラウザは `http://app.taimei-code.local:3001` でアクセス。
-
-### 前提
-
-- 親ディレクトリに `taimei-auth` を clone (taimei-auth 側 compose が独立に build / migrate を実行)
-- `/etc/hosts` に `127.0.0.1 app.taimei-code.local auth.taimei-code.local` を追加 (sudo 必要、一度だけ)
-- `taimei/.env` に `NPM_TOKEN=<read:packages 権限の GitHub PAT>` (GitHub Packages から `@taimei-code/auth-client` 取得用)
-- `taimei-auth/.env` に `AUTH_SECRET` 等が設定済 (詳細は taimei-auth リポの README 参照)
-- 以下の port が空いていること (占有時は `docker ps | grep <port>` で特定して `docker stop <container>` で解放):
-  - 3001 (taimei application) / 3100 (auth-service)
-  - 5433 (taimei postgres) / 5434 (taimei test_db) / 5435 (auth-postgres)
-
-### 停止順
-
-逆順 (taimei → taimei-auth) で停止する。taimei-auth を先に止めると network が消えて taimei 側が orphan エラーになる場合がある。
-
-```console
-# taimei 側 (本リポ)
-docker compose down
-
-# taimei-auth 側 (network も削除される)
-cd ../taimei-auth && docker compose down
-```
-
-### Magic Link
-
-Magic Link は test mode で console 出力されるため、taimei-auth 側のコンテナログから取得して手動コピペする:
-
-```console
-docker logs taimei-auth-auth-service-1 | grep "Magic Link"
-```
-
-> container 名は taimei-auth project prefix (`taimei-auth-`) が付く。`docker ps` で実名を確認すること。
-
-### ビルド時間短縮 (任意)
-
-ビルドキャッシュを効かせて起動を高速化したい場合 (taimei application のローカル実行速度は遅くなる):
-
-```console
-docker compose build --build-arg APP_BUILD_CMD='' && docker compose up --watch
-```
-
-### ブラウザでのローカル動作確認 (2026-05-05 完了)
-
-> 当時は taimei + taimei-auth が単一 compose で統合起動だった。現在は 2 段階起動だが、ブラウザ側の動作確認手順は同等。
-
-1. Step 1 → Step 2 の順で `docker compose up --build --watch` (ports 3001/3100 公開)
-2. リモート開発環境を使う場合は、ブラウザを動かすマシンへ port を到達可能にする (port forwarding / SSH tunnel 等。ローカル開発なら不要)
-3. ブラウザを動かす OS の `/etc/hosts` に `127.0.0.1 app.taimei-code.local auth.taimei-code.local` を追加
-4. ブラウザ `http://app.taimei-code.local:3001/dashboard` → taimei-auth の SignIn 画面に redirect
-5. メアド入力 → 「Magic Link を送信」→ `docker logs taimei-auth-auth-service-1 | grep "Magic Link"` で URL 取得
-6. URL をブラウザで開く → /dashboard 着地 ✅
-
-これで認証統合のエンドツーエンド動作 (proxy → taimei-auth → Magic Link → cookie → /dashboard) が手動で確認できた。`.local` TLD は macOS の Bonjour 解決で問題になる可能性があったが今回は無事動作。
-
-## E2E テスト
+## E2E
 
 ```console
 E2E_SERVICE_COMMAND='npm test' \
@@ -120,18 +26,6 @@ E2E_SERVICE_COMMAND='npm test' \
   up --build --abort-on-container-exit --exit-code-from e2e
 ```
 
-`-p taimei-e2e` で dev compose と project / volume を分離。詳細は `e2e/README.md` 参照。
+## 型チェック
 
-### UI モード
-
-```console
-E2E_SERVICE_COMMAND='npm run test-ui' \
-  docker compose -p taimei-e2e -f docker-compose.e2e.yml \
-  up --build --watch
-```
-
-# TODO
-
-- [ ] パンくずリストの整備
-- [ ] 画像がうまく調整できない。調整幅が低すぎる
-- [ ] StoryBook の適用
+`bun run typecheck` を使う (TypeScript 7)。bare の `typescript` は typescript-eslint と next build のために 6.0 のまま残しているので、`bun tsc` は 6.0 を指す。

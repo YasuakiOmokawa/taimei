@@ -391,9 +391,8 @@ dbEffect("InvoiceService は他社 invoice を返さない", ({ factory: f }) =>
 
 ### プロジェクト規約
 
-- `.claude/rules/effect-patterns.md` — Service が PgDrizzle 直接使用 / Effect.Tag vs Effect.Service / Layer 共有変数
+- `.claude/rules/effect-patterns.md` — Service が Db を直接使用 / CompanyContext / 外部ライブラリの Service 化
 - `.claude/rules/testing-strategy.md` — `dbEffect` / isolation テスト
-- `.claude/rules/external-library-integration.md` — DIP パターン
 
 ### freee 参考調査 (社内リソース、2026-05-26)
 
