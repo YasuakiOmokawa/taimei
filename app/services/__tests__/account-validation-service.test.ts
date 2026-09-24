@@ -1,4 +1,4 @@
-import { Effect, Either, Layer } from "effect";
+import { Effect, Layer, Result } from "effect";
 import { describe, expect, it } from "vitest";
 import { Email } from "@/app/domain/email";
 import { AccountAlreadyExists } from "../account-validation-errors";
@@ -14,7 +14,7 @@ import { UserService } from "../user-service";
 const createMockUserServiceLayer = (existingEmails: Set<string>) =>
   Layer.succeed(
     UserService,
-    new UserService({
+    UserService.of({
       existsByEmail: (email) =>
         Effect.succeed(existingEmails.has(Email.asString(email))),
       findByEmail: () => Effect.succeed(undefined),
@@ -27,10 +27,10 @@ const runWithExisting = <A, E>(
   existingEmails: Set<string> = new Set(),
 ) => {
   const mockUserLayer = createMockUserServiceLayer(existingEmails);
-  const layer = AccountValidationService.Default.pipe(
+  const layer = AccountValidationService.layer.pipe(
     Layer.provide(mockUserLayer),
   );
-  return effect.pipe(Effect.provide(layer), Effect.either, Effect.runPromise);
+  return effect.pipe(Effect.provide(layer), Effect.result, Effect.runPromise);
 };
 
 describe("AccountValidationService", () => {
@@ -47,10 +47,10 @@ describe("AccountValidationService", () => {
       }),
     );
 
-    expect(Either.isRight(result)).toBe(true);
-    if (Either.isRight(result)) {
-      expect(result.right.email).toBe(input.email);
-      expect(result.right.name).toBe("New User");
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.success.email).toBe(input.email);
+      expect(result.success.name).toBe("New User");
     }
   });
 
@@ -70,10 +70,10 @@ describe("AccountValidationService", () => {
       }),
     );
 
-    expect(Either.isRight(result)).toBe(true);
-    if (Either.isRight(result)) {
-      expect(result.right[0].name).toBe("U1");
-      expect(result.right[1].name).toBe("U2");
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.success[0].name).toBe("U1");
+      expect(result.success[1].name).toBe("U2");
     }
   });
 
@@ -89,10 +89,10 @@ describe("AccountValidationService", () => {
       new Set(["existing@example.com"]),
     );
 
-    expect(Either.isLeft(result)).toBe(true);
-    if (Either.isLeft(result)) {
-      expect(result.left).toBeInstanceOf(AccountAlreadyExists);
-      expect(result.left.message).toContain("既に登録されています");
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure).toBeInstanceOf(AccountAlreadyExists);
+      expect(result.failure.message).toContain("既に登録されています");
     }
   });
 });

@@ -1,7 +1,7 @@
 "use server";
 
 import { parseWithZod } from "@conform-to/zod/v4";
-import { Effect, Either } from "effect";
+import { Effect, Result } from "effect";
 import { redirect } from "next/navigation";
 import { Email } from "@/app/domain/email";
 import { runService } from "@/app/services";
@@ -28,12 +28,12 @@ export async function createData(_prevState: unknown, formData: FormData) {
     }),
   );
 
-  if (Either.isLeft(result)) {
-    switch (result.left._tag) {
+  if (Result.isFailure(result)) {
+    switch (result.failure._tag) {
       case "AccountAlreadyExists":
         return submission.reply({
           fieldErrors: {
-            email: [result.left.message],
+            email: [result.failure.message],
           },
           formErrors: ["データの作成に失敗しました"],
         });

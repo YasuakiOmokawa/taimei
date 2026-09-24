@@ -1,9 +1,9 @@
-import * as PgDrizzle from "@effect/sql-drizzle/Pg";
 import { and, count, desc, eq, ilike, or, sql } from "drizzle-orm";
-import { Effect } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { customers, invoices } from "@/db/drizzle/schema";
 import { companyFilter } from "@/db/scoped";
 import { CompanyContext } from "./company-context";
+import { Db } from "./db-service";
 import {
   CustomerNotInScope,
   InvoiceNotFound,
@@ -24,11 +24,11 @@ export type UpdateInvoiceInput = {
 };
 
 // 全 query は CompanyContext の companyId で scope する。設計詳細: docs/adr/0002-company-data-scoping.md。
-export class InvoiceService extends Effect.Service<InvoiceService>()(
+export class InvoiceService extends Context.Service<InvoiceService>()(
   "services/InvoiceService",
   {
-    effect: Effect.gen(function* () {
-      const pgdrizzle = yield* PgDrizzle.PgDrizzle;
+    make: Effect.gen(function* () {
+      const db = yield* Db;
 
       // customerId が自社 (companyId) に帰属するか検証する。
       // customers FK はグローバルなので、companyFilter で invoices を絞っても、他社 customerId を
@@ -38,7 +38,7 @@ export class InvoiceService extends Effect.Service<InvoiceService>()(
         Effect.gen(function* () {
           const owned = yield* Effect.tryPromise({
             try: () =>
-              pgdrizzle
+              db
                 .select({ id: customers.id })
                 .from(customers)
                 .where(
@@ -72,7 +72,7 @@ export class InvoiceService extends Effect.Service<InvoiceService>()(
             yield* assertCustomerInCompany(input.customerId, companyId);
             return yield* Effect.tryPromise({
               try: () =>
-                pgdrizzle
+                db
                   .insert(invoices)
                   .values({
                     customerId: input.customerId,
@@ -96,7 +96,7 @@ export class InvoiceService extends Effect.Service<InvoiceService>()(
             // 他社 id は companyFilter で除外され 0 行更新 → not-found (他社行は不変)。
             const result = yield* Effect.tryPromise({
               try: () =>
-                pgdrizzle
+                db
                   .update(invoices)
                   .set({
                     customerId: input.customerId,
@@ -128,7 +128,7 @@ export class InvoiceService extends Effect.Service<InvoiceService>()(
             // 他社 id は WHERE で 0 行 hit → returning 空 → 404 (rows affected=0、他社行を消さない)。
             const deleted = yield* Effect.tryPromise({
               try: () =>
-                pgdrizzle
+                db
                   .delete(invoices)
                   .where(
                     and(
@@ -153,7 +153,7 @@ export class InvoiceService extends Effect.Service<InvoiceService>()(
             // 他社 id は WHERE で除外 → 空 → InvoiceNotFound (404 = 存在自体を隠蔽)。
             const result = yield* Effect.tryPromise({
               try: () =>
-                pgdrizzle
+                db
                   .select({
                     id: invoices.id,
                     customerId: invoices.customerId,
@@ -187,7 +187,7 @@ export class InvoiceService extends Effect.Service<InvoiceService>()(
                 const offset = (currentPage - 1) * itemsPerPage;
                 const searchPattern = `%${query}%`;
 
-                return pgdrizzle
+                return db
                   .select({
                     id: invoices.id,
                     amount: invoices.amount,
@@ -229,7 +229,7 @@ export class InvoiceService extends Effect.Service<InvoiceService>()(
               try: async () => {
                 const searchPattern = `%${query}%`;
 
-                const result = await pgdrizzle
+                const result = await db
                   .select({ count: count() })
                   .from(invoices)
                   .innerJoin(customers, eq(invoices.customerId, customers.id))
@@ -257,4 +257,6 @@ export class InvoiceService extends Effect.Service<InvoiceService>()(
       } as const;
     }),
   },
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make);
+}

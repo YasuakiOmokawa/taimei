@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { eq } from "drizzle-orm";
-import { Effect, Either } from "effect";
+import { Effect, Result } from "effect";
 import { describe } from "vitest";
 import { invoices } from "@/db/drizzle/schema";
 import { companyFilter } from "@/db/scoped";
@@ -41,9 +41,10 @@ describe("InvoiceService", () => {
             f.invoice.create({ companyId: B }),
           );
           const service = yield* InvoiceService;
-          const res = yield* Effect.either(service.findById(b.id));
-          expect(Either.isLeft(res)).toBe(true);
-          if (Either.isLeft(res)) expect(res.left._tag).toBe("InvoiceNotFound");
+          const res = yield* Effect.result(service.findById(b.id));
+          expect(Result.isFailure(res)).toBe(true);
+          if (Result.isFailure(res))
+            expect(res.failure._tag).toBe("InvoiceNotFound");
         }).pipe(Effect.provide(CompanyContext.layer({ companyId: A }))),
     );
 
@@ -85,7 +86,7 @@ describe("InvoiceService", () => {
             f.invoice.create({ companyId: B, amount: 500 }),
           );
           const service = yield* InvoiceService;
-          const res = yield* Effect.either(
+          const res = yield* Effect.result(
             service.update({
               id: b.id,
               customerId: aCustomer.id,
@@ -93,8 +94,9 @@ describe("InvoiceService", () => {
               status: "paid",
             }),
           );
-          expect(Either.isLeft(res)).toBe(true);
-          if (Either.isLeft(res)) expect(res.left._tag).toBe("InvoiceNotFound");
+          expect(Result.isFailure(res)).toBe(true);
+          if (Result.isFailure(res))
+            expect(res.failure._tag).toBe("InvoiceNotFound");
           // B 行が変更されていない (rows affected=0)。
           const rows = yield* Effect.promise(() =>
             tx
@@ -114,8 +116,8 @@ describe("InvoiceService", () => {
             f.invoice.create({ companyId: B }),
           );
           const service = yield* InvoiceService;
-          const res = yield* Effect.either(service.delete(b.id));
-          expect(Either.isLeft(res)).toBe(true);
+          const res = yield* Effect.result(service.delete(b.id));
+          expect(Result.isFailure(res)).toBe(true);
           const rows = yield* Effect.promise(() =>
             tx
               .select({ id: invoices.id })
@@ -134,16 +136,16 @@ describe("InvoiceService", () => {
             f.customer.create({ companyId: B }),
           );
           const service = yield* InvoiceService;
-          const res = yield* Effect.either(
+          const res = yield* Effect.result(
             service.create({
               customerId: bCustomer.id,
               amount: 100,
               status: "pending",
             }),
           );
-          expect(Either.isLeft(res)).toBe(true);
-          if (Either.isLeft(res))
-            expect(res.left._tag).toBe("CustomerNotInScope");
+          expect(Result.isFailure(res)).toBe(true);
+          if (Result.isFailure(res))
+            expect(res.failure._tag).toBe("CustomerNotInScope");
           const rows = yield* Effect.promise(() =>
             tx
               .select({ id: invoices.id })

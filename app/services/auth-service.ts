@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { Email } from "@/app/domain/email";
 import { AuthClient } from "./auth-client-service";
 import { MagicLinkError, SessionError } from "./auth-errors";
@@ -7,10 +7,10 @@ import { CookieReader } from "./cookie-reader-service";
 
 // signOut は taimei-auth /account の SignOutButton に集約済 (ADR-008)。
 // findAccountByUserId は旧 /setting/account/page.tsx の caller が ADR-008 で消えたため同時に撤去。
-export class AuthService extends Effect.Service<AuthService>()(
+export class AuthService extends Context.Service<AuthService>()(
   "services/AuthService",
   {
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const { authService } = yield* AuthClient;
       const cookieReader = yield* CookieReader;
 
@@ -75,4 +75,6 @@ export class AuthService extends Effect.Service<AuthService>()(
       } as const;
     }),
   },
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make);
+}

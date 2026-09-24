@@ -1,7 +1,7 @@
 "use server";
 
 import { parseWithZod } from "@conform-to/zod/v4";
-import { Effect, Either } from "effect";
+import { Effect, Result } from "effect";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Email } from "@/app/domain/email";
@@ -47,8 +47,8 @@ export async function sendAuthEmailLink(
     }),
   );
 
-  if (Either.isLeft(result)) {
-    console.error("Magic link error:", result.left);
+  if (Result.isFailure(result)) {
+    console.error("Magic link error:", result.failure);
     return submission.reply({
       formErrors: [AUTH_ERROR_MESSAGES[AuthErrorCode.MAGIC_LINK_FAILED]],
     });
@@ -82,8 +82,8 @@ export async function createInvoice(_prevState: unknown, formData: FormData) {
     }),
   );
 
-  if (Either.isLeft(result)) {
-    switch (result.left._tag) {
+  if (Result.isFailure(result)) {
+    switch (result.failure._tag) {
       case "CustomerNotInScope":
         return submission.reply({
           fieldErrors: { customerId: ["指定した顧客が見つかりません"] },
@@ -125,8 +125,8 @@ export async function updateInvoice(
     }),
   );
 
-  if (Either.isLeft(result)) {
-    switch (result.left._tag) {
+  if (Result.isFailure(result)) {
+    switch (result.failure._tag) {
       case "InvoiceNotFound":
         return submission.reply({
           formErrors: ["請求書が見つかりません"],
@@ -154,8 +154,8 @@ export async function deleteInvoice(id: string, _prevState: unknown) {
     }),
   );
 
-  if (Either.isLeft(result)) {
-    switch (result.left._tag) {
+  if (Result.isFailure(result)) {
+    switch (result.failure._tag) {
       case "InvoiceNotFound":
         await setFlash({ type: "error", message: "Invoice not found." });
         break;

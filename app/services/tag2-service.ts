@@ -1,25 +1,25 @@
-import * as PgDrizzle from "@effect/sql-drizzle/Pg";
 import { and, eq } from "drizzle-orm";
-import { Effect, Schema } from "effect";
+import { Context, Effect, Layer, Schema } from "effect";
 import { Tag2Id } from "@/app/schema/tag2";
 import { tags2 } from "@/db/drizzle/schema";
 import { companyFilter } from "@/db/scoped";
 import { CompanyContext } from "./company-context";
+import { Db } from "./db-service";
 import { Tag2NotFound, Tag2ParseError, Tag2ServiceError } from "./tag2-errors";
 
-export class Tag2Service extends Effect.Service<Tag2Service>()(
+export class Tag2Service extends Context.Service<Tag2Service>()(
   "services/Tag2Service",
   {
-    effect: Effect.gen(function* () {
-      const pgdrizzle = yield* PgDrizzle.PgDrizzle;
+    make: Effect.gen(function* () {
+      const db = yield* Db;
 
       // id を DB へ渡す前に UUID 形式を検証する。tags2.id は uuid 列のため不正文字列は
       // PostgreSQL の cast エラー (500 相当) になる → 事前検証で Tag2ParseError として弾く。
       const validateTag2Id = (id: string) =>
         Effect.gen(function* () {
-          yield* Schema.decode(Tag2Id)(id).pipe(
+          yield* Schema.decodeEffect(Tag2Id)(id).pipe(
             Effect.catchTag(
-              "ParseError",
+              "SchemaError",
               (error) =>
                 new Tag2ParseError({
                   message: `Tag2ParseError: ${error.message}`,
@@ -34,10 +34,7 @@ export class Tag2Service extends Effect.Service<Tag2Service>()(
           const { companyId } = yield* CompanyContext;
           return yield* Effect.tryPromise({
             try: () =>
-              pgdrizzle
-                .select()
-                .from(tags2)
-                .where(companyFilter(tags2, companyId)),
+              db.select().from(tags2).where(companyFilter(tags2, companyId)),
             catch: (e) =>
               new Tag2ServiceError({ message: `findAll failed: ${e}` }),
           });
@@ -50,7 +47,7 @@ export class Tag2Service extends Effect.Service<Tag2Service>()(
           // 他社 id は WHERE で除外 → 空 → Tag2NotFound (404 = 存在自体を隠蔽)。
           const tag = yield* Effect.tryPromise({
             try: () =>
-              pgdrizzle
+              db
                 .select()
                 .from(tags2)
                 .where(and(eq(tags2.id, id), companyFilter(tags2, companyId)))
@@ -70,4 +67,6 @@ export class Tag2Service extends Effect.Service<Tag2Service>()(
       } as const;
     }),
   },
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make);
+}

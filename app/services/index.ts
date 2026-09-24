@@ -1,5 +1,4 @@
 import { Effect, Layer, ManagedRuntime } from "effect";
-import { PgDrizzleLive } from "../layers/lives/pg_drizzle_live";
 import { resolveCompanyIdOrRedirect } from "../lib/auth-guard";
 import { AccountValidationService } from "./account-validation-service";
 import { AuthClient } from "./auth-client-service";
@@ -8,6 +7,7 @@ import { CompanyContext } from "./company-context";
 import { CookieReader } from "./cookie-reader-service";
 import { CustomerService } from "./customer-service";
 import { DashboardService } from "./dashboard-service";
+import { Db } from "./db-service";
 import { InvoiceService } from "./invoice-service";
 import { Tag2Service } from "./tag2-service";
 import { UserService } from "./user-service";
@@ -35,7 +35,6 @@ export {
   type LatestInvoice,
   type Revenue,
 } from "./dashboard-service";
-// 外部から直接 import できるようにエクスポート（パス簡略化のため）
 export { IdGenerator } from "./id-generator-service";
 export {
   CustomerNotInScope,
@@ -56,23 +55,20 @@ export { Tag2Service } from "./tag2-service";
 export { UserServiceError } from "./user-errors";
 export { UserService } from "./user-service";
 
-// すべてのサービスの依存関係を一箇所で解決するため Layer.mergeAll で統合
-// Effect.Service は .Default、Effect.Tag は .Live を使用
-// AuthClient.Default は ConnectRPC client (lib/auth/client.ts の singleton) を返すため PgDrizzleLive 不要。
-// AuthService / UserService は AuthClient.Default に依存、AuthService は更に CookieReader.Default にも依存。
-const AuthClientLive = AuthClient.Default;
-const UserServiceLive = UserService.Default.pipe(Layer.provide(AuthClientLive));
+const UserServiceLive = UserService.layer.pipe(Layer.provide(AuthClient.layer));
 
 export const Live = Layer.mergeAll(
-  Tag2Service.Default.pipe(Layer.provide(PgDrizzleLive)),
+  Layer.mergeAll(
+    Tag2Service.layer,
+    DashboardService.layer,
+    InvoiceService.layer,
+    CustomerService.layer,
+  ).pipe(Layer.provide(Db.layer)),
   UserServiceLive,
-  DashboardService.Default.pipe(Layer.provide(PgDrizzleLive)),
-  InvoiceService.Default.pipe(Layer.provide(PgDrizzleLive)),
-  CustomerService.Default.pipe(Layer.provide(PgDrizzleLive)),
-  AccountValidationService.Default.pipe(Layer.provide(UserServiceLive)),
-  AuthService.Default.pipe(
-    Layer.provide(CookieReader.Default),
-    Layer.provide(AuthClientLive),
+  AccountValidationService.layer.pipe(Layer.provide(UserServiceLive)),
+  AuthService.layer.pipe(
+    Layer.provide(CookieReader.layer),
+    Layer.provide(AuthClient.layer),
   ),
 );
 
@@ -83,7 +79,7 @@ export const Live = Layer.mergeAll(
 export const makeNextRuntime = <R, E>(layer: Layer.Layer<R, E, never>) => {
   const runtime = ManagedRuntime.make(layer);
   const run = <A, E2>(body: () => Effect.Effect<A, E2, R>) =>
-    runtime.runPromise(Effect.either(body()));
+    runtime.runPromise(Effect.result(body()));
   return { run, runtime };
 };
 
@@ -93,7 +89,7 @@ export { runService };
 
 // 事業所スコープ実行の閉じ。設計詳細: docs/adr/0002-company-data-scoping.md (D3)。
 // AllScopedServices は Live の ROut から機械導出する (手書き union 禁止 = Service 追加時の漏れ防止)。
-type AllScopedServices = Layer.Layer.Success<typeof Live>;
+type AllScopedServices = Layer.Success<typeof Live>;
 
 // IDOR backstop 番兵 (閉じ1 を規律でなく型で固定): CompanyContext を Live に含めると
 // companyId 無し実行が型で通り backstop が破れる。含めた瞬間に下行がコンパイルエラーになる。
@@ -110,7 +106,7 @@ export const runScopedService = async <A, E>(
 ) => {
   const { companyId } = await resolveCompanyIdOrRedirect();
   return runtime.runPromise(
-    Effect.either(
+    Effect.result(
       body().pipe(Effect.provideService(CompanyContext, { companyId })),
     ),
   );

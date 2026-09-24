@@ -1,4 +1,4 @@
-import { Effect, Either } from "effect";
+import { Effect, Result } from "effect";
 import { describe, expect, it } from "vitest";
 import { Email } from "@/app/domain/email";
 import { UserServiceError } from "../user-errors";
@@ -31,8 +31,10 @@ const buildUser = (over: Partial<MockUser> = {}): MockUser => ({
   ...over,
 });
 
-const createMockUserService = (impl: Partial<UserService> = {}): UserService =>
-  new UserService({
+const createMockUserService = (
+  impl: Partial<UserService["Service"]> = {},
+): UserService["Service"] =>
+  UserService.of({
     existsByEmail: () => Effect.succeed(false),
     findByEmail: () => Effect.succeed(undefined),
     findById: () => Effect.succeed(undefined),
@@ -41,11 +43,11 @@ const createMockUserService = (impl: Partial<UserService> = {}): UserService =>
 
 const runWithMock = <A, E>(
   effect: Effect.Effect<A, E, UserService>,
-  mock: UserService,
+  mock: UserService["Service"],
 ) =>
   effect.pipe(
     Effect.provideService(UserService, mock),
-    Effect.either,
+    Effect.result,
     Effect.runPromise,
   );
 
@@ -62,8 +64,8 @@ describe("UserService", () => {
         }),
         mock,
       );
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) expect(result.right).toBe(true);
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) expect(result.success).toBe(true);
     });
 
     it("RPC が user 不在を返す場合 false", async () => {
@@ -75,8 +77,8 @@ describe("UserService", () => {
         }),
         mock,
       );
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) expect(result.right).toBe(false);
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) expect(result.success).toBe(false);
     });
 
     it("RPC エラー時 UserServiceError", async () => {
@@ -91,9 +93,9 @@ describe("UserService", () => {
         }),
         mock,
       );
-      expect(Either.isLeft(result)).toBe(true);
-      if (Either.isLeft(result))
-        expect(result.left).toBeInstanceOf(UserServiceError);
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result))
+        expect(result.failure).toBeInstanceOf(UserServiceError);
     });
   });
 
@@ -110,9 +112,9 @@ describe("UserService", () => {
         }),
         mock,
       );
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result))
-        expect(result.right?.email).toBe("found@example.com");
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result))
+        expect(result.success?.email).toBe("found@example.com");
     });
 
     it("不在なら undefined", async () => {
@@ -124,8 +126,8 @@ describe("UserService", () => {
         }),
         mock,
       );
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) expect(result.right).toBeUndefined();
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) expect(result.success).toBeUndefined();
     });
   });
 
@@ -142,8 +144,8 @@ describe("UserService", () => {
         }),
         mock,
       );
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) expect(result.right?.id).toBe("abc");
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) expect(result.success?.id).toBe("abc");
     });
 
     it("不在なら undefined", async () => {
@@ -155,8 +157,8 @@ describe("UserService", () => {
         }),
         mock,
       );
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) expect(result.right).toBeUndefined();
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) expect(result.success).toBeUndefined();
     });
   });
 });

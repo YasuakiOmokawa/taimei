@@ -1,4 +1,4 @@
-import { Effect, Either } from "effect";
+import { Effect, Result } from "effect";
 import { describe, expect, it } from "vitest";
 import { Email } from "@/app/domain/email";
 import { MagicLinkError } from "../auth-errors";
@@ -26,7 +26,7 @@ type MockSession = {
 const createMockAuthService = (
   options: { session?: MockSession; magicLinkError?: boolean } = {},
 ) =>
-  new AuthService({
+  AuthService.of({
     getSession: () => Effect.succeed(options.session ?? null),
 
     sendMagicLink: (_email: Email, _callbackUrl: string) =>
@@ -39,11 +39,11 @@ const createMockAuthService = (
 
 const runWithMock = <A, E>(
   effect: Effect.Effect<A, E, AuthService>,
-  mock: AuthService,
+  mock: AuthService["Service"],
 ) =>
   effect.pipe(
     Effect.provideService(AuthService, mock),
-    Effect.either,
+    Effect.result,
     Effect.runPromise,
   );
 
@@ -78,9 +78,9 @@ describe("AuthService", () => {
         mock,
       );
 
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) {
-        expect(result.right).toEqual(mockSession);
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) {
+        expect(result.success).toEqual(mockSession);
       }
     });
 
@@ -95,9 +95,9 @@ describe("AuthService", () => {
         mock,
       );
 
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) {
-        expect(result.right).toBeNull();
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) {
+        expect(result.success).toBeNull();
       }
     });
   });
@@ -117,7 +117,7 @@ describe("AuthService", () => {
         mock,
       );
 
-      expect(Either.isRight(result)).toBe(true);
+      expect(Result.isSuccess(result)).toBe(true);
     });
 
     it("異常系: Magic Link 送信に失敗した場合、MagicLinkError を返す", async () => {
@@ -134,10 +134,10 @@ describe("AuthService", () => {
         mock,
       );
 
-      expect(Either.isLeft(result)).toBe(true);
-      if (Either.isLeft(result)) {
-        expect(result.left).toBeInstanceOf(MagicLinkError);
-        expect(result.left._tag).toBe("MagicLinkError");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure).toBeInstanceOf(MagicLinkError);
+        expect(result.failure._tag).toBe("MagicLinkError");
       }
     });
   });

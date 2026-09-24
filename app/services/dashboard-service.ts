@@ -1,11 +1,11 @@
-import * as PgDrizzle from "@effect/sql-drizzle/Pg";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { Effect } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { formatCurrency } from "@/app/lib/utils";
 import { customers, invoices, revenue } from "@/db/drizzle/schema";
 import { companyFilter } from "@/db/scoped";
 import { CompanyContext } from "./company-context";
 import { DashboardServiceError } from "./dashboard-errors";
+import { Db } from "./db-service";
 
 export type Revenue = {
   month: string;
@@ -31,16 +31,16 @@ export type CardData = {
 
 // overview の全集計を CompanyContext の companyId で scope する。scope しないと
 // 売上チャート・カード・最新請求書が全社横断で漏れる。設計詳細: docs/adr/0002-company-data-scoping.md。
-export class DashboardService extends Effect.Service<DashboardService>()(
+export class DashboardService extends Context.Service<DashboardService>()(
   "services/DashboardService",
   {
-    effect: Effect.gen(function* () {
-      const pgdrizzle = yield* PgDrizzle.PgDrizzle;
+    make: Effect.gen(function* () {
+      const db = yield* Db;
 
       const fetchRevenueData = (companyId: string) =>
         Effect.tryPromise({
           try: () =>
-            pgdrizzle
+            db
               .select({
                 month: revenue.month,
                 revenue: revenue.revenue,
@@ -56,7 +56,7 @@ export class DashboardService extends Effect.Service<DashboardService>()(
       const fetchLatestInvoicesData = (companyId: string) =>
         Effect.tryPromise({
           try: () =>
-            pgdrizzle
+            db
               .select({
                 id: invoices.id,
                 amount: invoices.amount,
@@ -86,7 +86,7 @@ export class DashboardService extends Effect.Service<DashboardService>()(
       const fetchInvoiceCount = (companyId: string) =>
         Effect.tryPromise({
           try: async () => {
-            const result = await pgdrizzle
+            const result = await db
               .select({ count: sql<number>`count(*)` })
               .from(invoices)
               .where(companyFilter(invoices, companyId));
@@ -101,7 +101,7 @@ export class DashboardService extends Effect.Service<DashboardService>()(
       const fetchCustomerCount = (companyId: string) =>
         Effect.tryPromise({
           try: async () => {
-            const result = await pgdrizzle
+            const result = await db
               .select({ count: sql<number>`count(*)` })
               .from(customers)
               .where(companyFilter(customers, companyId));
@@ -116,7 +116,7 @@ export class DashboardService extends Effect.Service<DashboardService>()(
       const fetchInvoiceStatus = (companyId: string) =>
         Effect.tryPromise({
           try: async () => {
-            const result = await pgdrizzle
+            const result = await db
               .select({
                 paid: sql<number>`SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.amount} ELSE 0 END)`,
                 pending: sql<number>`SUM(CASE WHEN ${invoices.status} = 'pending' THEN ${invoices.amount} ELSE 0 END)`,
@@ -176,4 +176,6 @@ export class DashboardService extends Effect.Service<DashboardService>()(
       } as const;
     }),
   },
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make);
+}
