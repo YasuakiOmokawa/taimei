@@ -55,17 +55,6 @@ services:
     networks:
       - e2e-network
 
-  # taimei-auth 用 Redis (Better Auth secondary storage)
-  e2e-auth-redis:
-    image: redis:7-alpine
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 3s
-      timeout: 3s
-      retries: 5
-    networks:
-      - e2e-network
-
   # taimei-auth (認証サーバー, Hono + Bun) — sibling repo を build context にする。
   # CI では .github/workflows/e2e.yml で taimei-auth を sibling path に clone する。
   e2e-auth-service:
@@ -81,11 +70,10 @@ services:
     ports:
       - "3100:3100"
     command: >
-      sh -c "bunx drizzle-kit migrate && bun run src/index.ts"
+      sh -c "bun run db:migrate && bun run db:migrate-manual && bun run src/index.ts"
     environment:
       - PORT=3100
       - DATABASE_URL=postgres://postgres:password@e2e-auth-postgres:5435/auth
-      - REDIS_URL=redis://e2e-auth-redis:6379
       - AUTH_SERVICE_URL=http://auth.taimei-code.local:3100
       - AUTH_COOKIE_DOMAIN=taimei-code.local
       - AUTH_TRUSTED_ORIGINS=http://app.taimei-code.local:3001,http://auth.taimei-code.local:3100
@@ -94,8 +82,6 @@ services:
       - AUTH_SECRET=test-secret-for-e2e-testing-32chars
     depends_on:
       e2e-auth-postgres:
-        condition: service_healthy
-      e2e-auth-redis:
         condition: service_healthy
     networks:
       e2e-network:

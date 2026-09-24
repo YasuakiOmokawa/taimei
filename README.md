@@ -38,14 +38,14 @@ typescript-eslint が TS7 に対応したら `typescript7` を除去して `"typ
 
 taimei は認証を別 compose (`taimei-auth`) に依存する。**先に taimei-auth、次に taimei** の順でマニュアル起動する。共有ネットワーク `taimei-network` は taimei-auth 側 compose が作成主 (taimei 側は external 参照)。
 
-### Step 1: taimei-auth (認証サーバー + DB + Redis)
+### Step 1: taimei-auth (認証サーバー + DB)
 
 ```console
 cd ../taimei-auth
 docker compose up --build --watch
 ```
 
-`auth-postgres` / `auth-redis` / `auth-migrate` / `auth-service` が起動し、共有ネットワーク `taimei-network` を作成する。`auth-service` は alias `auth.taimei-code.local:3100` で公開される。
+`auth-postgres` / `auth-migrate` / `auth-service` が起動し、共有ネットワーク `taimei-network` を作成する。`auth-service` は alias `auth.taimei-code.local:3100` で公開される。
 
 ### Step 2: taimei (Next.js + DB×2)
 
@@ -67,7 +67,7 @@ docker compose up --build --watch
 - `taimei-auth/.env` に `AUTH_SECRET` 等が設定済 (詳細は taimei-auth リポの README 参照)
 - 以下の port が空いていること (占有時は `docker ps | grep <port>` で特定して `docker stop <container>` で解放):
   - 3001 (taimei application) / 3100 (auth-service)
-  - 5433 (taimei postgres) / 5434 (taimei test_db) / 5435 (auth-postgres) / 6380 (auth-redis)
+  - 5433 (taimei postgres) / 5434 (taimei test_db) / 5435 (auth-postgres)
 
 ### 停止順
 
