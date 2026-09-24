@@ -1,5 +1,5 @@
 import { atomWithStorage } from "jotai/utils";
-import { StepProgress } from "./useContent";
+import type { StepProgress } from "./useContent";
 
 export const stepsAtom = atomWithStorage<StepProgress[]>(
   "contractSetupSteps",

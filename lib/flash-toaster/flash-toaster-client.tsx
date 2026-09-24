@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect } from "react";
 import { toast } from "sonner";
-import { Flash } from "@/lib/flash-toaster";
+import type { Flash } from "@/lib/flash-toaster";
 
 export function FlashToasterClient({
   flash,
