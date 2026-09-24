@@ -18,7 +18,7 @@ globs:
 
 | レイヤー | テスト | ツール | 備考 |
 |---------|--------|--------|------|
-| Effect-TS Service/Repository | ✅ | Vitest | Layer DI でモック不要 |
+| Effect-TS Service | ✅ | Vitest | Layer DI でモック不要 |
 | カスタムフック | ✅ | Vitest | 純粋関数として抽出 |
 | ユーティリティ (auth-guard等) | ✅ | Vitest | 外部依存のモックは許容 |
 | Server/Client Component | ❌ | - | RSCとの相性問題、壊れやすい |

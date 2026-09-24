@@ -50,7 +50,7 @@ export async function updateUser(id: string, formData: FormData) {
 Server Action で Conform のフォームバリデーションと Effect-TS のエラーハンドリングを組み合わせる：
 
 ```typescript
-// app/lib/use-conform/action.ts
+// app/use-conform/action.ts
 export async function createData(_prevState: unknown, formData: FormData) {
   // 1. Conform でフォームバリデーション
   const submission = parseWithZod(formData, { schema });
@@ -61,7 +61,13 @@ export async function createData(_prevState: unknown, formData: FormData) {
 
   // 2. Effect-TS サービス実行
   const result = await runService(() =>
-    ConformAccountRegistrationService.execute(submission.value)
+    Effect.gen(function* () {
+      const service = yield* AccountValidationService;
+      return yield* service.validate({
+        email: Email.fromTrusted(submission.value.email),
+        name: submission.value.name,
+      });
+    })
   );
 
   // 3. Either + TaggedError._tag でエラー分岐
@@ -179,13 +185,10 @@ export { UserNotFound, UserServiceError } from "./user-errors";
 ```typescript
 // ✅ 推奨: Service が PgDrizzle を直接使用
 import * as PgDrizzle from "@effect/sql-drizzle/Pg";
-import { Data, Effect } from "effect";
+import { Effect } from "effect";
 import { users } from "@/db/drizzle/schema";
 import { eq } from "drizzle-orm";
-
-export class UserServiceError extends Data.TaggedError("UserServiceError")<{
-  message: string;
-}> {}
+import { UserServiceError } from "./user-errors";
 
 export class UserService extends Effect.Service<UserService>()(
   "services/UserService",
@@ -278,8 +281,8 @@ export class IdGenerator extends Effect.Tag("services/IdGenerator")<
 Effect.Service で依存関係を差し替えたい場合、`.Default` をベースに `Layer.provide` で提供:
 
 ```typescript
-export class ConformAccountRegistrationService extends Effect.Service<ConformAccountRegistrationService>()(
-  "services/ConformAccountRegistrationService",
+export class ExampleService extends Effect.Service<ExampleService>()(
+  "services/ExampleService",
   {
     effect: Effect.gen(function* () {
       const idGen = yield* IdGenerator;
@@ -292,8 +295,6 @@ export class ConformAccountRegistrationService extends Effect.Service<ConformAcc
   static TestSequence = Layer.provide(this.Default, IdGenerator.TestSequence);
 }
 ```
-
-**参考**: `ConformAccountRegistrationService`
 
 ### Type Annotations
 
@@ -319,52 +320,7 @@ const validateAccount = (email: string) =>
 
 ### Service テストパターン
 
-**原則**: `withRollback` + `runServiceWithTx` で実 DB を使用したトランザクション分離テスト
-
-```typescript
-import { describe, it, expect } from "vitest";
-import { Effect, Either } from "effect";
-import { UserService } from "../user-service";
-import {
-  withRollback,
-  useFactoryReset,
-  getFactory,
-  runServiceWithTx,
-} from "./db/test-helpers";
-
-describe("UserService", () => {
-  useFactoryReset();
-
-  it("ユーザーを取得できる", async () => {
-    await withRollback(async (tx) => {
-      // Factory でテストデータ作成
-      const f = getFactory(tx);
-      const user = await f.user.create({ email: "test@example.com" });
-
-      // Service 実行
-      const result = await runServiceWithTx(
-        tx,
-        Effect.gen(function* () {
-          const service = yield* UserService;
-          return yield* service.findByEmail("test@example.com");
-        })
-      );
-
-      // Either で結果検証
-      expect(Either.isRight(result)).toBe(true);
-      if (Either.isRight(result)) {
-        expect(result.right?.id).toBe(user.id);
-      }
-    });
-  });
-});
-```
-
-**ポイント**:
-- `withRollback`: テスト後に自動ロールバック（テスト間の分離）
-- `runServiceWithTx`: トランザクション内で Service Layer を構築
-- `getFactory`: トランザクション内でテストデータを作成
-- `useFactoryReset`: Factory のシーケンスをテストごとにリセット
+`dbEffect`（`app/services/__tests__/db/effect-test-helpers.ts`）を使う。詳細は `testing-strategy.md` を参照。
 
 ### Effect.void vs 暗黙的な undefined
 
