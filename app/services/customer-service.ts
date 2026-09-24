@@ -1,17 +1,17 @@
-import * as PgDrizzle from "@effect/sql-drizzle/Pg";
 import { and, eq, ilike, or, sql } from "drizzle-orm";
-import { Effect } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { customers, invoices } from "@/db/drizzle/schema";
 import { companyFilter } from "@/db/scoped";
 import { CompanyContext } from "./company-context";
 import { CustomerServiceError } from "./customer-errors";
+import { Db } from "./db-service";
 
 // 全 query は CompanyContext の companyId で scope する。設計詳細: docs/adr/0002-company-data-scoping.md。
-export class CustomerService extends Effect.Service<CustomerService>()(
+export class CustomerService extends Context.Service<CustomerService>()(
   "services/CustomerService",
   {
-    effect: Effect.gen(function* () {
-      const pgdrizzle = yield* PgDrizzle.PgDrizzle;
+    make: Effect.gen(function* () {
+      const db = yield* Db;
 
       return {
         // invoice 作成 dropdown のソース。無 scope だと他社 customer が候補に出るため必ず scope する。
@@ -20,7 +20,7 @@ export class CustomerService extends Effect.Service<CustomerService>()(
             const { companyId } = yield* CompanyContext;
             return yield* Effect.tryPromise({
               try: () =>
-                pgdrizzle
+                db
                   .select({
                     id: customers.id,
                     name: customers.name,
@@ -42,7 +42,7 @@ export class CustomerService extends Effect.Service<CustomerService>()(
               try: async () => {
                 const searchPattern = `%${query}%`;
 
-                const result = await pgdrizzle
+                const result = await db
                   .select({
                     id: customers.id,
                     name: customers.name,
@@ -107,4 +107,6 @@ export class CustomerService extends Effect.Service<CustomerService>()(
       } as const;
     }),
   },
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make);
+}

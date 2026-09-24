@@ -76,16 +76,10 @@ services:
     user: vscode
     environment:
       - DATABASE_URL=postgres://postgres:password@postgres:5432/postgres
-      - APP_ENV=development
       - PORT=3001
       - NEXT_PUBLIC_APP_URL=http://app.taimei-code.local:3001
       - NEXT_PUBLIC_AUTH_URL=http://auth.taimei-code.local:3100
       - AUTH_SERVICE_URL=http://auth.taimei-code.local:3100
-      - AUTH_TRUSTED_ORIGINS=http://app.taimei-code.local:3001,http://auth.taimei-code.local:3100
-      - AUTH_COOKIE_DOMAIN=taimei-code.local
-      # taimei-auth (auth-service) と Cookie 署名検証を一致させるため、両 compose で同じ dev secret を hardcoded。
-      # 本番はこの環境変数を docker-compose 経由ではなくホスト側の secret manager 等で注入すること。
-      - AUTH_SECRET=dev-secret-for-local-development-32chars
       # taimei → auth-service の ConnectRPC (verifySession 等) で送信する X-Service-Key。
       # taimei-auth 側の AUTH_SERVICE_KEY と一致必須。一致しないと session 検証が落ち、
       # after-signin page が getSession()===null を観測して signin_failed に飛ぶ症状になる。

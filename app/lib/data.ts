@@ -1,4 +1,4 @@
-import { Effect, Either } from "effect";
+import { Effect, Result } from "effect";
 import {
   type CardData,
   CustomerService,
@@ -40,12 +40,12 @@ export async function fetchRevenue(): Promise<Revenue[]> {
     }),
   );
 
-  if (Either.isLeft(result)) {
-    console.error("Database Error:", result.left);
+  if (Result.isFailure(result)) {
+    console.error("Database Error:", result.failure);
     throw new Error("Failed to fetch revenue data.");
   }
 
-  return result.right;
+  return result.success;
 }
 
 export async function fetchLatestInvoices(): Promise<LatestInvoice[]> {
@@ -56,12 +56,12 @@ export async function fetchLatestInvoices(): Promise<LatestInvoice[]> {
     }),
   );
 
-  if (Either.isLeft(result)) {
-    console.error("Database Error:", result.left);
+  if (Result.isFailure(result)) {
+    console.error("Database Error:", result.failure);
     throw new Error("Failed to fetch the latest invoices.");
   }
 
-  return result.right;
+  return result.success;
 }
 
 export async function fetchCardData(): Promise<CardData> {
@@ -72,12 +72,12 @@ export async function fetchCardData(): Promise<CardData> {
     }),
   );
 
-  if (Either.isLeft(result)) {
-    console.error("Database Error:", result.left);
+  if (Result.isFailure(result)) {
+    console.error("Database Error:", result.failure);
     throw new Error("Failed to fetch card data.");
   }
 
-  return result.right;
+  return result.success;
 }
 
 export type InvoiceSelectionById = {
@@ -130,12 +130,12 @@ export async function fetchFilteredInvoices(
     }),
   );
 
-  if (Either.isLeft(result)) {
-    console.error("Database Error:", result.left);
+  if (Result.isFailure(result)) {
+    console.error("Database Error:", result.failure);
     throw new Error("Failed to fetch filtered invoices.");
   }
 
-  return result.right.map((invoice) => ({
+  return result.success.map((invoice) => ({
     id: invoice.id,
     amount: invoice.amount,
     date: invoice.date,
@@ -154,12 +154,12 @@ export async function fetchInvoicesPages(query: string): Promise<number> {
     }),
   );
 
-  if (Either.isLeft(result)) {
-    console.error("Database Error:", result.left);
+  if (Result.isFailure(result)) {
+    console.error("Database Error:", result.failure);
     throw new Error("Failed to fetch invoice pages.");
   }
 
-  return result.right;
+  return result.success;
 }
 
 export async function fetchInvoiceById(
@@ -172,19 +172,19 @@ export async function fetchInvoiceById(
     }),
   );
 
-  if (Either.isLeft(result)) {
-    if (result.left._tag === "InvoiceNotFound") {
+  if (Result.isFailure(result)) {
+    if (result.failure._tag === "InvoiceNotFound") {
       return null;
     }
-    console.error("Database Error:", result.left);
+    console.error("Database Error:", result.failure);
     throw new Error("Failed to fetch invoice.");
   }
 
   return {
-    id: result.right.id,
-    customerId: result.right.customerId,
-    amount: result.right.amount / 100,
-    status: result.right.status as "pending" | "paid",
+    id: result.success.id,
+    customerId: result.success.customerId,
+    amount: result.success.amount / 100,
+    status: result.success.status as "pending" | "paid",
   };
 }
 
@@ -196,12 +196,12 @@ export async function fetchCustomers(): Promise<CustomerField[]> {
     }),
   );
 
-  if (Either.isLeft(result)) {
-    console.error("Database Error:", result.left);
+  if (Result.isFailure(result)) {
+    console.error("Database Error:", result.failure);
     throw new Error("Failed to fetch customers.");
   }
 
-  return result.right;
+  return result.success;
 }
 
 export async function fetchFilteredCustomers(
@@ -214,12 +214,12 @@ export async function fetchFilteredCustomers(
     }),
   );
 
-  if (Either.isLeft(result)) {
-    console.error("Database Error:", result.left);
+  if (Result.isFailure(result)) {
+    console.error("Database Error:", result.failure);
     throw new Error("Failed to fetch filtered customers.");
   }
 
-  return result.right.map((customer) => ({
+  return result.success.map((customer) => ({
     id: customer.id,
     name: customer.name,
     email: customer.email,

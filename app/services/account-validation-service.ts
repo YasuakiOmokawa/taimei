@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { Email } from "@/app/domain/email";
 import { AccountAlreadyExists } from "./account-validation-errors";
 import { UserService } from "./user-service";
@@ -8,10 +8,10 @@ export type AccountInput = {
   readonly name: string;
 };
 
-export class AccountValidationService extends Effect.Service<AccountValidationService>()(
+export class AccountValidationService extends Context.Service<AccountValidationService>()(
   "services/AccountValidationService",
   {
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const userService = yield* UserService;
 
       const checkEmailNotExists = (email: Email) =>
@@ -34,4 +34,6 @@ export class AccountValidationService extends Effect.Service<AccountValidationSe
       } as const;
     }),
   },
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make);
+}

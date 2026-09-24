@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { Effect, Either } from "effect";
+import { Effect, Result } from "effect";
 import { describe } from "vitest";
 import { CompanyContext } from "../company-context";
 import { Tag2Service } from "../tag2-service";
@@ -43,9 +43,10 @@ describe("Tag2Service", () => {
             f.tag2.create({ companyId: B }),
           );
           const service = yield* Tag2Service;
-          const res = yield* Effect.either(service.find(b.id));
-          expect(Either.isLeft(res)).toBe(true);
-          if (Either.isLeft(res)) expect(res.left._tag).toBe("Tag2NotFound");
+          const res = yield* Effect.result(service.find(b.id));
+          expect(Result.isFailure(res)).toBe(true);
+          if (Result.isFailure(res))
+            expect(res.failure._tag).toBe("Tag2NotFound");
         }).pipe(Effect.provide(CompanyContext.layer({ companyId: A }))),
     );
 
@@ -67,9 +68,10 @@ describe("Tag2Service", () => {
       () =>
         Effect.gen(function* () {
           const service = yield* Tag2Service;
-          const res = yield* Effect.either(service.find("not-a-uuid"));
-          expect(Either.isLeft(res)).toBe(true);
-          if (Either.isLeft(res)) expect(res.left._tag).toBe("Tag2ParseError");
+          const res = yield* Effect.result(service.find("not-a-uuid"));
+          expect(Result.isFailure(res)).toBe(true);
+          if (Result.isFailure(res))
+            expect(res.failure._tag).toBe("Tag2ParseError");
         }).pipe(Effect.provide(CompanyContext.layer({ companyId: A }))),
     );
   });

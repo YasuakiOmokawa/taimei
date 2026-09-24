@@ -92,17 +92,8 @@ docker logs taimei-e2e-e2e-auth-service-1 2>&1 | grep "Magic Link"
 
 ## トラブルシューティング
 
-### `Verification token not found after 20 attempts`
-→ Better Auth が `secondaryStorage` (Redis) のみに保存している。`taimei-auth/src/auth.ts` で `verification.storeInDatabase: isTestEnvironment()` が設定されていることを確認。
-
 ### SPA 画面が真っ白 / locator timeout
 → Vite bundle に `local` allowlist が含まれていない可能性。`docker exec taimei-e2e-e2e-auth-service-1 grep -c "local" web/dist/assets/*.js` で確認。0 件なら `APP_ENV=test` build args が docker-compose.e2e.yml で渡っているか確認。
-
-### `relation "user" does not exist`
-→ migration 未実行。`e2e-auth-service.command` に `bunx drizzle-kit migrate` が含まれていることを確認。
-
-### port 3001 衝突
-→ `docker ps | grep 3001` で占有 container を特定し、`docker stop <container>` で停止。
 
 ## ローカル開発時の動作確認 (e2e と別)
 

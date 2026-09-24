@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect";
+import { Context, Layer } from "effect";
 
 // per-request の事業所コンテキスト。設計詳細: docs/adr/0002-company-data-scoping.md (D2)。
 //
@@ -9,12 +9,10 @@ export interface CompanyContextShape {
   readonly companyId: string;
 }
 
-// 本番は per-request 注入・テストは固定値注入の複数バリアントが要るため Effect.Tag を使う。
-// 注入 helper は `layer` とする (Effect.Tag 組み込みの `of` は Service 値を返す別物で衝突するため)。
-export class CompanyContext extends Effect.Tag("services/CompanyContext")<
+export class CompanyContext extends Context.Service<
   CompanyContext,
   CompanyContextShape
->() {
-  static layer = (ctx: CompanyContextShape): Layer.Layer<CompanyContext> =>
+>()("services/CompanyContext") {
+  static readonly layer = (ctx: CompanyContextShape) =>
     Layer.succeed(this, ctx);
 }

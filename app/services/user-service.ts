@@ -1,14 +1,14 @@
-import { Effect } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { Email } from "@/app/domain/email";
 import { AuthClient } from "./auth-client-service";
 import { UserServiceError } from "./user-errors";
 
 // account の identity mutation (name / image / 削除) は taimei-auth /account に集約済 (ADR-008)。
 // 本 Service は read-only ACL として findByEmail / findById / existsByEmail を提供する。
-export class UserService extends Effect.Service<UserService>()(
+export class UserService extends Context.Service<UserService>()(
   "services/UserService",
   {
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const { userService } = yield* AuthClient;
 
       return {
@@ -68,4 +68,6 @@ export class UserService extends Effect.Service<UserService>()(
       } as const;
     }),
   },
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make);
+}
