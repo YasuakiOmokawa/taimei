@@ -1,4 +1,5 @@
 {
   "$schema": "./node_modules/fallow/schema.json",
-  "ignoreDependencies": ["pg", "typescript7"]
+  "ignoreDependencies": ["pg", "typescript7"],
+  "ignorePatterns": ["vendor/**"]
 }

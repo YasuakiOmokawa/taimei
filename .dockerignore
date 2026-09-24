@@ -12,6 +12,8 @@ LICENSE
 *.swp
 /scripts
 
+/vendor
+
 # e2e tests
 /e2e
 

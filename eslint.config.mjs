@@ -12,6 +12,7 @@ export default defineConfig([
     "app/_proto/",
     "e2e/playwright-report/",
     "e2e/test-results/",
+    "vendor/",
     "stories/",
   ]),
 ]);
