@@ -4,7 +4,6 @@ import "server-only";
 import {
   createAuthGuard,
   getSessionToken,
-  Result,
   type SessionData,
 } from "@taimei-code/auth-client";
 import { cookies } from "next/headers";
@@ -52,7 +51,7 @@ export const requireSession = async ({
 const AUTH_URL =
   process.env.NEXT_PUBLIC_AUTH_URL || "https://auth.taimei-code.com";
 
-export const buildCompanySignupUrl = (returnTo = "/dashboard") =>
+const buildCompanySignupUrl = (returnTo = "/dashboard") =>
   `${AUTH_URL}/auth/signup/company?returnTo=${encodeURIComponent(returnTo)}`;
 
 // redirect + companyId 導出の SSOT。data 層の runScopedService と page 層の requireCompany が共有する。
@@ -71,6 +70,3 @@ export const requireCompany = async ({ returnTo }: { returnTo: string }) => {
   const { companyId, session } = await resolveCompanyIdOrRedirect(returnTo);
   return { ...session, companyId };
 };
-
-// Result enum を consumer (page 等) でも参照可能にする re-export
-export { Result };

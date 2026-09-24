@@ -12,48 +12,20 @@ import { InvoiceService } from "./invoice-service";
 import { Tag2Service } from "./tag2-service";
 import { UserService } from "./user-service";
 
-export { AccountAlreadyExists } from "./account-validation-errors";
-export {
-  type AccountInput,
-  AccountValidationService,
-} from "./account-validation-service";
-export { SessionError } from "./auth-errors";
-export { AuthService } from "./auth-service";
-export { CompanyContext, type CompanyContextShape } from "./company-context";
 // CookieReader / CookieReadError は AuthService の内部依存として非公開
 // (Layer 配線でのみ使用、外部は AuthService の API のみを利用する)。
-export { CustomerServiceError } from "./customer-errors";
 export { CustomerService } from "./customer-service";
-export { DashboardServiceError } from "./dashboard-errors";
 export {
   type CardData,
   DashboardService,
   type LatestInvoice,
   type Revenue,
 } from "./dashboard-service";
-export { IdGenerator } from "./id-generator-service";
-export {
-  CustomerNotInScope,
-  InvoiceNotFound,
-  InvoiceServiceError,
-} from "./invoice-errors";
-export {
-  type CreateInvoiceInput,
-  InvoiceService,
-  type UpdateInvoiceInput,
-} from "./invoice-service";
-export {
-  Tag2NotFound,
-  Tag2ParseError,
-  Tag2ServiceError,
-} from "./tag2-errors";
-export { Tag2Service } from "./tag2-service";
-export { UserServiceError } from "./user-errors";
-export { UserService } from "./user-service";
+export { InvoiceService } from "./invoice-service";
 
 const UserServiceLive = UserService.layer.pipe(Layer.provide(AuthClient.layer));
 
-export const Live = Layer.mergeAll(
+const Live = Layer.mergeAll(
   Layer.mergeAll(
     Tag2Service.layer,
     DashboardService.layer,
@@ -72,7 +44,7 @@ export const Live = Layer.mergeAll(
 // ManagedRuntime でリソース管理（DB 接続プール等）を自動化。
 // runtime も返すことで scoped/非 scoped が同一 ManagedRuntime を共有する
 // (runScopedService が runtime を再構築して層分離を崩すのを防ぐ。docs/adr/0002 D3)。
-export const makeNextRuntime = <R, E>(layer: Layer.Layer<R, E, never>) => {
+const makeNextRuntime = <R, E>(layer: Layer.Layer<R, E, never>) => {
   const runtime = ManagedRuntime.make(layer);
   const run = <A, E2>(body: () => Effect.Effect<A, E2, R>) =>
     runtime.runPromise(Effect.result(body()));
