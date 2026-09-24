@@ -11,7 +11,7 @@ import {
   Section,
   Tailwind,
   Text,
-} from "@react-email/components";
+} from "react-email";
 
 type WelcomeEmailProps = {
   appName: string;
@@ -39,7 +39,7 @@ export default function WelcomeEmail({
       </Head>
       <Preview>{appName} へようこそ！アカウント作成が完了しました</Preview>
       <Tailwind>
-        <Body className="mx-auto bg-white font-sans">
+        <Body lang="ja" className="mx-auto bg-white font-sans">
           <Container className="mx-auto max-w-[480px] px-6 py-12">
             <Section className="text-center">
               <Img
