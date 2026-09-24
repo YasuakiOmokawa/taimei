@@ -102,23 +102,6 @@ export type FilteredInvoice = {
   imageUrl: string;
 };
 
-export type FilteredCustomer = {
-  id: string;
-  name: string;
-  email: string;
-  imageUrl: string;
-  totalInvoices: number;
-  totalPending: string;
-  totalPaid: string;
-};
-
-const formatCurrency = (amount: number) => {
-  return (amount / 100).toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-  });
-};
-
 export async function fetchFilteredInvoices(
   query: string,
   currentPage: number,
@@ -202,30 +185,4 @@ export async function fetchCustomers(): Promise<CustomerField[]> {
   }
 
   return result.success;
-}
-
-export async function fetchFilteredCustomers(
-  query: string,
-): Promise<FilteredCustomer[]> {
-  const result = await runScopedService(() =>
-    Effect.gen(function* () {
-      const service = yield* CustomerService;
-      return yield* service.fetchFiltered(query);
-    }),
-  );
-
-  if (Result.isFailure(result)) {
-    console.error("Database Error:", result.failure);
-    throw new Error("Failed to fetch filtered customers.");
-  }
-
-  return result.success.map((customer) => ({
-    id: customer.id,
-    name: customer.name,
-    email: customer.email,
-    imageUrl: customer.imageUrl,
-    totalInvoices: customer.totalInvoices,
-    totalPending: formatCurrency(customer.totalPending),
-    totalPaid: formatCurrency(customer.totalPaid),
-  }));
 }

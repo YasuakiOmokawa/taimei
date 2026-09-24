@@ -36,7 +36,7 @@ export default async function CardWrapper() {
   );
 }
 
-export function Card({
+function Card({
   title,
   value,
   type,

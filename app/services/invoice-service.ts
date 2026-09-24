@@ -10,13 +10,13 @@ import {
   InvoiceServiceError,
 } from "./invoice-errors";
 
-export type CreateInvoiceInput = {
+type CreateInvoiceInput = {
   customerId: string;
   amount: number;
   status: string;
 };
 
-export type UpdateInvoiceInput = {
+type UpdateInvoiceInput = {
   id: string;
   customerId: string;
   amount: number;

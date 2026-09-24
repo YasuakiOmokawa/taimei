@@ -21,7 +21,7 @@ export class XxxService extends Context.Service<XxxService>()(
 
 ## エラー
 
-- `<domain>-errors.ts` に `Data.TaggedError` で定義し、`index.ts` から re-export する。
+- `<domain>-errors.ts` に `Data.TaggedError` で定義する。
 - 失敗は `return yield* new XxxError(...)` で返す。Promise は `Effect.tryPromise({ try, catch: (e) => new XxxError(...) })` で包む。
 
 ## Server Action / Server Component
