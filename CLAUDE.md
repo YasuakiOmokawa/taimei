@@ -1,7 +1,5 @@
 # taimei
 
-コード内コメントは日本語で書く。
-
 ## Effect
 
 Effect のコードを書く前に `node_modules/effect/AGENTS.md` を最後まで読み、書く API に関わるリンク先を辿る (v4 の API は学習データの v3 と違う)。そこに無い API は `node_modules/effect/src` を検索する。
