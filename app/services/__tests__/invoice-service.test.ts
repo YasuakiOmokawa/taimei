@@ -32,6 +32,25 @@ describe("InvoiceService", () => {
     );
   });
 
+  dbEffect(
+    "1 ページ 6 件: 6 件は 1 ページ、7 件目で 2 ページ目に 1 件",
+    ({ factory: f }) =>
+      Effect.gen(function* () {
+        const service = yield* InvoiceService;
+        const customer = yield* Effect.promise(() =>
+          f.customer.create({ companyId: A }),
+        );
+        const own = { companyId: A, customerId: customer.id };
+        yield* Effect.promise(() => f.invoice.create(Array(6).fill(own)));
+        expect(yield* service.fetchPages("")).toBe(1);
+
+        yield* Effect.promise(() => f.invoice.create(own));
+        expect(yield* service.fetchPages("")).toBe(2);
+        expect(yield* service.fetchFiltered("", 1)).toHaveLength(6);
+        expect(yield* service.fetchFiltered("", 2)).toHaveLength(1);
+      }).pipe(Effect.provide(CompanyContext.layer({ companyId: A }))),
+  );
+
   describe("scoping (cross-company 不可視)", () => {
     dbEffect(
       "findById: A context で B invoice は InvoiceNotFound (404)",

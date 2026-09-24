@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { fetchInvoicesPages } from "@/app/lib/data";
+import { parsePage } from "@/app/lib/pagination";
 import { CreateInvoice } from "@/app/ui/invoices/buttons";
 import Pagination from "@/app/ui/invoices/pagination";
 import Table from "@/app/ui/invoices/table";
@@ -13,7 +14,7 @@ export default async function Page(props: {
   const searchParams = await props.searchParams;
   const tableProps = {
     query: searchParams?.query || "",
-    currentPage: Number(searchParams?.page) || 1,
+    currentPage: parsePage(searchParams?.page),
   };
   const totalPages = await fetchInvoicesPages(tableProps.query);
 
