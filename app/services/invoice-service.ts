@@ -10,6 +10,8 @@ import {
   InvoiceServiceError,
 } from "./invoice-errors";
 
+const ITEMS_PER_PAGE = 6;
+
 type CreateInvoiceInput = {
   customerId: string;
   amount: number;
@@ -179,15 +181,14 @@ export class InvoiceService extends Context.Service<InvoiceService>()(
             return result;
           }),
 
-        fetchFiltered: (query: string, currentPage: number, itemsPerPage = 6) =>
+        fetchFiltered: (query: string, currentPage: number) =>
           Effect.gen(function* () {
             const { companyId } = yield* CompanyContext;
+            const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+            const searchPattern = `%${query}%`;
             return yield* Effect.tryPromise({
-              try: () => {
-                const offset = (currentPage - 1) * itemsPerPage;
-                const searchPattern = `%${query}%`;
-
-                return db
+              try: () =>
+                db
                   .select({
                     id: invoices.id,
                     amount: invoices.amount,
@@ -212,9 +213,8 @@ export class InvoiceService extends Context.Service<InvoiceService>()(
                     ),
                   )
                   .orderBy(desc(invoices.date))
-                  .limit(itemsPerPage)
-                  .offset(offset);
-              },
+                  .limit(ITEMS_PER_PAGE)
+                  .offset(offset),
               catch: (e) =>
                 new InvoiceServiceError({
                   message: `fetchFiltered failed: ${e}`,
@@ -222,14 +222,13 @@ export class InvoiceService extends Context.Service<InvoiceService>()(
             });
           }),
 
-        fetchPages: (query: string, itemsPerPage = 6) =>
+        fetchPages: (query: string) =>
           Effect.gen(function* () {
             const { companyId } = yield* CompanyContext;
+            const searchPattern = `%${query}%`;
             return yield* Effect.tryPromise({
-              try: async () => {
-                const searchPattern = `%${query}%`;
-
-                const result = await db
+              try: () =>
+                db
                   .select({ count: count() })
                   .from(invoices)
                   .innerJoin(customers, eq(invoices.customerId, customers.id))
@@ -244,15 +243,16 @@ export class InvoiceService extends Context.Service<InvoiceService>()(
                         sql`${invoices.date}::text ILIKE ${searchPattern}`,
                       ),
                     ),
-                  );
-
-                return Math.ceil(Number(result[0].count) / itemsPerPage);
-              },
+                  ),
               catch: (e) =>
                 new InvoiceServiceError({
                   message: `fetchPages failed: ${e}`,
                 }),
-            });
+            }).pipe(
+              Effect.map((result) =>
+                Math.ceil(result[0].count / ITEMS_PER_PAGE),
+              ),
+            );
           }),
       } as const;
     }),
