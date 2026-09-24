@@ -4,12 +4,12 @@ import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { generatePagination } from "@/app/lib/utils";
+import { generatePagination, parsePage } from "@/app/lib/pagination";
 
 export default function Pagination({ totalPages }: { totalPages: number }) {
   const pathName = usePathname();
   const searchParams = useSearchParams();
-  const currentPage = Number(searchParams.get("page")) || 1;
+  const currentPage = parsePage(searchParams.get("page"));
   const allPages = generatePagination(currentPage, totalPages);
 
   const createPageURL = (pageNumber: string | number) => {
