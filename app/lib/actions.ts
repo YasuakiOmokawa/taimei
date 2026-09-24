@@ -4,62 +4,9 @@ import { parseWithZod } from "@conform-to/zod/v4";
 import { Effect, Result } from "effect";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { Email } from "@/app/domain/email";
 import { invoiceSchema } from "@/app/schema/invoice";
-import { emailLinkLoginSchema } from "@/app/schema/login";
-import {
-  AuthService,
-  InvoiceService,
-  runScopedService,
-  runService,
-} from "@/app/services";
-import {
-  AUTH_ERROR_MESSAGES,
-  AUTH_SUCCESS_MESSAGES,
-  AuthErrorCode,
-  AuthSuccessCode,
-} from "@/lib/auth/messages/auth-messages";
+import { InvoiceService, runScopedService } from "@/app/services";
 import { setFlash } from "@/lib/flash-toaster";
-import { buildAbsoluteCallbackURL } from "./url-helpers";
-
-export async function sendAuthEmailLink(
-  redirectPath: string,
-  _prevState: unknown,
-  formData: FormData,
-) {
-  const submission = parseWithZod(formData, {
-    schema: emailLinkLoginSchema,
-  });
-
-  if (submission.status !== "success") {
-    return submission.reply();
-  }
-
-  const callbackURL = await buildAbsoluteCallbackURL(redirectPath);
-
-  const result = await runService(() =>
-    Effect.gen(function* () {
-      const service = yield* AuthService;
-      yield* service.sendMagicLink(
-        Email.fromTrusted(submission.value.email),
-        callbackURL,
-      );
-    }),
-  );
-
-  if (Result.isFailure(result)) {
-    console.error("Magic link error:", result.failure);
-    return submission.reply({
-      formErrors: [AUTH_ERROR_MESSAGES[AuthErrorCode.MAGIC_LINK_FAILED]],
-    });
-  }
-
-  await setFlash({
-    type: "success",
-    message: AUTH_SUCCESS_MESSAGES[AuthSuccessCode.MAGIC_LINK_SENT],
-  });
-  return submission.reply();
-}
 
 export async function createInvoice(_prevState: unknown, formData: FormData) {
   const submission = parseWithZod(formData, { schema: invoiceSchema });

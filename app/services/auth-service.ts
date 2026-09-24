@@ -1,7 +1,6 @@
 import { Context, Effect, Layer } from "effect";
-import { Email } from "@/app/domain/email";
 import { AuthClient } from "./auth-client-service";
-import { MagicLinkError, SessionError } from "./auth-errors";
+import { SessionError } from "./auth-errors";
 import type { CookieReadError } from "./cookie-reader-errors";
 import { CookieReader } from "./cookie-reader-service";
 
@@ -60,17 +59,6 @@ export class AuthService extends Context.Service<AuthService>()(
                 expiresAt: new Date(session.expiresAt),
               },
             };
-          }),
-
-        sendMagicLink: (email: Email, callbackUrl: string) =>
-          Effect.tryPromise({
-            try: async () => {
-              await authService.sendMagicLink({
-                email: Email.asString(email),
-                callbackUrl,
-              });
-            },
-            catch: (e) => new MagicLinkError({ cause: e }),
           }),
       } as const;
     }),

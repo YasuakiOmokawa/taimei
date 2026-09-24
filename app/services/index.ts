@@ -17,11 +17,7 @@ export {
   type AccountInput,
   AccountValidationService,
 } from "./account-validation-service";
-export {
-  AuthServiceError,
-  MagicLinkError,
-  SessionError,
-} from "./auth-errors";
+export { SessionError } from "./auth-errors";
 export { AuthService } from "./auth-service";
 export { CompanyContext, type CompanyContextShape } from "./company-context";
 // CookieReader / CookieReadError は AuthService の内部依存として非公開
