@@ -12,7 +12,7 @@ import {
   Section,
   Tailwind,
   Text,
-} from "@react-email/components";
+} from "react-email";
 
 type MagicLinkEmailProps = {
   url: string;
@@ -37,7 +37,7 @@ export default function MagicLinkEmail({
       </Head>
       <Preview>{appName} へのログインリンク - 5分間有効</Preview>
       <Tailwind>
-        <Body className="mx-auto bg-white font-sans">
+        <Body lang="ja" className="mx-auto bg-white font-sans">
           <Container className="mx-auto max-w-[480px] px-6 py-12">
             <Section className="text-center">
               <Img

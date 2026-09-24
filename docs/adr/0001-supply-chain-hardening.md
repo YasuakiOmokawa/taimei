@@ -42,7 +42,7 @@ security fix の修正版が 7 日窓に間に合わず L4 (`bun audit --audit-l
 
 | 日付 | package | 理由 |
 |---|---|---|
-| 2026-06-21 | `undici` | GHSA-vmh5-mc38-953g / GHSA-vxpw-j846-p89q / GHSA-hm92-r4w5-c3mj (high×3) の唯一の修正版 7.28.0 が公開 6 日目で 7 日窓に 1 日足りず L4 を通せない。nodejs 公式 package で yank/worm リスクは低い。7.28.x が枯れ次第 (>7 日) 除外を外す。|
+| 2026-06-21 | `undici` | GHSA-vmh5-mc38-953g / GHSA-vxpw-j846-p89q / GHSA-hm92-r4w5-c3mj (high×3) の唯一の修正版 7.28.0 が公開 6 日目で 7 日窓に 1 日足りず L4 を通せない。nodejs 公式 package で yank/worm リスクは低い。7.28.x が枯れ次第 (>7 日) 除外を外す。2026-09-24 に除外を削除。|
 
 ## bun audit 除外履歴 (L4 例外)
 
@@ -50,7 +50,7 @@ high 以上の advisory に安定版の修正版が存在しない場合に限�
 
 | 日付 | package | advisory | 理由 |
 |---|---|---|---|
-| 2026-08-15 | `image-size` | GHSA-w3rx-r6r6-pgpr / GHSA-5p2g-fcmc-qvqq | 最新安定版 2.0.2 までが影響を受け、修正版は未公開。`@storybook/experimental-nextjs-vite` 経由の開発時依存に限定されるため、修正版公開まで監査から除外する。|
+| 2026-08-15 | `image-size` | GHSA-w3rx-r6r6-pgpr / GHSA-5p2g-fcmc-qvqq | 最新安定版 2.0.2 までが影響を受け、修正版は未公開。`@storybook/experimental-nextjs-vite` 経由の開発時依存に限定されるため、修正版公開まで監査から除外する。2026-09-24 の Storybook 10 移行で image-size が依存木から消えたため除外を削除。|
 
 ## Alternatives Considered
 
@@ -64,7 +64,7 @@ GitHub の `dependency-review-action` で十分。常時 IoC scan は false posi
 チーム規模が小さく review プロセスで十分。将来オンボーディングが進んだ時点で再検討。
 
 ### bcrypt → Better Auth 完全移行による tar 脆弱性根絶 (別 PR の責務)
-ADR-005/006 で進行中の移行が完了すれば `bcrypt` が不要になり `tar` 経由の脆弱性自体が消える。本 ADR では override で時間を稼ぐ。
+ADR-005/006 で進行中の移行が完了すれば `bcrypt` が不要になり `tar` 経由の脆弱性自体が消える。本 ADR では override で時間を稼ぐ。2026-09-24 に未使用の `bcrypt` を削除し、`tar` の override も外した。
 
 ## Consequences
 

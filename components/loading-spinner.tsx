@@ -8,8 +8,15 @@ interface LoadingSpinnerProps {
   isLoading: boolean;
   message?: string;
   fullScreen?: boolean;
-  iconType?: "loader" | "loader2" | "refreshCw" | "rotateCw";
+  iconType?: keyof typeof ICONS;
 }
+
+const ICONS = {
+  loader: Loader,
+  loader2: Loader2,
+  refreshCw: RefreshCw,
+  rotateCw: RotateCw,
+};
 
 export function LoadingSpinner({
   isLoading,
@@ -30,24 +37,7 @@ export function LoadingSpinner({
     };
   }, [isLoading, fullScreen]);
 
-  // アイコンタイプに基づいて適切なアイコンを選択
-  const LoadingIcon = () => {
-    switch (iconType) {
-      case "loader":
-        return <Loader className="h-12 w-12 text-primary animate-spin mb-4" />;
-      case "refreshCw":
-        return (
-          <RefreshCw className="h-12 w-12 text-primary animate-spin mb-4" />
-        );
-      case "rotateCw":
-        return (
-          <RotateCw className="h-12 w-12 text-primary animate-spin mb-4" />
-        );
-      case "loader2":
-      default:
-        return <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />;
-    }
-  };
+  const LoadingIcon = ICONS[iconType];
 
   return (
     <AnimatePresence>
@@ -70,7 +60,7 @@ export function LoadingSpinner({
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
             className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm w-full mx-4 flex flex-col items-center"
           >
-            <LoadingIcon />
+            <LoadingIcon className="h-12 w-12 text-primary animate-spin mb-4" />
             <p className="text-center text-gray-700 dark:text-gray-300 font-medium">
               {message}
             </p>
