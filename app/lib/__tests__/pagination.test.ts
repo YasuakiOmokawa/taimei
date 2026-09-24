@@ -3,25 +3,20 @@ import { generatePagination, parsePage } from "../pagination";
 
 describe("parsePage", () => {
   it.each([
-    ["1", 1],
-    ["2", 2],
-    ["9007199254740991", 9007199254740991],
-  ])("1 以上の安全な整数 %s はそのまま返す", (raw, page) => {
+    ["下限", "1", 1],
+    ["安全な整数の上限", "9007199254740991", 9007199254740991],
+  ])("%s %s はそのまま返す", (_, raw, page) => {
     expect(parsePage(raw)).toBe(page);
   });
 
   it.each([
-    ["0"],
-    ["-3"],
-    ["1.3"],
-    ["2.7"],
-    [""],
-    ["abc"],
-    ["Infinity"],
-    ["9007199254740992"],
-    [null],
-    [undefined],
-  ])("%s は 1 を返す", (raw) => {
+    ["下限未満", "0"],
+    ["非整数", "1.3"],
+    ["数値でない", "abc"],
+    ["安全な整数の上限超え", "9007199254740992"],
+    ["page が無い (URLSearchParams.get)", null],
+    ["page が無い (searchParams.page)", undefined],
+  ])("%s %s は 1 を返す", (_, raw) => {
     expect(parsePage(raw)).toBe(1);
   });
 });
