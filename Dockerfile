@@ -1,5 +1,11 @@
 FROM oven/bun:latest
 
+# TLS を復号する proxy 配下では bun install が SELF_SIGNED_CERT_IN_CHAIN で落ちるため certs/palo-root.pem に CA を置く。無い環境では bun が "ignoring extra certs" を 1 行出すだけ
+COPY certs/ /opt/certs/
+ENV NODE_EXTRA_CA_CERTS=/opt/certs/palo-root.pem
+# next build の Google Fonts 取得 (Turbopack の Rust 側) は NODE_EXTRA_CA_CERTS を見ないため OS の CA ストアにも入れる
+RUN if [ -f /opt/certs/palo-root.pem ]; then cp /opt/certs/palo-root.pem /usr/local/share/ca-certificates/palo-root.crt && update-ca-certificates; fi
+
 # 一般的なセキュリティ対策として、アプリユーザーの追加。
 # コピーしたファイル/フォルダの権限は、作成したユーザー:グループの権限とする
 ARG username=vscode
