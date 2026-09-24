@@ -18,6 +18,7 @@ export default defineConfig({
       "**/dump/**",
       "**/.{git,cache,output,temp}/**",
       "**/e2e/**",
+      "**/vendor/**",
     ],
   },
   resolve: {

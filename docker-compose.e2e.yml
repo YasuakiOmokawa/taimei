@@ -51,11 +51,10 @@ services:
     networks:
       - e2e-network
 
-  # taimei-auth (認証サーバー, Hono + Bun) — sibling repo を build context にする。
-  # CI では .github/workflows/e2e.yml で taimei-auth を sibling path に clone する。
+  # taimei-auth (認証サーバー, Hono + Bun) — submodule で commit に固定したものを build する (docs/adr/0003)。
   e2e-auth-service:
     build:
-      context: '../taimei-auth'
+      context: './vendor/taimei-auth'
       dockerfile: Dockerfile
       # target を明示する理由: 既定 target (最終 stage) 頼みだと taimei-auth 側の stage 追加で
       # silent に別 image を掴む。e2e に必要な full toolchain (drizzle-kit) + web/dist は

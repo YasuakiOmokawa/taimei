@@ -15,7 +15,8 @@
       "!app/_proto/**",
       "!drizzle/migrations/**",
       "!e2e/playwright-report/**",
-      "!e2e/test-results/**"
+      "!e2e/test-results/**",
+      "!vendor/**"
     ]
   },
   "formatter": {
