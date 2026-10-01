@@ -62,7 +62,7 @@ test.describe("認証フロー", () => {
   });
 
   test.describe("taimei-auth 経由の統合認証フロー", () => {
-    test("未登録メールで認証すると新規アカウントが作成される", async ({
+    test("未登録メールで認証すると事業所登録を経て /dashboard に戻る", async ({
       page,
       browser,
     }) => {
@@ -85,9 +85,13 @@ test.describe("認証フロー", () => {
       const authedPage = await context.newPage();
       await authedPage.goto("/dashboard");
 
-      // 新規ユーザーは事業所未所属のため、dashboard ではなく事業所登録画面へ redirect される
-      // (ADR-0002 の company 必須フロー)。アカウント自体は作成済み。
+      // 事業所必須フローは ADR-0002
       await expect(authedPage).toHaveURL(/\/auth\/signup\/company/);
+      await authedPage.getByLabel("事業所名").fill("E2E 事業所");
+      await authedPage.getByRole("button", { name: "事業所を作成" }).click();
+      await expect(authedPage).toHaveURL(
+        "http://app.taimei-code.local:3001/dashboard",
+      );
 
       await context.close();
     });

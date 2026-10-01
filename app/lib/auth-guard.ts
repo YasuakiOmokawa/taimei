@@ -50,9 +50,16 @@ export const requireSession = async ({
 // proxy.ts の AUTH_URL 解決と同型で NEXT_PUBLIC_AUTH_URL を base に絶対 URL を組む。
 const AUTH_URL =
   process.env.NEXT_PUBLIC_AUTH_URL || "https://auth.taimei-code.com";
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL || "https://app.taimei-code.com";
 
-const buildCompanySignupUrl = (returnTo = "/dashboard") =>
-  `${AUTH_URL}/auth/signup/company?returnTo=${encodeURIComponent(returnTo)}`;
+// taimei-auth の事業所登録画面は service_name と絶対 URL の redirect_url しか受け付けない (allowlist 検査)
+const buildCompanySignupUrl = (returnTo = "/dashboard") => {
+  const url = new URL("/auth/signup/company", AUTH_URL);
+  url.searchParams.set("service_name", "taimei");
+  url.searchParams.set("redirect_url", `${APP_URL}${returnTo}`);
+  return url.toString();
+};
 
 // redirect + companyId 導出の SSOT。data 層の runScopedService と page 層の requireCompany が共有する。
 // 未認証 (session null) と「認証済・事業所未選択」で redirect 先を分岐する。
