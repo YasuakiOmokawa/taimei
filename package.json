@@ -51,7 +51,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "sonner": "^2.0.8",
-    "tailwind-merge": "^2.6.1",
+    "tailwind-merge": "^3.7.0",
     "tailwindcss": "3.4.19",
     "use-debounce": "^10.1.1",
     "zod": "^4.6.5"
