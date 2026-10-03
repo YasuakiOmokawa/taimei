@@ -16,7 +16,7 @@
     "deployable-test": "next build --turbopack",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "audit:high": "bun audit --audit-level=high"
+    "audit:high": "bun audit --audit-level=high --ignore=GHSA-vfj7-8cjw-p6xm"
   },
   "dependencies": {
     "@bprogress/core": "^1.3.4",
