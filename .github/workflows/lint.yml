@@ -25,6 +25,7 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # audit:high は GHSA-vfj7-8cjw-p6xm (braces の DoS) を無視する。修正版が無く、braces は tailwindcss と eslint の glob 展開だけで使う。braces の修正版が出たら外す
       - name: Security audit
         run: bun run audit:high
 
