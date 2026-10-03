@@ -8,7 +8,7 @@ import { UserService } from "../user-service";
 // DB 統合テストは成立しない（user テーブルは auth-service 側にある）。
 // auth-service.test.ts と同じく Layer DI でモック注入する単体テストパターンに切替。
 // ADR-008: identity mutation (update / delete / clearImage) は taimei-auth /account に集約済、
-// 本 Service は read-only ACL として findByEmail / findById / existsByEmail のみ提供。
+// 本 Service は read-only ACL として findByEmail / existsByEmail のみ提供。
 
 type MockUser = {
   readonly id: string;
@@ -37,7 +37,6 @@ const createMockUserService = (
   UserService.of({
     existsByEmail: () => Effect.succeed(false),
     findByEmail: () => Effect.succeed(undefined),
-    findById: () => Effect.succeed(undefined),
     ...impl,
   });
 
@@ -123,37 +122,6 @@ describe("UserService", () => {
         Effect.gen(function* () {
           const s = yield* UserService;
           return yield* s.findByEmail(Email.makeSync("none@example.com"));
-        }),
-        mock,
-      );
-      expect(Result.isSuccess(result)).toBe(true);
-      if (Result.isSuccess(result)) expect(result.success).toBeUndefined();
-    });
-  });
-
-  describe("findById", () => {
-    it("user が存在すればドメイン型で返す", async () => {
-      const u = buildUser({ id: "abc" });
-      const mock = createMockUserService({
-        findById: () => Effect.succeed(u),
-      });
-      const result = await runWithMock(
-        Effect.gen(function* () {
-          const s = yield* UserService;
-          return yield* s.findById("abc");
-        }),
-        mock,
-      );
-      expect(Result.isSuccess(result)).toBe(true);
-      if (Result.isSuccess(result)) expect(result.success?.id).toBe("abc");
-    });
-
-    it("不在なら undefined", async () => {
-      const mock = createMockUserService();
-      const result = await runWithMock(
-        Effect.gen(function* () {
-          const s = yield* UserService;
-          return yield* s.findById("none");
         }),
         mock,
       );
