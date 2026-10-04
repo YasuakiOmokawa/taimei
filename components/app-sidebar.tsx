@@ -21,28 +21,11 @@ type Props = {
   currentUser: CurrentUser;
 } & React.ComponentProps<typeof Sidebar>;
 
-export function AppSidebar({ currentUser, ...props }: Props) {
-  const data = {
-    navMain: [
-      {
-        title: "ダッシュボード",
-        url: "/dashboard",
-        icon: BanknotesIcon,
-        isActive: true,
-        items: [
-          {
-            title: "請求書",
-            url: "/dashboard/invoices",
-          },
-          {
-            title: "顧客リスト",
-            url: "/dashboard/customers",
-          },
-        ],
-      },
-    ],
-  };
+const navMainItems = [
+  { title: "ダッシュボード", url: "/dashboard", icon: BanknotesIcon },
+];
 
+export function AppSidebar({ currentUser, ...props }: Props) {
   return (
     <Sidebar
       className="top-[--header-height] !h-[calc(100svh-var(--header-height))]"
@@ -66,7 +49,7 @@ export function AppSidebar({ currentUser, ...props }: Props) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navMainItems} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser {...currentUser} />
