@@ -1,49 +1,20 @@
 import { Effect, Layer, ManagedRuntime } from "effect";
 import { resolveCompanyIdOrRedirect } from "../lib/auth-guard";
-import { AccountValidationService } from "./account-validation-service";
 import { AuthClient } from "./auth-client-service";
 import { AuthService } from "./auth-service";
 import { CompanyContext } from "./company-context";
 import { CookieReader } from "./cookie-reader-service";
-import { CustomerService } from "./customer-service";
-import { DashboardService } from "./dashboard-service";
 import { Db } from "./db-service";
-import { InvoiceService } from "./invoice-service";
-import { Tag2Service } from "./tag2-service";
-import { UserService } from "./user-service";
-
-// CookieReader / CookieReadError は AuthService の内部依存として非公開
-// (Layer 配線でのみ使用、外部は AuthService の API のみを利用する)。
-export { CustomerService } from "./customer-service";
-export {
-  type CardData,
-  DashboardService,
-  type LatestInvoice,
-  type Revenue,
-} from "./dashboard-service";
-export { InvoiceService } from "./invoice-service";
-
-const UserServiceLive = UserService.layer.pipe(Layer.provide(AuthClient.layer));
 
 const Live = Layer.mergeAll(
-  Layer.mergeAll(
-    Tag2Service.layer,
-    DashboardService.layer,
-    InvoiceService.layer,
-    CustomerService.layer,
-  ).pipe(Layer.provide(Db.layer)),
-  UserServiceLive,
-  AccountValidationService.layer.pipe(Layer.provide(UserServiceLive)),
+  Db.layer,
   AuthService.layer.pipe(
     Layer.provide(CookieReader.layer),
     Layer.provide(AuthClient.layer),
   ),
 );
 
-// Next.js の Server Actions から Effect を実行するため、
-// ManagedRuntime でリソース管理（DB 接続プール等）を自動化。
-// runtime も返すことで scoped/非 scoped が同一 ManagedRuntime を共有する
-// (runScopedService が runtime を再構築して層分離を崩すのを防ぐ。docs/adr/0002 D3)。
+// runtime も返し、runScopedService が runtime を再構築せず同じ ManagedRuntime を共有する (docs/adr/0002 D3)。
 const makeNextRuntime = <R, E>(layer: Layer.Layer<R, E, never>) => {
   const runtime = ManagedRuntime.make(layer);
   const run = <A, E2>(body: () => Effect.Effect<A, E2, R>) =>

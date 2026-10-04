@@ -1,8 +1,4 @@
-// taimei-auth SDK の ConnectRPC client (authService / userService) を Service として注入する。
-// Phase 1 で `lib/auth/client.ts` の module-singleton を作ったが、テストでは authClient 全体を
-// vi.mock するか実 RPC を叩くしかなく、auth-service.ts や user-service.ts の RPC 結果分岐網羅が
-// 不可能だった。Service 化で AuthClient.layerTest を提供し、Layer.provide で差し替え可能にする。
-// 経緯は ADR-005 Phase 2.5 参照 (plans/taimei/ADR-005-auth-service-pattern-unification.md)。
+// Service にした経緯は ADR-005 Phase 2.5 (plans/taimei/ADR-005-auth-service-pattern-unification.md)。
 import "server-only";
 import { Context, Effect, Layer } from "effect";
 import { authClient } from "@/lib/auth/client";
