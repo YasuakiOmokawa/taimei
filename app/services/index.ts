@@ -1,19 +1,13 @@
 import { Effect, Layer, ManagedRuntime } from "effect";
 import { resolveCompanyIdOrRedirect } from "../lib/auth-guard";
-import { AccountValidationService } from "./account-validation-service";
 import { AuthClient } from "./auth-client-service";
 import { AuthService } from "./auth-service";
 import { CompanyContext } from "./company-context";
 import { CookieReader } from "./cookie-reader-service";
 import { Db } from "./db-service";
-import { UserService } from "./user-service";
-
-const UserServiceLive = UserService.layer.pipe(Layer.provide(AuthClient.layer));
 
 const Live = Layer.mergeAll(
   Db.layer,
-  UserServiceLive,
-  AccountValidationService.layer.pipe(Layer.provide(UserServiceLive)),
   AuthService.layer.pipe(
     Layer.provide(CookieReader.layer),
     Layer.provide(AuthClient.layer),
