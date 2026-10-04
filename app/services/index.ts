@@ -26,6 +26,7 @@ export { InvoiceService } from "./invoice-service";
 const UserServiceLive = UserService.layer.pipe(Layer.provide(AuthClient.layer));
 
 const Live = Layer.mergeAll(
+  Db.layer,
   Layer.mergeAll(
     Tag2Service.layer,
     DashboardService.layer,
