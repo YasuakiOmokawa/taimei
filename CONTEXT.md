@@ -1,28 +1,48 @@
-# CONTEXT — app.taimei ドメイン用語集
+# taimei
 
-app.taimei（taimei 本体 / consumer）のドメイン語彙。実装詳細は持たず、概念の定義と境界のみを記す。
-認証・事業所・所属の語彙は taimei-auth 側で定義 (plans/taimei `ADR-009`)。ここでは本体ドメイン側の用語と、auth から借用する `company` の本体での意味を記す。
+taimei は、事業所ごとにチームの星取表を持つ toB サービスである。認証・事業所・membership・role・招待の語彙は taimei-auth リポジトリの `CONTEXT.md` が定める。製品の決定とその理由は `docs/adr/0004-company-unit-skill-matrix.md` にある。
 
-## 用語
+## Language
 
-### company（事業所）
-taimei を利用する事業者そのもの。**課金単位かつデータ分離単位**（= 本体ドメインデータが帰属する境界）。実体は taimei-auth 側で管理され、本体は SDK `getSession().companyId` 経由でのみ識別子を知る（auth の identifier への論理参照。本体に company 実体テーブルは持たない）。本体の全ドメインデータ（customer / invoice / revenue / tag）は必ずいずれか 1 つの company に帰属する。
+### 事業所と人
 
-- **Avoid**: `tenant` / `organization` / `affiliation`（ADR-009 D2 / Q1 の語彙ルールと整合。データ分離の文脈でも "事業所単位の分離" と表現し "tenant 分離" とは書かない）
+**事業所 (company)**:
+taimei のデータが帰属する単位。実体は taimei-auth が持ち、taimei はその識別子だけを知る。
+_Avoid_: tenant, 組織, organization
 
-### customer（顧客 / 請求先）
-ある company の請求先（invoice の宛先）。**company とは別概念**（company = taimei 利用者自身、customer = その利用者の取引先）。**company-private**: 同名の取引先でも company ごとに別の customer として持ち、company 間で共有・名寄せしない。
+**メンバー**:
+ある事業所に所属する人。role を問わない (taimei-auth と同じ意味)。
+_Avoid_: ユーザー (事業所をまたぐ人を指す時に使う)
 
-- freee も取引先/顧客マスタを事業所スコープで持ち社横断共有しない（共有は顧問 (advisor) 関係に限定）。taimei MVP は顧問概念を持たない（ADR-009 D3）ため company-private で確定。
-- 社横断の顧客マスタ共有が要るのは将来の顧問機能導入時（再評価トリガー）。
+**管理者**:
+事業所での role が OWNER か ADMIN のメンバー。
+_Avoid_: admin (role の ADMIN だけを指してしまう), SM (スクラムマスター。管理者になる人の職種で、権限ではない)
 
-### invoice（請求書）
-ある company が customer に対して発行する請求。company に帰属し、customer を参照する。
+### 星取表
 
-- 現状 invoice は customer 情報のスナップショットを持たず参照のみ（customer 編集が過去 invoice の表示に遡及する）。freee は「請求書と取引先マスタの分離」で発行時ワンタイムコピーに変更済。taimei の invoice immutability は別 ADR 候補（`docs/adr/0002` Phase E+ 参照）。
+**チーム**:
+事業所の中で、管理者が作るメンバーのまとまり。1 つの事業所に複数あり、1 人のメンバーは複数のチームに割り当てられる。
 
-### revenue（売上）
-company 単位の月次売上集計。
+**割り当て**:
+メンバーをチームに入れること。割り当てたメンバーが星取表の行になる。
+_Avoid_: 所属 (事業所の membership を指す語として残す), 参加
 
-### tag（タグ）
-company 単位のラベル。invoice 等に付与する。company-private。
+**スキル**:
+チームごとに管理者が定める、星取表の列。
+_Avoid_: 能力, 項目
+
+**星取表**:
+チームに割り当てたメンバーを行、そのチームのスキルを列にして、各メンバーが自分のレベルと学びたいを記入した表。
+_Avoid_: スキルマップ, スキルマトリクス, 評価表
+
+**レベル**:
+メンバーが自分について記入する、スキルの習熟の 4 段階。未経験 (空欄)・支援があればできる (△)・一人でできる (○)・教えられる (◎)。
+_Avoid_: 評価, 点数, スコア
+
+**学びたい**:
+レベルとは別に、メンバーが自分について付ける印。できないスキルにも、できるスキルにも付けられる。
+_Avoid_: 希望, 興味
+
+**偏り**:
+「一人でできる」以上のメンバーが 1 人以下のスキルの状態。チーム単位で見る。
+_Avoid_: 属人化 (できる人が 1 人だけの状態に限る語で、0 人を含まない), ボトルネック
