@@ -30,6 +30,8 @@ export const getSession = async (): Promise<SessionData | null> => {
   return result.data;
 };
 
+export const listMembers = () => guard.listMembers();
+
 export type Session = Awaited<ReturnType<typeof getSession>>;
 export type VerifiedSession = Exclude<Session, null>;
 
@@ -71,8 +73,7 @@ export const resolveCompanyIdOrRedirect = async (returnTo = "/dashboard") => {
   return { companyId: session.companyId, session };
 };
 
-// page レベル UX 用の thin wrapper。data fetch 前に layout で redirect して描画チラつきを防ぎ、
-// nav 表示用に session も返す。security backstop ではない (それは runScopedService 自身)。
+// layout は client 側の遷移で再実行されない (Next の Partial Rendering) ので、page ごとに呼ぶ。security backstop ではない。
 export const requireCompany = async ({ returnTo }: { returnTo: string }) => {
   const { companyId, session } = await resolveCompanyIdOrRedirect(returnTo);
   return { ...session, companyId };
