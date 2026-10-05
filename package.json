@@ -54,7 +54,6 @@
     "@chromatic-com/storybook": "5.3.1",
     "@effect/language-service": "^0.87.2",
     "@effect/vitest": "4.0.0-rc.115",
-    "@praha/drizzle-factory": "^1.4.2",
     "@storybook/addon-docs": "10.6.0",
     "@storybook/addon-onboarding": "10.6.0",
     "@storybook/nextjs-vite": "10.6.0",

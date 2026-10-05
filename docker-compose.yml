@@ -39,7 +39,6 @@ services:
     networks:
       - taimei-network
 
-  # vitest 用 DB (dbEffect / withRollback で利用)
   test_db:
     image: postgres:16.8-alpine3.21
     ports:
