@@ -98,4 +98,19 @@ describe("auth-guard", () => {
       expect(result).toEqual(mockSessionData);
     });
   });
+
+  test("inviteMembersUrl は受諾で現在の事業所が招待先に替わるので、受諾後の遷移先を /dashboard にする", async () => {
+    vi.stubEnv("NEXT_PUBLIC_AUTH_URL", "http://auth.taimei-code.local:3100");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "http://app.taimei-code.local:3001");
+    const { inviteMembersUrl } = await import("@/app/lib/auth-guard");
+    const url = new URL(inviteMembersUrl());
+    vi.unstubAllEnvs();
+
+    expect(url.origin).toBe("http://auth.taimei-code.local:3100");
+    expect(url.pathname).toBe("/account/members");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      service_name: "taimei",
+      redirect_url: "http://app.taimei-code.local:3001/dashboard",
+    });
+  });
 });

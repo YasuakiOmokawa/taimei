@@ -1,6 +1,10 @@
 import * as Sentry from "@sentry/nextjs";
 import type { Member } from "@taimei-code/auth-client";
-import { listMembers, requireCompany } from "@/app/lib/auth-guard";
+import {
+  inviteMembersUrl,
+  listMembers,
+  requireCompany,
+} from "@/app/lib/auth-guard";
 import { lusitana } from "@/lib/fonts";
 import { memberLabel } from "@/lib/member-label";
 
@@ -16,9 +20,19 @@ export default async function Page() {
 
   return (
     <div>
-      <h1 className={`${lusitana.className} mb-4 text-xl md:text-2xl`}>
-        メンバー
-      </h1>
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <h1 className={`${lusitana.className} text-xl md:text-2xl`}>
+          メンバー
+        </h1>
+        <a
+          href={inviteMembersUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm font-medium underline underline-offset-4"
+        >
+          メンバーを招待
+        </a>
+      </div>
       {memberListResult.ok ? (
         <MemberTable members={memberListResult.data.members} />
       ) : (

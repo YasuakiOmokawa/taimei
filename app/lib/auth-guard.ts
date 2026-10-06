@@ -48,7 +48,7 @@ export const requireSession = async ({
   return session;
 };
 
-// taimei-auth の画面 (事業所登録: docs/adr/0002-company-data-scoping.md の D5) の絶対 URL を、proxy.ts の AUTH_URL 解決と同型で組む。
+// taimei-auth の画面 (事業所登録: docs/adr/0002-company-data-scoping.md の D5、メンバー画面) の絶対 URL を、proxy.ts の AUTH_URL 解決と同型で組む。
 const AUTH_URL =
   process.env.NEXT_PUBLIC_AUTH_URL || "https://auth.taimei-code.com";
 const APP_URL =
@@ -61,6 +61,9 @@ const buildAuthUrl = (path: string, returnTo: string) => {
   url.searchParams.set("redirect_url", `${APP_URL}${returnTo}`);
   return url.toString();
 };
+
+export const inviteMembersUrl = () =>
+  buildAuthUrl("/account/members", "/dashboard");
 
 // redirect + companyId 導出の SSOT。data 層の runScopedService と page 層の requireCompany が共有する。
 // redirect() は Next の control-flow throw なので、Effect の外 (Next 境界) でしか実行できない。
