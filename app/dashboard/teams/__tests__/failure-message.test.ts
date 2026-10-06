@@ -2,7 +2,9 @@ import { expect, it } from "vitest";
 import { MemberListError } from "@/app/services/company-members-service";
 import {
   DuplicateName,
+  InvalidLevel,
   InvalidName,
+  NotAssigned,
   NotCompanyMember,
   NotManager,
   SkillNotFound,
@@ -19,6 +21,8 @@ it.each([
   [new MemberListError({ cause: 2 }), "メンバー一覧を取得できませんでした"],
   [new InvalidName(), "名前は 1〜50 文字で入力してください"],
   [new DuplicateName(), "同じ名前がすでにあります"],
+  [new NotAssigned(), "チームに割り当てられた人だけが記入できます"],
+  [new InvalidLevel(), "レベルの値が正しくありません"],
   [new TeamServiceError({ cause: "db" }), "保存に失敗しました"],
 ])("%s の文言", (error, message) => {
   expect(failureMessage(error)).toBe(message);

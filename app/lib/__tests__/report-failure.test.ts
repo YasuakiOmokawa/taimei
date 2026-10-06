@@ -3,6 +3,8 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { MemberListError } from "@/app/services/company-members-service";
 import {
   DuplicateName,
+  InvalidLevel,
+  NotAssigned,
   NotManager,
   TeamNotFound,
   TeamServiceError,
@@ -37,6 +39,8 @@ it.each([
   new NotManager(),
   new TeamNotFound({ teamId: "t" }),
   new DuplicateName(),
+  new NotAssigned(),
+  new InvalidLevel(),
 ])("利用者の操作で起きる失敗 %s は送らない", (failure) => {
   reportUnexpectedFailure(failure);
 
