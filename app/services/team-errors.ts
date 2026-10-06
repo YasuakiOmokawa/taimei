@@ -1,5 +1,6 @@
 import { Data } from "effect";
 import type { MemberListError } from "./company-members-service";
+import type { DbUnavailable } from "./db-service";
 
 export class TeamNotFound extends Data.TaggedError("TeamNotFound")<{
   teamId: string;
@@ -37,4 +38,5 @@ export type TeamFailure =
   | DuplicateName
   | NotAssigned
   | InvalidLevel
-  | TeamServiceError;
+  | TeamServiceError
+  | DbUnavailable;

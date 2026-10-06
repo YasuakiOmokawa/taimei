@@ -1,5 +1,8 @@
-import { eq } from "drizzle-orm";
-import type { PgColumn } from "drizzle-orm/pg-core";
+import { eq, sql } from "drizzle-orm";
+import type { NodePgQueryResultHKT } from "drizzle-orm/node-postgres";
+import type { PgColumn, PgDatabase } from "drizzle-orm/pg-core";
+import type * as schema from "./drizzle/schema";
+import { COMPANY_ID_SETTING } from "./drizzle/schema";
 
 // company_id を持つテーブルの scoping 条件の唯一の入口 (SSOT)。
 // 設計詳細: docs/adr/0002-company-data-scoping.md (D4)。
@@ -13,3 +16,17 @@ export const companyFilter = <T extends ScopedTable>(
   table: T,
   companyId: string,
 ) => eq(table.companyId, companyId);
+
+type ScopedDb = PgDatabase<NodePgQueryResultHKT, typeof schema>;
+
+export const withCompanyScope = <T>(
+  db: ScopedDb,
+  companyId: string,
+  fn: (tx: ScopedDb) => Promise<T>,
+) =>
+  db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select set_config(${COMPANY_ID_SETTING}, ${companyId}, true)`,
+    );
+    return fn(tx);
+  });

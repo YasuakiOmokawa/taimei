@@ -129,50 +129,47 @@ export class TeamService extends Context.Service<TeamService>()(
           Effect.gen(function* () {
             const team = yield* findTeam(teamId);
             const { companyId } = yield* CompanyContext;
-            const [teamSkills, assignments, levels] = yield* Effect.all(
-              [
-                runQuery(() =>
-                  db
-                    .select({ id: skills.id, name: skills.name })
-                    .from(skills)
-                    .where(
-                      and(
-                        eq(skills.teamId, team.id),
-                        companyFilter(skills, companyId),
-                      ),
-                    )
-                    .orderBy(asc(skills.createdAt)),
-                ),
-                runQuery(() =>
-                  db
-                    .select({ userId: teamAssignments.userId })
-                    .from(teamAssignments)
-                    .where(
-                      and(
-                        eq(teamAssignments.teamId, team.id),
-                        companyFilter(teamAssignments, companyId),
-                      ),
+            const [teamSkills, assignments, levels] = yield* Effect.all([
+              runQuery(() =>
+                db
+                  .select({ id: skills.id, name: skills.name })
+                  .from(skills)
+                  .where(
+                    and(
+                      eq(skills.teamId, team.id),
+                      companyFilter(skills, companyId),
                     ),
-                ),
-                runQuery(() =>
-                  db
-                    .select({
-                      userId: memberSkills.userId,
-                      skillId: memberSkills.skillId,
-                      level: memberSkills.level,
-                      wantsToLearn: memberSkills.wantsToLearn,
-                    })
-                    .from(memberSkills)
-                    .where(
-                      and(
-                        eq(memberSkills.teamId, team.id),
-                        companyFilter(memberSkills, companyId),
-                      ),
+                  )
+                  .orderBy(asc(skills.createdAt)),
+              ),
+              runQuery(() =>
+                db
+                  .select({ userId: teamAssignments.userId })
+                  .from(teamAssignments)
+                  .where(
+                    and(
+                      eq(teamAssignments.teamId, team.id),
+                      companyFilter(teamAssignments, companyId),
                     ),
-                ),
-              ],
-              { concurrency: "unbounded" },
-            );
+                  ),
+              ),
+              runQuery(() =>
+                db
+                  .select({
+                    userId: memberSkills.userId,
+                    skillId: memberSkills.skillId,
+                    level: memberSkills.level,
+                    wantsToLearn: memberSkills.wantsToLearn,
+                  })
+                  .from(memberSkills)
+                  .where(
+                    and(
+                      eq(memberSkills.teamId, team.id),
+                      companyFilter(memberSkills, companyId),
+                    ),
+                  ),
+              ),
+            ]);
             return {
               ...team,
               skills: teamSkills,
@@ -283,34 +280,31 @@ export class TeamService extends Context.Service<TeamService>()(
             const team = yield* findTeam(teamId);
             const { userId } = yield* AuthorizationContext;
             const { companyId } = yield* CompanyContext;
-            const [[assignment], teamSkills] = yield* Effect.all(
-              [
-                runQuery(() =>
-                  db
-                    .select({ userId: teamAssignments.userId })
-                    .from(teamAssignments)
-                    .where(
-                      and(
-                        eq(teamAssignments.teamId, team.id),
-                        eq(teamAssignments.userId, userId),
-                        companyFilter(teamAssignments, companyId),
-                      ),
+            const [[assignment], teamSkills] = yield* Effect.all([
+              runQuery(() =>
+                db
+                  .select({ userId: teamAssignments.userId })
+                  .from(teamAssignments)
+                  .where(
+                    and(
+                      eq(teamAssignments.teamId, team.id),
+                      eq(teamAssignments.userId, userId),
+                      companyFilter(teamAssignments, companyId),
                     ),
-                ),
-                runQuery(() =>
-                  db
-                    .select({ id: skills.id })
-                    .from(skills)
-                    .where(
-                      and(
-                        eq(skills.teamId, team.id),
-                        companyFilter(skills, companyId),
-                      ),
+                  ),
+              ),
+              runQuery(() =>
+                db
+                  .select({ id: skills.id })
+                  .from(skills)
+                  .where(
+                    and(
+                      eq(skills.teamId, team.id),
+                      companyFilter(skills, companyId),
                     ),
-                ),
-              ],
-              { concurrency: "unbounded" },
-            );
+                  ),
+              ),
+            ]);
             if (!assignment) return yield* new NotAssigned();
             const rows = yield* Effect.forEach(entries, (entry) =>
               decodeLevel(entry.level).pipe(

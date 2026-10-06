@@ -19,6 +19,8 @@ export const LEVELS = [0, 1, 2, 3] as const;
 
 // taimei-auth の company.id (cmp_<nanoid24>) への論理参照。cross-DB のため FK は張らない (docs/adr/0002-company-data-scoping.md)。
 const companyId = () => varchar("company_id", { length: 32 }).notNull();
+export const COMPANY_ID_SETTING = "app.company_id";
+
 const createdAt = () =>
   timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
 
