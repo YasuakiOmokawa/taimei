@@ -10,6 +10,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { authClient } from "@/lib/auth/client";
+import { isCompanyAllowed } from "./company-gate";
 
 const guard = createAuthGuard({
   client: authClient,
@@ -72,6 +73,8 @@ export const resolveCompanyIdOrRedirect = async (returnTo = "/dashboard") => {
   if (!session) redirect(`/auth?callbackUrl=${encodeURIComponent(returnTo)}`);
   if (!session.companyId)
     redirect(buildAuthUrl("/auth/signup/company", returnTo));
+  if (!isCompanyAllowed(session.companyId, process.env.ALLOWED_COMPANY_IDS))
+    redirect("/unavailable");
   return { companyId: session.companyId, session };
 };
 

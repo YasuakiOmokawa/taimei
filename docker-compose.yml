@@ -79,6 +79,7 @@ services:
       - NEXT_PUBLIC_APP_URL=http://app.taimei-code.local:3001
       - NEXT_PUBLIC_AUTH_URL=http://auth.taimei-code.local:3100
       - AUTH_SERVICE_URL=http://auth.taimei-code.local:3100
+      - ALLOWED_COMPANY_IDS=*
       # taimei → auth-service の ConnectRPC (verifySession 等) で送信する X-Service-Key。
       # taimei-auth 側の AUTH_SERVICE_KEY と一致必須。一致しないと session 検証が落ち、
       # after-signin page が getSession()===null を観測して signin_failed に飛ぶ症状になる。
