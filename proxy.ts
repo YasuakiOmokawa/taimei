@@ -9,8 +9,9 @@ import { NextRequest, NextResponse } from "next/server";
 //   回避のため proxy をスキップ、各ページ側で getSession() で null チェック実装済)
 // 注意: 下の判定で `pathname.startsWith(publicPath + "/")` を使うため、prefix 的な path
 //   (例: "/public") を追加すると "/public/任意" が全て公開扱いになる。子 path が公開対象でない
-//   場合は完全一致用の別配列を新設すること。
+//   場合は EXACT_PUBLIC_PATHS に足す。
 const PUBLIC_PATHS = ["/", "/auth/after-signin", "/auth/after-signup"] as const;
+const EXACT_PUBLIC_PATHS: readonly string[] = ["/api/cron/purge-departed"];
 
 // `||` (truthy fallback) で空文字も fallback 対象にする (ADR-008)。
 const AUTH_URL =
@@ -48,10 +49,12 @@ export default async function proxy(request: NextRequest) {
     return redirectToAuth(AFTER_SIGNIN_URL);
   }
 
-  const isPublicPath = PUBLIC_PATHS.some(
-    (publicPath) =>
-      pathname === publicPath || pathname.startsWith(publicPath + "/"),
-  );
+  const isPublicPath =
+    EXACT_PUBLIC_PATHS.includes(pathname) ||
+    PUBLIC_PATHS.some(
+      (publicPath) =>
+        pathname === publicPath || pathname.startsWith(publicPath + "/"),
+    );
 
   if (isPublicPath) {
     return NextResponse.next();

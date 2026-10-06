@@ -179,4 +179,18 @@ describe("RLS (BYPASSRLS の無い role)", () => {
       expect(deleted).toHaveLength(1);
       expect(await countRows(tx)).toEqual(noRowsPerTable);
     }));
+
+  it("company_ids_with_teams() は、どの事業所も設定しないまま全事業所の id を返す", () =>
+    withRollback(async (tx) => {
+      await seedCompany(tx, "cmp_a");
+      await seedCompany(tx, "cmp_b");
+      await switchToRoleWithoutRlsBypass(tx);
+      expect(await countRows(tx)).toEqual(noRowsPerTable);
+
+      const { rows } = await tx.execute<{ company_id: string }>(
+        sql`select company_id from company_ids_with_teams() as company_id order by 1`,
+      );
+
+      expect(rows.map((row) => row.company_id)).toEqual(["cmp_a", "cmp_b"]);
+    }));
 });
