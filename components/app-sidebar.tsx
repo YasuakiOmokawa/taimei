@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  BanknotesIcon,
-  UserGroupIcon,
-  UsersIcon,
-} from "@heroicons/react/24/outline";
+import { UserGroupIcon, UsersIcon } from "@heroicons/react/24/outline";
 import { Command } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
@@ -26,7 +22,6 @@ type Props = {
 } & React.ComponentProps<typeof Sidebar>;
 
 const navMainItems = [
-  { title: "ダッシュボード", url: "/dashboard", icon: BanknotesIcon },
   { title: "チーム", url: "/dashboard/teams", icon: UserGroupIcon },
   { title: "メンバー", url: "/dashboard/members", icon: UsersIcon },
 ];

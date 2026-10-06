@@ -4,6 +4,7 @@ import { Result } from "effect";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { type FailureMessage, failureMessage } from "./failure-message";
+import { parseLevelForm } from "./level-form";
 import { runTeamService } from "./run-team-service";
 
 const formText = (formData: FormData, name: string) => {
@@ -65,6 +66,17 @@ export async function addSkill(
 
 export async function removeSkill(skillId: string): Promise<FailureMessage> {
   return submit((s) => s.removeSkill(skillId), refreshTeamPage);
+}
+
+export async function saveMyLevels(
+  teamId: string,
+  _state: FailureMessage,
+  formData: FormData,
+): Promise<FailureMessage> {
+  return submit(
+    (s) => s.saveMyLevels(teamId, parseLevelForm(formData)),
+    refreshTeamPage,
+  );
 }
 
 export async function assign(

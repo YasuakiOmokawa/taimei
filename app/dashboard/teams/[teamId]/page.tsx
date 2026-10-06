@@ -3,11 +3,13 @@ import { type Effect, Result } from "effect";
 import { notFound } from "next/navigation";
 import { requireCompany } from "@/app/lib/auth-guard";
 import { fetchCompanyMembers } from "@/app/lib/company-members";
+import { buildSkillMatrix } from "@/app/lib/skill-matrix";
 import { splitByAssignment } from "@/app/lib/team-members";
 import { isManager } from "@/app/services/authorization-context";
+import { levelLabels, levelSymbols } from "@/app/services/level";
 import type { TeamService } from "@/app/services/team-service";
 import { Input } from "@/components/ui/input";
-import { NAME_MAX_LENGTH } from "@/db/drizzle/schema";
+import { LEVELS, NAME_MAX_LENGTH } from "@/db/drizzle/schema";
 import { lusitana } from "@/lib/fonts";
 import { memberLabel } from "@/lib/member-label";
 import { ActionForm } from "../action-form";
@@ -17,8 +19,10 @@ import {
   deleteTeam,
   removeSkill,
   renameTeam,
+  saveMyLevels,
   unassign,
 } from "../actions";
+import { levelFieldName, wantsToLearnFieldName } from "../level-form";
 import { runTeamService } from "../run-team-service";
 
 export default async function Page({
@@ -27,7 +31,7 @@ export default async function Page({
   params: Promise<{ teamId: string }>;
 }) {
   const { teamId } = await params;
-  const { role } = await requireCompany({
+  const { role, user } = await requireCompany({
     returnTo: `/dashboard/teams/${teamId}`,
   });
   const result = await runTeamService((s) => s.getTeam(teamId));
@@ -48,6 +52,11 @@ export default async function Page({
         {canManage ? <TeamSettingsForms team={team} /> : null}
       </div>
       <Skills team={team} canManage={canManage} />
+      <section className="space-y-2">
+        <h2 className="text-lg font-medium">星取表</h2>
+        <SkillMatrix team={team} members={members} />
+      </section>
+      <MyLevelsForm team={team} userId={user.id} />
       <section className="space-y-2">
         <h2 className="text-lg font-medium">割り当てたメンバー</h2>
         <Assignments team={team} members={members} canManage={canManage} />
@@ -77,7 +86,7 @@ function TeamSettingsForms({ team }: { team: Team }) {
       <ActionForm
         action={deleteTeam.bind(null, team.id)}
         submitLabel="チームを削除"
-        irreversibleWarning={`「${team.name}」を削除します。スキルと割り当ても消え、元に戻せません。`}
+        irreversibleWarning={`「${team.name}」を削除します。スキル・割り当て・記入したレベルも消え、元に戻せません。`}
       />
     </div>
   );
@@ -98,7 +107,7 @@ function Skills({ team, canManage }: { team: Team; canManage: boolean }) {
                 <ActionForm
                   action={removeSkill.bind(null, skill.id)}
                   submitLabel="削除"
-                  irreversibleWarning={`スキル「${skill.name}」を削除します。元に戻せません。`}
+                  irreversibleWarning={`スキル「${skill.name}」を削除します。このスキルに記入したレベルも消え、元に戻せません。`}
                 />
               )}
             </li>
@@ -193,6 +202,7 @@ function DepartedAssignmentList({
             <ActionForm
               action={unassign.bind(null, teamId, userId)}
               submitLabel="外す"
+              irreversibleWarning={unassignWarning(userId)}
             />
           </li>
         ))}
@@ -200,6 +210,9 @@ function DepartedAssignmentList({
     </div>
   );
 }
+
+const unassignWarning = (who: string) =>
+  `${who} をこのチームから外します。このチームに記入したレベルも消え、元に戻せません。`;
 
 function AssignedMemberList({
   teamId,
@@ -220,6 +233,7 @@ function AssignedMemberList({
             <ActionForm
               action={unassign.bind(null, teamId, member.userId)}
               submitLabel="外す"
+              irreversibleWarning={unassignWarning(memberLabel(member))}
             />
           ) : null}
         </li>
@@ -250,5 +264,159 @@ function AssignForm({
         ))}
       </select>
     </ActionForm>
+  );
+}
+
+function SkillMatrix({
+  team,
+  members,
+}: {
+  team: Team;
+  members: readonly Member[] | null;
+}) {
+  if (!members) return <p>メンバー一覧を取得できませんでした</p>;
+  const { assigned } = splitByAssignment(members, team.assignedUserIds);
+  if (team.skills.length === 0 || assigned.length === 0)
+    return <p>スキルと割り当てたメンバーがそろうと星取表が出ます</p>;
+  const { rows, skillSummaries } = buildSkillMatrix(
+    team.skills,
+    assigned,
+    team.levels,
+  );
+
+  return (
+    <>
+      <div className="overflow-x-auto">
+        <table className="text-sm">
+          <thead>
+            <tr>
+              <th scope="col" className="px-2 py-1 text-left">
+                メンバー
+              </th>
+              {team.skills.map((skill) => (
+                <th key={skill.id} scope="col" className="px-2 py-1">
+                  {skill.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ member, cells }) => (
+              <tr key={member.userId} className="border-t">
+                <th scope="row" className="px-2 py-1 text-left font-normal">
+                  {memberLabel(member)}
+                </th>
+                {cells.map((cell, i) => (
+                  <td key={team.skills[i].id} className="px-2 py-1 text-center">
+                    <CellContent cell={cell} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t">
+              <th scope="row" className="px-2 py-1 text-left">
+                偏り
+              </th>
+              {skillSummaries.map((summary) => (
+                <td key={summary.skillId} className="px-2 py-1 text-center">
+                  {summary.isBiased ? "偏り" : ""}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <th scope="row" className="px-2 py-1 text-left">
+                学びたい
+              </th>
+              {skillSummaries.map((summary) => (
+                <td key={summary.skillId} className="px-2 py-1 text-center">
+                  {summary.wantsToLearnCount}
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        {LEVELS.map(levelOptionLabel).join(" / ")} / {UNRECORDED_MARK}: 未記入 /
+        学: 学びたい。偏り: 一人でできる以上の人が 1 人以下
+      </p>
+    </>
+  );
+}
+
+const UNRECORDED_MARK = "—";
+
+function CellContent({
+  cell,
+}: {
+  cell: ReturnType<typeof buildSkillMatrix>["rows"][number]["cells"][number];
+}) {
+  if (!cell.recorded)
+    return (
+      <>
+        <span aria-hidden="true">{UNRECORDED_MARK}</span>
+        <span className="sr-only">未記入</span>
+      </>
+    );
+  return (
+    <>
+      <span aria-hidden="true">
+        {levelSymbols[cell.level]}
+        {cell.wantsToLearn ? "学" : ""}
+      </span>
+      <span className="sr-only">
+        {levelLabels[cell.level]}
+        {cell.wantsToLearn ? "、学びたい" : ""}
+      </span>
+    </>
+  );
+}
+
+const levelOptionLabel = (level: (typeof LEVELS)[number]) =>
+  `${levelSymbols[level] || "空欄"}: ${levelLabels[level]}`;
+
+function MyLevelsForm({ team, userId }: { team: Team; userId: string }) {
+  if (!team.assignedUserIds.includes(userId) || team.skills.length === 0)
+    return null;
+  const [myRow] = buildSkillMatrix(team.skills, [{ userId }], team.levels).rows;
+
+  return (
+    <section className="space-y-2">
+      <h2 className="text-lg font-medium">自分のレベル</h2>
+      <ActionForm action={saveMyLevels.bind(null, team.id)} submitLabel="保存">
+        <div className="space-y-2">
+          {team.skills.map((skill, i) => (
+            <div key={skill.id} className="flex items-center gap-4">
+              <span className="min-w-24">{skill.name}</span>
+              <select
+                // defaultValue は mount の時だけ効くので、保存後の form の reset が古い値に戻さないよう保存値で作り直す
+                key={myRow.cells[i].level}
+                name={levelFieldName(skill.id)}
+                aria-label={`${skill.name} のレベル`}
+                defaultValue={myRow.cells[i].level}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                {LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {levelOptionLabel(level)}
+                  </option>
+                ))}
+              </select>
+              <label className="flex items-center gap-1 text-sm">
+                <input
+                  type="checkbox"
+                  name={wantsToLearnFieldName(skill.id)}
+                  aria-label={`${skill.name} を学びたい`}
+                  defaultChecked={myRow.cells[i].wantsToLearn}
+                />
+                学びたい
+              </label>
+            </div>
+          ))}
+        </div>
+      </ActionForm>
+    </section>
   );
 }

@@ -5,7 +5,7 @@ export class DashboardPage {
 
   constructor(public readonly page: Page) {
     this.headingPageTitle = this.page.getByRole("heading", {
-      name: "Dashboard",
+      name: "チーム",
     });
   }
 
