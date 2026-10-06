@@ -147,7 +147,7 @@ export async function fetchInvoiceById(id: string) {
 ```
 
 **3 重の閉じ**:
-1. Service が `yield* CompanyContext` を持つ → 型上 `CompanyContext` が `R` に乗り、`runScopedService` (provideService 済) でしか実行できない。`runService` に渡すとコンパイルエラー → 「company-scoped 処理を context 無しで実行」が型で不能。**前提不変条件「`CompanyContext` を `Live` に含めない」は規律でなく型で固定する**: 上記 `_NoCompanyContextInLive` 番兵が `Live` の ROut に `CompanyContext` が混入した瞬間コンパイルエラーを出す。`AllScopedServices` も `Live` から機械導出し手書き union にしない (Service 追加時の漏れ防止)。`bun tsc --noEmit` でこの閉じが成立することを CI で確認 (Phase 1 AC)。
+1. Service が `yield* CompanyContext` を持つ → 型上 `CompanyContext` が `R` に乗り、`runScopedService` (provideService 済) でしか実行できない。`runService` に渡すとコンパイルエラー → 「company-scoped 処理を context 無しで実行」が型で不能。**前提不変条件「`CompanyContext` を `Live` に含めない」は規律でなく型で固定する**: 上記 `_NoCompanyContextInLive` 番兵が `Live` の ROut に `CompanyContext` が混入した瞬間コンパイルエラーを出す。`AllScopedServices` も `Live` から機械導出し手書き union にしない (Service 追加時の漏れ防止)。2026-10-06 から `AllScopedServices` は `Live` と `RequestScoped` から導出する (ADR-0005)。`bun tsc --noEmit` でこの閉じが成立することを CI で確認 (Phase 1 AC)。
 2. `runScopedService` は companyId 引数を持たない → 呼出側が値を供給する経路が存在しない。
 3. companyId は認証済 session から導出 → リクエストパラメータ由来の companyId injection (IDOR) も不能。
 
@@ -173,7 +173,7 @@ export const companyFilter = <T extends ScopedTable>(table: T, companyId: string
 
 - **テーブル別 isolation テスト** (必須): 2 社 seed し、各 Service method の select / update / delete の cross-company 不可視 + create の company_id 自動付与 + create の他社 customerId 拒否 + findAll の自社限定を検証 (テスト戦略節)。これが backstop の実体。**ただしテスト基盤は net-new**: 現状 factory は `user` のみ・`effect-test-helpers` は `CompanyContext` 未提供のため、factory 群新規作成 + helper への `CompanyContext` 注入が前提 (MECE IM2、Phase 1 タスク)。
 
-RLS は採らない (Alternatives Considered、本番課金前には過剰)。ast-grep/lint で「scoped テーブルへの `companyFilter` 無し直アクセス」を検出するルールは将来硬化候補 (Phase E+)。
+当初は RLS を採らなかった (Alternatives Considered、本番課金前には過剰)。2026-10-06 に ADR-0005 で、`companyFilter` を残したまま RLS (設定名は `app.company_id`) を二重の守りとして足した。ast-grep/lint で「scoped テーブルへの `companyFilter` 無し直アクセス」を検出するルールは将来硬化候補 (Phase E+)。
 
 ### D5. redirect 配置: `runScopedService` が権威ガード、`requireCompany` は page UX
 
@@ -241,7 +241,7 @@ auth-coupled な sentinel (実 company id の埋め込み) は不要 (cross-DB �
 
 | 案 | 採用しなかった理由 | 再評価トリガー |
 |---|---|---|
-| **RLS を主軸 (DB 強制 scoping)** | per-tx `SET app.current_company_id` + PgDrizzle pooling 整合・RLS テスト負担が本番前には過剰。全 query が Effect Service に集約済なので DI 注入で十分 | 本番課金開始 / 初の実顧客企業 (company) 受入 / pen-test での IDOR 指摘 |
+| **RLS を主軸 (DB 強制 scoping)** | (当時の理由。2026-10-06 に ADR-0005 で主軸でなく二重の守りとして採り、設定名は `app.company_id` にした) per-tx `SET app.current_company_id` + PgDrizzle pooling 整合・RLS テスト負担が本番前には過剰。全 query が Effect Service に集約済なので DI 注入で十分 | 本番課金開始 / 初の実顧客企業 (company) 受入 / pen-test での IDOR 指摘 |
 | **companyId を全 method の明示引数に** | 呼出側が値を供給できる = 取り違え IDOR の面が残る。CompanyContext を選んだ目的 (呼出側を companyId 取り回しから外す) と矛盾 | admin が他社を代理閲覧 / session 非依存の background job で別 companyId scope が要る時 (その時だけ監査ログ必須の明示経路を追加) |
 | **Effect 版 `AuthService.getSession` に companyId 追加** | 本番 consumer ゼロのデッドコード (D8) | Effect 版に本番 consumer が付き company context を要する時 |
 | **`company_id` を composite PK に含める** | id は UUID で既にグローバル一意。複合化は一意性に寄与せず join/URL を複雑化 | 社内連番 display-id を導入する時 (別列で対応、PK は据え置き) |

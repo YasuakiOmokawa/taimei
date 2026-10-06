@@ -1,0 +1,182 @@
+import { count, eq, sql } from "drizzle-orm";
+import { describe, expect, it } from "vitest";
+import { type TestDb, withRollback } from "@/app/services/__tests__/db/test-db";
+import {
+  memberSkills,
+  skills,
+  teamAssignments,
+  teams,
+} from "../drizzle/schema";
+import { withCompanyScope } from "../scoped";
+
+const scopedTables = { teams, skills, teamAssignments, memberSkills };
+
+const seedCompany = async (tx: TestDb, companyId: string) => {
+  const [team] = await tx
+    .insert(teams)
+    .values({ companyId, name: `${companyId} のチーム` })
+    .returning();
+  const [skill] = await tx
+    .insert(skills)
+    .values({ companyId, teamId: team.id, name: "設計" })
+    .returning();
+  await tx
+    .insert(teamAssignments)
+    .values({ companyId, teamId: team.id, userId: `u_${companyId}` });
+  await tx.insert(memberSkills).values({
+    companyId,
+    teamId: team.id,
+    skillId: skill.id,
+    userId: `u_${companyId}`,
+    level: 2,
+    wantsToLearn: false,
+  });
+  return team;
+};
+
+const countRows = async (tx: Pick<TestDb, "select">) => {
+  const counts: Record<string, number> = {};
+  for (const [name, table] of Object.entries(scopedTables)) {
+    const [{ value }] = await tx.select({ value: count() }).from(table);
+    counts[name] = value;
+  }
+  return counts;
+};
+
+// superuser の postgres は RLS を常に bypass するので、BYPASSRLS の無い role に切り替えて policy を観測する
+const switchToRoleWithoutRlsBypass = async (tx: TestDb) => {
+  const role = `rls_probe_${crypto.randomUUID().slice(0, 8)}`;
+  await tx.execute(sql.raw(`CREATE ROLE "${role}" NOLOGIN`));
+  await tx.execute(sql.raw(`GRANT USAGE ON SCHEMA public TO "${role}"`));
+  await tx.execute(
+    sql.raw(
+      `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "${role}"`,
+    ),
+  );
+  await tx.execute(sql.raw(`SET LOCAL ROLE "${role}"`));
+};
+
+const oneRowPerTable = {
+  teams: 1,
+  skills: 1,
+  teamAssignments: 1,
+  memberSkills: 1,
+};
+const noRowsPerTable = {
+  teams: 0,
+  skills: 0,
+  teamAssignments: 0,
+  memberSkills: 0,
+};
+
+it("company_id を持つ表はすべて company_isolation の policy を持つ", () =>
+  withRollback(async (tx) => {
+    const { rows } = await tx.execute<{
+      table_name: string;
+      policy: string | null;
+    }>(sql`
+      select c.table_name, p.policyname as policy
+      from information_schema.columns c
+      left join pg_policies p
+        on p.schemaname = c.table_schema and p.tablename = c.table_name and p.policyname = 'company_isolation'
+      where c.table_schema = 'public' and c.column_name = 'company_id'
+      order by c.table_name`);
+
+    expect(rows).toEqual(
+      ["member_skills", "skills", "team_assignments", "teams"].map(
+        (table_name) => ({
+          table_name,
+          policy: "company_isolation",
+        }),
+      ),
+    );
+  }));
+
+describe("RLS (BYPASSRLS の無い role)", () => {
+  it("app.company_id が無いと、4 つの表のどの行も見えない", () =>
+    withRollback(async (tx) => {
+      await seedCompany(tx, "cmp_a");
+      await seedCompany(tx, "cmp_b");
+      expect(await countRows(tx)).toEqual({
+        teams: 2,
+        skills: 2,
+        teamAssignments: 2,
+        memberSkills: 2,
+      });
+
+      await switchToRoleWithoutRlsBypass(tx);
+
+      expect(await countRows(tx)).toEqual(noRowsPerTable);
+    }));
+
+  it("withCompanyScope の中では、4 つの表でその事業所の行だけが見える", () =>
+    withRollback(async (tx) => {
+      await seedCompany(tx, "cmp_a");
+      await seedCompany(tx, "cmp_b");
+      await switchToRoleWithoutRlsBypass(tx);
+
+      const seen = await withCompanyScope(tx, "cmp_a", async (scoped) => ({
+        rows: await countRows(scoped),
+        companies: await scoped
+          .selectDistinct({ companyId: teams.companyId })
+          .from(teams),
+      }));
+
+      expect(seen).toEqual({
+        rows: oneRowPerTable,
+        companies: [{ companyId: "cmp_a" }],
+      });
+    }));
+
+  it("withCompanyScope の中から、他社の行は INSERT できない", () =>
+    withRollback(async (tx) => {
+      await switchToRoleWithoutRlsBypass(tx);
+
+      const insertOtherCompany = withCompanyScope(tx, "cmp_a", (scoped) =>
+        scoped
+          .insert(teams)
+          .values({ companyId: "cmp_b", name: "他社のチーム" }),
+      );
+
+      await expect(insertOtherCompany).rejects.toMatchObject({
+        cause: { code: "42501" },
+      });
+    }));
+
+  it("withCompanyScope の中から、他社の行は UPDATE も DELETE もできない", () =>
+    withRollback(async (tx) => {
+      const other = await seedCompany(tx, "cmp_b");
+      await switchToRoleWithoutRlsBypass(tx);
+
+      const changed = await withCompanyScope(tx, "cmp_a", async (scoped) => ({
+        updated: await scoped
+          .update(teams)
+          .set({ name: "書き換え" })
+          .where(eq(teams.id, other.id))
+          .returning(),
+        deleted: await scoped
+          .delete(teams)
+          .where(eq(teams.id, other.id))
+          .returning(),
+      }));
+      await tx.execute(sql`RESET ROLE`);
+
+      expect(changed).toEqual({ updated: [], deleted: [] });
+      expect(await tx.select().from(teams)).toEqual([other]);
+    }));
+
+  it("withCompanyScope の中から自社のチームを消すと、スキル・割り当て・評価も消える", () =>
+    withRollback(async (tx) => {
+      const own = await seedCompany(tx, "cmp_a");
+      expect(await countRows(tx)).toEqual(oneRowPerTable);
+      await switchToRoleWithoutRlsBypass(tx);
+
+      const deleted = await withCompanyScope(tx, "cmp_a", (scoped) =>
+        scoped.delete(teams).where(eq(teams.id, own.id)).returning(),
+      );
+      await tx.execute(sql`RESET ROLE`);
+
+      expect(deleted).toHaveLength(1);
+      expect(await countRows(tx)).toEqual(noRowsPerTable);
+    }));
+});

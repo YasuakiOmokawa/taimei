@@ -4,6 +4,8 @@ import {
   check,
   foreignKey,
   index,
+  type PgColumn,
+  pgPolicy,
   pgTable,
   primaryKey,
   smallint,
@@ -21,6 +23,15 @@ export const LEVELS = [0, 1, 2, 3] as const;
 const companyId = () => varchar("company_id", { length: 32 }).notNull();
 export const COMPANY_ID_SETTING = "app.company_id";
 
+// docs/adr/0005
+const companyIsolation = (table: { companyId: PgColumn }) => {
+  const sameCompany = sql`${table.companyId} = current_setting(${sql.raw(`'${COMPANY_ID_SETTING}'`)}, true)`;
+  return pgPolicy("company_isolation", {
+    for: "all",
+    using: sameCompany,
+    withCheck: sameCompany,
+  });
+};
 const createdAt = () =>
   timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
 
@@ -35,6 +46,7 @@ export const teams = pgTable(
   (table) => [
     unique().on(table.id, table.companyId),
     unique().on(table.companyId, table.name),
+    companyIsolation(table),
   ],
 );
 
@@ -50,6 +62,7 @@ export const skills = pgTable(
   (table) => [
     unique().on(table.teamId, table.name),
     unique().on(table.id, table.teamId, table.companyId),
+    companyIsolation(table),
     foreignKey({
       columns: [table.teamId, table.companyId],
       foreignColumns: [teams.id, teams.companyId],
@@ -67,6 +80,7 @@ export const teamAssignments = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.teamId, table.userId] }),
+    companyIsolation(table),
     foreignKey({
       columns: [table.teamId, table.companyId],
       foreignColumns: [teams.id, teams.companyId],
@@ -91,6 +105,7 @@ export const memberSkills = pgTable(
     primaryKey({ columns: [table.skillId, table.userId] }),
     index("member_skills_team_id_user_id_idx").on(table.teamId, table.userId),
     check("member_skills_level_range", sql`${table.level} BETWEEN 0 AND 3`),
+    companyIsolation(table),
     // drizzle-kit の既定の名前は PostgreSQL の識別子の上限 (63 バイト) を超える
     foreignKey({
       name: "member_skills_assignment_fk",
