@@ -99,50 +99,6 @@ describe("auth-guard", () => {
     });
   });
 
-  describe("requireCompany の公開前のゲート", () => {
-    afterEach(() => {
-      vi.unstubAllEnvs();
-    });
-
-    test("ALLOWED_COMPANY_IDS に無い事業所は /unavailable へ送る", async () => {
-      mockGetSession.mockResolvedValue({
-        ok: true,
-        data: { ...mockSessionData, companyId: "cmp_c" },
-      });
-      vi.stubEnv("ALLOWED_COMPANY_IDS", "cmp_a");
-
-      const { requireCompany } = await import("@/app/lib/auth-guard");
-      await requireCompany({ returnTo: "/dashboard/teams" });
-
-      expect(redirect).toHaveBeenCalledWith("/unavailable");
-    });
-
-    test("ALLOWED_COMPANY_IDS が * なら、どの事業所も通す", async () => {
-      mockGetSession.mockResolvedValue({
-        ok: true,
-        data: { ...mockSessionData, companyId: "cmp_c" },
-      });
-      vi.stubEnv("ALLOWED_COMPANY_IDS", "*");
-
-      const { requireCompany } = await import("@/app/lib/auth-guard");
-      const result = await requireCompany({ returnTo: "/dashboard/teams" });
-
-      expect(redirect).not.toHaveBeenCalled();
-      expect(result.companyId).toBe("cmp_c");
-    });
-
-    test("事業所の無い人は、ゲートより先に事業所登録へ送る", async () => {
-      mockGetSession.mockResolvedValue({ ok: true, data: mockSessionData });
-      vi.stubEnv("ALLOWED_COMPANY_IDS", undefined);
-
-      const { requireCompany } = await import("@/app/lib/auth-guard");
-      await requireCompany({ returnTo: "/dashboard/teams" });
-
-      const firstRedirect = String(vi.mocked(redirect).mock.calls[0]?.[0]);
-      expect(firstRedirect).toContain("/auth/signup/company");
-    });
-  });
-
   test("inviteMembersUrl は受諾で現在の事業所が招待先に替わるので、受諾後の遷移先を /dashboard にする", async () => {
     vi.stubEnv("NEXT_PUBLIC_AUTH_URL", "http://auth.taimei-code.local:3100");
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "http://app.taimei-code.local:3001");

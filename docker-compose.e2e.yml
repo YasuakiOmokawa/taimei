@@ -99,7 +99,6 @@ services:
       - NEXT_PUBLIC_APP_URL=http://app.taimei-code.local:3001
       - NEXT_PUBLIC_AUTH_URL=http://auth.taimei-code.local:3100
       - AUTH_SERVICE_URL=http://auth.taimei-code.local:3100
-      - ALLOWED_COMPANY_IDS=*
     develop:
       watch:
         - action: sync
