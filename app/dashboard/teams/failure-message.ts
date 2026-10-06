@@ -12,6 +12,7 @@ const messages: Record<TeamFailure["_tag"], string> = {
   NotAssigned: "チームに割り当てられた人だけが記入できます",
   InvalidLevel: "レベルの値が正しくありません",
   TeamServiceError: "保存に失敗しました",
+  DbUnavailable: "保存に失敗しました",
 };
 
 export const failureMessage = (failure: TeamFailure) => messages[failure._tag];

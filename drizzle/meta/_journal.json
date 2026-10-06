@@ -64,6 +64,20 @@
       "when": 1791261120124,
       "tag": "0008_create_member_skills",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791269286096,
+      "tag": "0009_enable_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791284296620,
+      "tag": "0010_company_ids_with_teams",
+      "breakpoints": true
     }
   ]
 }

@@ -18,7 +18,14 @@ export const AUTH_BASE_URL =
   process.env.AUTH_BASE_URL ?? "http://auth.taimei-code.local:3100";
 const COOKIE_DOMAIN = ".taimei-code.local";
 
-export async function createTestUser(): Promise<string> {
+type MembershipOptions = {
+  companyId?: string;
+  role?: "OWNER" | "ADMIN" | "MEMBER";
+};
+
+export async function createTestUser(
+  options: MembershipOptions = {},
+): Promise<string> {
   const uuid = crypto.randomUUID();
   const email = `e2e-${uuid}@example.com`;
   await authDb.insert(user).values({
@@ -29,14 +36,19 @@ export async function createTestUser(): Promise<string> {
   });
   // dashboard は事業所所属を要求する (ADR-0002)。sign-in (verify) の前に company /
   // membership / last_used_company_id を用意し、companyId を session cookie へ焼き込ませる。
-  await provisionCompanyForUser(uuid);
+  await provisionCompanyForUser(uuid, options);
   return email;
 }
 
 // 指定 user に company + membership を作成し last_used_company_id を set する。
 // session の companyId source は user.last_used_company_id (ADR-009)。
-export async function provisionCompanyForUser(userId: string): Promise<string> {
-  const companyId = `cmp_e2e${userId.replace(/-/g, "").slice(0, 22)}`;
+export async function provisionCompanyForUser(
+  userId: string,
+  {
+    companyId = `cmp_e2e${userId.replace(/-/g, "").slice(0, 22)}`,
+    role = "OWNER",
+  }: MembershipOptions = {},
+): Promise<string> {
   await authDb
     .insert(company)
     .values({
@@ -47,7 +59,7 @@ export async function provisionCompanyForUser(userId: string): Promise<string> {
     .onConflictDoNothing();
   await authDb
     .insert(membership)
-    .values({ id: crypto.randomUUID(), userId, companyId, role: "OWNER" })
+    .values({ id: crypto.randomUUID(), userId, companyId, role })
     .onConflictDoNothing();
   await authDb
     .update(user)
