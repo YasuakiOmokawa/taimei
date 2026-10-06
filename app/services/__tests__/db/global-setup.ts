@@ -1,7 +1,7 @@
 import { execSync } from "child_process";
 import { resolve } from "path";
 
-const TEST_DATABASE_URL =
+export const TEST_DATABASE_URL =
   process.env.DATABASE_URL ||
   "postgresql://postgres:password@localhost:5434/taimei_test";
 

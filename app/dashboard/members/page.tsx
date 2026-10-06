@@ -1,22 +1,12 @@
-import * as Sentry from "@sentry/nextjs";
 import type { Member } from "@taimei-code/auth-client";
-import {
-  inviteMembersUrl,
-  listMembers,
-  requireCompany,
-} from "@/app/lib/auth-guard";
+import { inviteMembersUrl, requireCompany } from "@/app/lib/auth-guard";
+import { fetchCompanyMembers } from "@/app/lib/company-members";
 import { lusitana } from "@/lib/fonts";
 import { memberLabel } from "@/lib/member-label";
 
 export default async function Page() {
   await requireCompany({ returnTo: "/dashboard/members" });
-  const memberListResult = await listMembers();
-  if (!memberListResult.ok) {
-    Sentry.captureMessage("listMembers failed", {
-      level: "error",
-      extra: { reason: memberListResult.reason },
-    });
-  }
+  const members = await fetchCompanyMembers();
 
   return (
     <div>
@@ -33,8 +23,8 @@ export default async function Page() {
           メンバーを招待
         </a>
       </div>
-      {memberListResult.ok ? (
-        <MemberTable members={memberListResult.data.members} />
+      {members ? (
+        <MemberTable members={members} />
       ) : (
         <p>メンバー一覧を取得できませんでした</p>
       )}

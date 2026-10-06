@@ -2,15 +2,23 @@ import { Effect, Layer, ManagedRuntime } from "effect";
 import { resolveCompanyIdOrRedirect } from "../lib/auth-guard";
 import { AuthClient } from "./auth-client-service";
 import { AuthService } from "./auth-service";
+import { AuthorizationContext } from "./authorization-context";
 import { CompanyContext } from "./company-context";
+import { CompanyMembers } from "./company-members-service";
 import { CookieReader } from "./cookie-reader-service";
 import { Db } from "./db-service";
+import { TeamService } from "./team-service";
 
 const Live = Layer.mergeAll(
   Db.layer,
   AuthService.layer.pipe(
     Layer.provide(CookieReader.layer),
     Layer.provide(AuthClient.layer),
+  ),
+  CompanyMembers.layer,
+  TeamService.layer.pipe(
+    Layer.provide(Db.layer),
+    Layer.provide(CompanyMembers.layer),
   ),
 );
 
@@ -30,23 +38,34 @@ export { runService };
 // AllScopedServices は Live の ROut から機械導出する (手書き union 禁止 = Service 追加時の漏れ防止)。
 type AllScopedServices = Layer.Success<typeof Live>;
 
-// IDOR backstop 番兵 (閉じ1 を規律でなく型で固定): CompanyContext を Live に含めると
-// companyId 無し実行が型で通り backstop が破れる。含めた瞬間に下行がコンパイルエラーになる。
-type _NoCompanyContextInLive = [CompanyContext] extends [AllScopedServices]
+// CompanyContext・AuthorizationContext を Live に含めると session 無しで実行できてしまう (docs/adr/0002 D3)
+type _NoRequestContextInLive = [CompanyContext] extends [AllScopedServices]
   ? "ERROR: CompanyContext must NOT be in Live"
-  : true;
-const _assertNoCompanyContextInLive: _NoCompanyContextInLive = true;
+  : [AuthorizationContext] extends [AllScopedServices]
+    ? "ERROR: AuthorizationContext must NOT be in Live"
+    : true;
+const _assertNoRequestContextInLive: _NoRequestContextInLive = true;
 
 // 事業所スコープ処理の唯一の実行口。companyId は引数で受けず境界の内側で session から導出する
 // (呼出側が間違った/欠けた companyId を渡す経路を API から消す)。
 // 未選択判定 + redirect は requireCompany と共有 (resolveCompanyIdOrRedirect、redirect SSOT)。
 export const runScopedService = async <A, E>(
-  body: () => Effect.Effect<A, E, AllScopedServices | CompanyContext>,
+  body: () => Effect.Effect<
+    A,
+    E,
+    AllScopedServices | CompanyContext | AuthorizationContext
+  >,
 ) => {
-  const { companyId } = await resolveCompanyIdOrRedirect();
+  const { companyId, session } = await resolveCompanyIdOrRedirect();
   return runtime.runPromise(
     Effect.result(
-      body().pipe(Effect.provideService(CompanyContext, { companyId })),
+      body().pipe(
+        Effect.provideService(CompanyContext, { companyId }),
+        Effect.provideService(AuthorizationContext, {
+          userId: session.user.id,
+          role: session.role,
+        }),
+      ),
     ),
   );
 };
