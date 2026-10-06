@@ -48,28 +48,27 @@ export const requireSession = async ({
   return session;
 };
 
-// 事業所未選択 user の登録先 (taimei-auth web SPA 上)。設計詳細: docs/adr/0002-company-data-scoping.md (D5)。
-// proxy.ts の AUTH_URL 解決と同型で NEXT_PUBLIC_AUTH_URL を base に絶対 URL を組む。
+// taimei-auth の画面 (事業所登録: docs/adr/0002-company-data-scoping.md の D5) の絶対 URL を、proxy.ts の AUTH_URL 解決と同型で組む。
 const AUTH_URL =
   process.env.NEXT_PUBLIC_AUTH_URL || "https://auth.taimei-code.com";
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || "https://app.taimei-code.com";
 
-// taimei-auth の事業所登録画面は service_name と絶対 URL の redirect_url しか受け付けない (allowlist 検査)
-const buildCompanySignupUrl = (returnTo = "/dashboard") => {
-  const url = new URL("/auth/signup/company", AUTH_URL);
+// taimei-auth の画面は service_name と絶対 URL の redirect_url しか受け付けない (allowlist 検査)
+const buildAuthUrl = (path: string, returnTo: string) => {
+  const url = new URL(path, AUTH_URL);
   url.searchParams.set("service_name", "taimei");
   url.searchParams.set("redirect_url", `${APP_URL}${returnTo}`);
   return url.toString();
 };
 
 // redirect + companyId 導出の SSOT。data 層の runScopedService と page 層の requireCompany が共有する。
-// 未認証 (session null) と「認証済・事業所未選択」で redirect 先を分岐する。
 // redirect() は Next の control-flow throw なので、Effect の外 (Next 境界) でしか実行できない。
 export const resolveCompanyIdOrRedirect = async (returnTo = "/dashboard") => {
-  const session = await getSession(); // react.cache 済 (page/data が同 cache を共有)
+  const session = await getSession();
   if (!session) redirect(`/auth?callbackUrl=${encodeURIComponent(returnTo)}`);
-  if (!session.companyId) redirect(buildCompanySignupUrl(returnTo));
+  if (!session.companyId)
+    redirect(buildAuthUrl("/auth/signup/company", returnTo));
   return { companyId: session.companyId, session };
 };
 
