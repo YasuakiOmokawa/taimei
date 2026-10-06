@@ -1,7 +1,12 @@
+import { sql } from "drizzle-orm";
 import {
+  boolean,
+  check,
   foreignKey,
+  index,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   unique,
@@ -10,6 +15,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const NAME_MAX_LENGTH = 50;
+export const LEVELS = [0, 1, 2, 3] as const;
 
 // taimei-auth の company.id (cmp_<nanoid24>) への論理参照。cross-DB のため FK は張らない (docs/adr/0002-company-data-scoping.md)。
 const companyId = () => varchar("company_id", { length: 32 }).notNull();
@@ -41,6 +47,7 @@ export const skills = pgTable(
   },
   (table) => [
     unique().on(table.teamId, table.name),
+    unique().on(table.id, table.teamId, table.companyId),
     foreignKey({
       columns: [table.teamId, table.companyId],
       foreignColumns: [teams.id, teams.companyId],
@@ -61,6 +68,37 @@ export const teamAssignments = pgTable(
     foreignKey({
       columns: [table.teamId, table.companyId],
       foreignColumns: [teams.id, teams.companyId],
+    }).onDelete("cascade"),
+  ],
+);
+
+export const memberSkills = pgTable(
+  "member_skills",
+  {
+    companyId: companyId(),
+    teamId: uuid("team_id").notNull(),
+    skillId: uuid("skill_id").notNull(),
+    userId: text("user_id").notNull(),
+    level: smallint().$type<(typeof LEVELS)[number]>().notNull(),
+    wantsToLearn: boolean("wants_to_learn").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.skillId, table.userId] }),
+    index("member_skills_team_id_user_id_idx").on(table.teamId, table.userId),
+    check("member_skills_level_range", sql`${table.level} BETWEEN 0 AND 3`),
+    // drizzle-kit の既定の名前は PostgreSQL の識別子の上限 (63 バイト) を超える
+    foreignKey({
+      name: "member_skills_assignment_fk",
+      columns: [table.teamId, table.userId],
+      foreignColumns: [teamAssignments.teamId, teamAssignments.userId],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "member_skills_skill_fk",
+      columns: [table.skillId, table.teamId, table.companyId],
+      foreignColumns: [skills.id, skills.teamId, skills.companyId],
     }).onDelete("cascade"),
   ],
 );
