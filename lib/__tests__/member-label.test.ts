@@ -13,4 +13,10 @@ describe("memberLabel", () => {
       "taro@example.com",
     );
   });
+
+  it("名前が空白だけならメールアドレスを返す", () => {
+    expect(memberLabel({ name: "  ", email: "taro@example.com" })).toBe(
+      "taro@example.com",
+    );
+  });
 });

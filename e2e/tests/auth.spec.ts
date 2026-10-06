@@ -90,7 +90,7 @@ test.describe("認証フロー", () => {
       await authedPage.getByLabel("事業所名").fill("E2E 事業所");
       await authedPage.getByRole("button", { name: "事業所を作成" }).click();
       await expect(authedPage).toHaveURL(
-        "http://app.taimei-code.local:3001/dashboard",
+        "http://app.taimei-code.local:3001/dashboard/teams",
       );
 
       await context.close();
@@ -115,7 +115,7 @@ test.describe("認証フロー", () => {
       await authedPage.goto("/dashboard");
 
       await expect(authedPage).toHaveURL(/\/dashboard/);
-      await expect(authedPage.locator("h1")).toContainText("Dashboard");
+      await expect(authedPage.locator("h1")).toContainText("チーム");
 
       await context.close();
     });

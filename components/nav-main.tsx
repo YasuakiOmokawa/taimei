@@ -32,9 +32,7 @@ export function NavMain({
               asChild
               tooltip={item.title}
               isActive={
-                pathName === item.url ||
-                (item.url !== "/dashboard" &&
-                  pathName.startsWith(`${item.url}/`))
+                pathName === item.url || pathName.startsWith(`${item.url}/`)
               }
             >
               <Link href={item.url}>

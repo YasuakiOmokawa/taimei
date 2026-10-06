@@ -19,6 +19,10 @@ export class InvalidName extends Data.TaggedError("InvalidName") {}
 
 export class DuplicateName extends Data.TaggedError("DuplicateName") {}
 
+export class NotAssigned extends Data.TaggedError("NotAssigned") {}
+
+export class InvalidLevel extends Data.TaggedError("InvalidLevel") {}
+
 export class TeamServiceError extends Data.TaggedError("TeamServiceError")<{
   cause: unknown;
 }> {}
@@ -31,4 +35,6 @@ export type TeamFailure =
   | MemberListError
   | InvalidName
   | DuplicateName
+  | NotAssigned
+  | InvalidLevel
   | TeamServiceError;

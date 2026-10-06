@@ -9,6 +9,8 @@ const messages: Record<TeamFailure["_tag"], string> = {
   MemberListError: "メンバー一覧を取得できませんでした",
   InvalidName: `名前は 1〜${NAME_MAX_LENGTH} 文字で入力してください`,
   DuplicateName: "同じ名前がすでにあります",
+  NotAssigned: "チームに割り当てられた人だけが記入できます",
+  InvalidLevel: "レベルの値が正しくありません",
   TeamServiceError: "保存に失敗しました",
 };
 
