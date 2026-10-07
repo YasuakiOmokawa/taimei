@@ -11,6 +11,16 @@ const isPassedThrough = (response: Response) =>
   response.headers.get("location") === null;
 
 describe("proxy (cookie なし)", () => {
+  it("/privacy は taimei-auth へ送らずに通す", async () => {
+    expect(isPassedThrough(await requestWithoutCookie("/privacy"))).toBe(true);
+  });
+
+  it("/privacy の子 path は taimei-auth へ送る", async () => {
+    expect(isPassedThrough(await requestWithoutCookie("/privacy/x"))).toBe(
+      false,
+    );
+  });
+
   it("/auth/after-signin は今までどおり通し、/dashboard は taimei-auth へ送る", async () => {
     expect(
       isPassedThrough(await requestWithoutCookie("/auth/after-signin")),

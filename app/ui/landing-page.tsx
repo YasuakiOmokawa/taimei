@@ -155,8 +155,14 @@ export default function LandingPage() {
 
       <footer className="w-full border-t bg-background py-8 lg:py-12">
         <div className="container px-4 md:px-6 max-w-7xl mx-auto">
-          <div className="mt-8 border-t pt-8">
-            <p className="text-sm text-muted-foreground text-center">
+          <div className="mt-8 border-t pt-8 space-y-2 text-center">
+            <Link
+              href="/privacy"
+              className="text-sm text-muted-foreground underline underline-offset-4"
+            >
+              プライバシーポリシー
+            </Link>
+            <p className="text-sm text-muted-foreground">
               &copy; {new Date().getFullYear()} <MyServiceName /> All rights
               reserved.
             </p>
