@@ -2,7 +2,7 @@ import { purgeDeparted } from "@/app/lib/purge-departed";
 import { db } from "@/db/drizzle/client";
 import { authClient } from "@/lib/auth/client";
 
-// Vercel Cron は CRON_SECRET を Authorization: Bearer で送る
+// .github/workflows/purge-departed.yml が CRON_SECRET を Authorization: Bearer で送る
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return new Response(null, { status: 503 });

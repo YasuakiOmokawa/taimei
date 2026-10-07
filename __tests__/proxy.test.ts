@@ -20,7 +20,7 @@ describe("proxy (cookie なし)", () => {
     );
   });
 
-  it("日次の照合の route は cookie なしで通す", async () => {
+  it("照合の route は cookie なしで通す", async () => {
     expect(
       isPassedThrough(await requestWithoutCookie("/api/cron/purge-departed")),
     ).toBe(true);
