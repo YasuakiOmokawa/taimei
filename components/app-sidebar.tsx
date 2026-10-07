@@ -53,6 +53,12 @@ export function AppSidebar({ currentUser, ...props }: Props) {
         <NavMain items={navMainItems} />
       </SidebarContent>
       <SidebarFooter>
+        <Link
+          href="/privacy"
+          className="px-2 text-xs text-muted-foreground underline underline-offset-4"
+        >
+          プライバシーポリシー
+        </Link>
         <NavUser {...currentUser} />
       </SidebarFooter>
     </Sidebar>

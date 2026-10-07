@@ -11,7 +11,10 @@ import { NextRequest, NextResponse } from "next/server";
 //   (例: "/public") を追加すると "/public/任意" が全て公開扱いになる。子 path が公開対象でない
 //   場合は EXACT_PUBLIC_PATHS に足す。
 const PUBLIC_PATHS = ["/", "/auth/after-signin", "/auth/after-signup"] as const;
-const EXACT_PUBLIC_PATHS: readonly string[] = ["/api/cron/purge-departed"];
+const EXACT_PUBLIC_PATHS: readonly string[] = [
+  "/privacy",
+  "/api/cron/purge-departed",
+];
 
 // `||` (truthy fallback) で空文字も fallback 対象にする (ADR-008)。
 const AUTH_URL =

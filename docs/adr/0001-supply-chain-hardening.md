@@ -29,7 +29,7 @@ taimei の現状:
 |---|---|---|---|
 | L1 | publish 窓 | `minimumReleaseAge = "7d"` | `bunfig.toml` |
 | L2 | Actions 改ざん | tag → commit SHA pin | 全 workflow |
-| L3 | pin 後の追従 | Dependabot weekly | `.github/dependabot.yml` |
+| L3 | pin 後の追従 | Dependabot weekly (ecosystem は bun。bun と github-actions は cooldown 7 日で L1 と揃える) | `.github/dependabot.yml` |
 | L4 | 既知脆弱性 gate | CI で `bun audit --audit-level=high` | `lint.yml` |
 | L5 | install lifecycle | `bun install --ignore-scripts` | 全 workflow + Dockerfile |
 | L6 | trusted 明示 | `trustedDependencies: []` | `package.json` |
