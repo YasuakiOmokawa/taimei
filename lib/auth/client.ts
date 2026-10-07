@@ -11,7 +11,6 @@ import {
 } from "@taimei-code/auth-client";
 import { authClientConfig } from "./config";
 
-// Service Key 注入。dev / local 環境では env 未設定で undefined になる (config.ts FIXME 参照)。
 const interceptors = authClientConfig.serviceKey
   ? [createServiceKeyInterceptor(authClientConfig.serviceKey)]
   : [];
