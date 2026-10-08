@@ -1,45 +1,28 @@
 import { Effect, Layer, ManagedRuntime, Result } from "effect";
 import { resolveCompanyIdOrRedirect } from "../lib/auth-guard";
-import { AuthClient } from "./auth-client-service";
-import { AuthService } from "./auth-service";
 import { AuthorizationContext } from "./authorization-context";
 import { CompanyContext } from "./company-context";
 import { CompanyMembers } from "./company-members-service";
-import { CookieReader } from "./cookie-reader-service";
 import { Db, DbUnavailable } from "./db-service";
 import { TeamService } from "./team-service";
 
-const Live = Layer.mergeAll(
-  AuthService.layer.pipe(
-    Layer.provide(CookieReader.layer),
-    Layer.provide(AuthClient.layer),
-  ),
-  CompanyMembers.layer,
-);
+const Live = CompanyMembers.layer;
+type LiveServices = Layer.Success<typeof Live>;
 
 // Db を要る Service。runScopedService が request ごとに、RLS の事業所を設定した transaction の Db で作る (docs/adr/0005)
 const RequestScoped = TeamService.layer;
 
-// runtime も返し、runScopedService が runtime を再構築せず同じ ManagedRuntime を共有する (docs/adr/0002 D3)。
-const makeNextRuntime = <R, E>(layer: Layer.Layer<R, E, never>) => {
-  const runtime = ManagedRuntime.make(layer);
-  const run = <A, E2>(body: () => Effect.Effect<A, E2, R>) =>
-    runtime.runPromise(Effect.result(body()));
-  return { run, runtime };
-};
+const runtime = ManagedRuntime.make(Live);
 
-const { run: runService, runtime } = makeNextRuntime(Live);
-
-export { runService };
+export const runService = <A, E>(
+  body: () => Effect.Effect<A, E, LiveServices>,
+) => runtime.runPromise(Effect.result(body()));
 
 // 事業所スコープ実行の閉じ。設計詳細: docs/adr/0002-company-data-scoping.md (D3)。
-// AllScopedServices は Live と RequestScoped の ROut から機械導出する (手書き union 禁止 = Service 追加時の漏れ防止)。
-type AllScopedServices =
-  | Layer.Success<typeof Live>
-  | Layer.Success<typeof RequestScoped>;
+// 手書きの union にすると、Service を足した時に AllScopedServices から漏れる
+type AllScopedServices = LiveServices | Layer.Success<typeof RequestScoped>;
 
 // CompanyContext・AuthorizationContext を Live に含めると session 無しで実行できてしまう (docs/adr/0002 D3)
-type LiveServices = Layer.Success<typeof Live>;
 type _NoRequestContextInLive = [CompanyContext] extends [LiveServices]
   ? "ERROR: CompanyContext must NOT be in Live"
   : [AuthorizationContext] extends [LiveServices]
