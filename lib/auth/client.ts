@@ -1,9 +1,4 @@
-// taimei-auth SDK の単一 instance を提供する module-singleton。接続先の単一情報源を保証する。
-// 経緯は ADR-005 / ADR-007 参照 (plans/taimei/ADR-005, ADR-007)。
-//
-// server-only ガードは config.ts に集約し、ここから import するだけで連鎖的に効く。
-// 注意: config.ts の `import "server-only"` を消す、または `authClientConfig` を別経路で
-// inline 再定義して `./config` 経由を回避すると、client.ts のガードも同時に消える依存関係。
+import "server-only";
 import { createConnectTransport } from "@connectrpc/connect-node";
 import {
   createAuthClient,

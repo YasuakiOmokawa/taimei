@@ -102,8 +102,8 @@ describe("runScopedService", () => {
             })
             .returning(),
         );
-        const listed = yield* TeamService.use((service) =>
-          service.listTeams(),
+        const listed = yield* TeamService.use(
+          (service) => service.listTeams,
         ).pipe(
           Effect.ensuring(
             Effect.promise(() => db.delete(teams).where(eq(teams.id, team.id))),

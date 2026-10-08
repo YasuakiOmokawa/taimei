@@ -180,7 +180,7 @@ describe("listTeams", () => {
       const earlier = await seedTeam(tx, "cmp_a", "先", createdAtMinute(1));
       await seedTeam(tx, "cmp_b", "他社", createdAtMinute(0));
 
-      const result = await runAs(tx, ADMIN)((s) => s.listTeams());
+      const result = await runAs(tx, ADMIN)((s) => s.listTeams);
 
       expect(Result.getOrThrow(result).map((t) => t.id)).toEqual([
         earlier,
@@ -197,7 +197,7 @@ describe("listTeams", () => {
       await seedTeam(tx, "cmp_a", "Y");
       await seedAssignment(tx, "cmp_a", x, "u_m");
 
-      const result = await runAs(tx, actor)((s) => s.listTeams());
+      const result = await runAs(tx, actor)((s) => s.listTeams);
 
       expect(Result.getOrThrow(result).map((t) => t.id)).toEqual([x]);
     }),
@@ -207,7 +207,7 @@ describe("listTeams", () => {
     withRollback(async (tx) => {
       await seedTeam(tx, "cmp_a", "X");
 
-      const result = await runAs(tx, MEMBER)((s) => s.listTeams());
+      const result = await runAs(tx, MEMBER)((s) => s.listTeams);
 
       expect(Result.getOrThrow(result)).toEqual([]);
     }));
@@ -220,7 +220,7 @@ describe("listTeams", () => {
       await admin((s) => s.assign(x, "u_m"));
       await admin((s) => s.assign(y, "u_m"));
 
-      const result = await runAs(tx, MEMBER)((s) => s.listTeams());
+      const result = await runAs(tx, MEMBER)((s) => s.listTeams);
 
       expect(await countRows(tx, teamAssignments)).toBe(2);
       expect(Result.getOrThrow(result).map((t) => t.id)).toEqual([x, y]);
@@ -284,7 +284,7 @@ describe("getTeam", () => {
       await seedAssignment(tx, "cmp_b", other, "u_m");
       const member = runAs(tx, MEMBER);
 
-      expect(Result.getOrThrow(await member((s) => s.listTeams()))).toEqual([]);
+      expect(Result.getOrThrow(await member((s) => s.listTeams))).toEqual([]);
       expect(failureTag(await member((s) => s.getTeam(other)))).toBe(
         "TeamNotFound",
       );

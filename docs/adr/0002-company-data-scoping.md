@@ -226,6 +226,8 @@ companyId の source は **`runScopedService` 内 / `requireCompany` の SDK gua
 
 `AuthService.getSession` は `Live` に配線されたままだが **companyId を返さない契約**である点をコメント/命名で明示し、将来 consumer が付く時は SDK guard 経由へ寄せる (review-design Hexagonal: 同一 auth port に 2 実装が並立する contract 不明示の緩和。`CompanyContext` 不在なら scoped Service はコンパイル不能 = 閉じ1 が backstop)。
 
+2026-10-08 追記: Effect の `AuthService`・`makeNextRuntime`・`CompanyContext.layer` は Effect v4 stable への移行で削除した。getSession の経路は SDK guard だけである。
+
 ### D9. migration / backfill
 
 各テーブルに `company_id varchar(32)` (auth `company.id` = `cmp_<nanoid24>` ≒ 28 文字への論理参照、**FK は張らない** = cross-DB) + index を追加。`revenue` の unique は `(month)` → `(company_id, month)` に変更。`revenue` は id PK を持たず read-only 前提 (アプリに write path なし)。migration 後は `(month)` 単独 unique が残らず `(company_id, month)` のみになることを SQL で確認する (MECE IM4)。company_id 列には index を張り、`fetchFiltered` の検索は company_id 前置の複合 index を検討 (MECE N2)。
