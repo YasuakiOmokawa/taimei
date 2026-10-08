@@ -1,32 +1,59 @@
-import { Data } from "effect";
+import { Schema } from "effect";
 import type { MemberListError } from "./company-members-service";
 import type { DbUnavailable } from "./db-service";
 
-export class TeamNotFound extends Data.TaggedError("TeamNotFound")<{
-  teamId: string;
-}> {}
+export class TeamNotFound extends Schema.TaggedError<TeamNotFound>()(
+  "TeamNotFound",
+  {
+    teamId: Schema.String,
+  },
+) {}
 
-export class SkillNotFound extends Data.TaggedError("SkillNotFound")<{
-  skillId: string;
-}> {}
+export class SkillNotFound extends Schema.TaggedError<SkillNotFound>()(
+  "SkillNotFound",
+  {
+    skillId: Schema.String,
+  },
+) {}
 
-export class NotManager extends Data.TaggedError("NotManager") {}
+export class NotManager extends Schema.TaggedError<NotManager>()(
+  "NotManager",
+  {},
+) {}
 
-export class NotCompanyMember extends Data.TaggedError("NotCompanyMember")<{
-  userId: string;
-}> {}
+export class NotCompanyMember extends Schema.TaggedError<NotCompanyMember>()(
+  "NotCompanyMember",
+  {
+    userId: Schema.String,
+  },
+) {}
 
-export class InvalidName extends Data.TaggedError("InvalidName") {}
+export class InvalidName extends Schema.TaggedError<InvalidName>()(
+  "InvalidName",
+  {},
+) {}
 
-export class DuplicateName extends Data.TaggedError("DuplicateName") {}
+export class DuplicateName extends Schema.TaggedError<DuplicateName>()(
+  "DuplicateName",
+  {},
+) {}
 
-export class NotAssigned extends Data.TaggedError("NotAssigned") {}
+export class NotAssigned extends Schema.TaggedError<NotAssigned>()(
+  "NotAssigned",
+  {},
+) {}
 
-export class InvalidLevel extends Data.TaggedError("InvalidLevel") {}
+export class InvalidLevel extends Schema.TaggedError<InvalidLevel>()(
+  "InvalidLevel",
+  {},
+) {}
 
-export class TeamServiceError extends Data.TaggedError("TeamServiceError")<{
-  cause: unknown;
-}> {}
+export class TeamServiceError extends Schema.TaggedError<TeamServiceError>()(
+  "TeamServiceError",
+  {
+    cause: Schema.Defect(),
+  },
+) {}
 
 export type TeamFailure =
   | NotManager

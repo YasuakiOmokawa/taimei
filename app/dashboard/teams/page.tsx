@@ -11,7 +11,7 @@ import { runTeamService } from "./run-team-service";
 
 export default async function Page() {
   const { role } = await requireCompany({ returnTo: "/dashboard/teams" });
-  const result = await runTeamService((s) => s.listTeams());
+  const result = await runTeamService((s) => s.listTeams);
   const canManage = isManager(role);
 
   return (

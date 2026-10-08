@@ -9,7 +9,10 @@ import {
 import { companyFilter } from "@/db/scoped";
 import { AuthorizationContext, isManager } from "./authorization-context";
 import { CompanyContext } from "./company-context";
-import { CompanyMembers } from "./company-members-service";
+import {
+  CompanyMembers,
+  type MemberListError,
+} from "./company-members-service";
 import { Db } from "./db-service";
 import { LevelFromForm } from "./level";
 import {
@@ -53,10 +56,117 @@ const requireManager = Effect.gen(function* () {
   if (!isManager(role)) return yield* new NotManager();
 });
 
-export class TeamService extends Context.Service<TeamService>()(
-  "services/TeamService",
+type Team = Pick<typeof teams.$inferSelect, "id" | "name">;
+type Skill = Pick<typeof skills.$inferSelect, "id" | "name">;
+type RecordedLevel = Pick<
+  typeof memberSkills.$inferSelect,
+  "userId" | "skillId" | "level" | "wantsToLearn"
+>;
+export type TeamDetail = Team & {
+  readonly skills: readonly Skill[];
+  readonly assignedUserIds: readonly string[];
+  readonly levels: readonly RecordedLevel[];
+};
+
+type RequestContext = CompanyContext | AuthorizationContext;
+
+export class TeamService extends Context.Service<
+  TeamService,
   {
-    make: Effect.gen(function* () {
+    readonly listTeams: Effect.Effect<
+      readonly Team[],
+      TeamServiceError,
+      RequestContext
+    >;
+    getTeam(
+      teamId: string,
+    ): Effect.Effect<
+      TeamDetail,
+      TeamNotFound | TeamServiceError,
+      RequestContext
+    >;
+    createTeam(
+      name: string,
+    ): Effect.Effect<
+      { readonly id: string },
+      NotManager | InvalidName | DuplicateName | TeamServiceError,
+      RequestContext
+    >;
+    renameTeam(
+      teamId: string,
+      name: string,
+    ): Effect.Effect<
+      void,
+      | NotManager
+      | InvalidName
+      | TeamNotFound
+      | DuplicateName
+      | TeamServiceError,
+      RequestContext
+    >;
+    deleteTeam(
+      teamId: string,
+    ): Effect.Effect<
+      void,
+      NotManager | TeamNotFound | TeamServiceError,
+      RequestContext
+    >;
+    addSkill(
+      teamId: string,
+      name: string,
+    ): Effect.Effect<
+      void,
+      | NotManager
+      | InvalidName
+      | TeamNotFound
+      | DuplicateName
+      | TeamServiceError,
+      RequestContext
+    >;
+    removeSkill(
+      skillId: string,
+    ): Effect.Effect<
+      void,
+      NotManager | SkillNotFound | TeamServiceError,
+      RequestContext
+    >;
+    assign(
+      teamId: string,
+      userId: string,
+    ): Effect.Effect<
+      void,
+      | NotManager
+      | TeamNotFound
+      | MemberListError
+      | NotCompanyMember
+      | TeamServiceError,
+      RequestContext
+    >;
+    saveMyLevels(
+      teamId: string,
+      entries: readonly LevelEntry[],
+    ): Effect.Effect<
+      void,
+      | TeamNotFound
+      | NotAssigned
+      | InvalidLevel
+      | SkillNotFound
+      | TeamServiceError,
+      RequestContext
+    >;
+    unassign(
+      teamId: string,
+      userId: string,
+    ): Effect.Effect<
+      void,
+      NotManager | TeamNotFound | TeamServiceError,
+      RequestContext
+    >;
+  }
+>()("taimei/app/services/TeamService") {
+  static readonly layer = Layer.effect(
+    TeamService,
+    Effect.gen(function* () {
       const db = yield* Db;
       const companyMembers = yield* CompanyMembers;
 
@@ -98,263 +208,195 @@ export class TeamService extends Context.Service<TeamService>()(
         );
       });
 
-      const findTeam = (teamId: string) =>
-        Effect.gen(function* () {
-          if (!isUuid(teamId)) return yield* new TeamNotFound({ teamId });
+      const findTeam = Effect.fnUntraced(function* (teamId: string) {
+        if (!isUuid(teamId)) return yield* new TeamNotFound({ teamId });
+        const visible = yield* visibleTeamCondition;
+        const [team] = yield* runQuery(() =>
+          db
+            .select({ id: teams.id, name: teams.name })
+            .from(teams)
+            .where(and(eq(teams.id, teamId), visible)),
+        );
+        if (!team) return yield* new TeamNotFound({ teamId });
+        return team;
+      });
+
+      return TeamService.of({
+        listTeams: Effect.gen(function* () {
           const visible = yield* visibleTeamCondition;
-          const [team] = yield* runQuery(() =>
+          return yield* runQuery(() =>
             db
               .select({ id: teams.id, name: teams.name })
               .from(teams)
-              .where(and(eq(teams.id, teamId), visible)),
+              .where(visible)
+              .orderBy(asc(teams.createdAt)),
           );
-          if (!team) return yield* new TeamNotFound({ teamId });
+        }).pipe(Effect.withSpan("TeamService.listTeams")),
+
+        getTeam: Effect.fn("TeamService.getTeam")(function* (teamId: string) {
+          const team = yield* findTeam(teamId);
+          const { companyId } = yield* CompanyContext;
+          const [teamSkills, assignments, levels] = yield* Effect.all([
+            runQuery(() =>
+              db
+                .select({ id: skills.id, name: skills.name })
+                .from(skills)
+                .where(
+                  and(
+                    eq(skills.teamId, team.id),
+                    companyFilter(skills, companyId),
+                  ),
+                )
+                .orderBy(asc(skills.createdAt)),
+            ),
+            runQuery(() =>
+              db
+                .select({ userId: teamAssignments.userId })
+                .from(teamAssignments)
+                .where(
+                  and(
+                    eq(teamAssignments.teamId, team.id),
+                    companyFilter(teamAssignments, companyId),
+                  ),
+                ),
+            ),
+            runQuery(() =>
+              db
+                .select({
+                  userId: memberSkills.userId,
+                  skillId: memberSkills.skillId,
+                  level: memberSkills.level,
+                  wantsToLearn: memberSkills.wantsToLearn,
+                })
+                .from(memberSkills)
+                .where(
+                  and(
+                    eq(memberSkills.teamId, team.id),
+                    companyFilter(memberSkills, companyId),
+                  ),
+                ),
+            ),
+          ]);
+          return {
+            ...team,
+            skills: teamSkills,
+            assignedUserIds: assignments.map((a) => a.userId),
+            levels,
+          };
+        }),
+
+        createTeam: Effect.fn("TeamService.createTeam")(function* (
+          name: string,
+        ) {
+          yield* requireManager;
+          const validName = yield* decodeName(name);
+          const { companyId } = yield* CompanyContext;
+          const [team] = yield* runNameWrite((tx) =>
+            tx
+              .insert(teams)
+              .values({ companyId, name: validName })
+              .returning({ id: teams.id }),
+          );
           return team;
-        });
+        }),
 
-      return {
-        listTeams: () =>
-          Effect.gen(function* () {
-            const visible = yield* visibleTeamCondition;
-            return yield* runQuery(() =>
+        renameTeam: Effect.fn("TeamService.renameTeam")(function* (
+          teamId: string,
+          name: string,
+        ) {
+          yield* requireManager;
+          const validName = yield* decodeName(name);
+          if (!isUuid(teamId)) return yield* new TeamNotFound({ teamId });
+          const { companyId } = yield* CompanyContext;
+          const updated = yield* runNameWrite((tx) =>
+            tx
+              .update(teams)
+              .set({ name: validName })
+              .where(and(eq(teams.id, teamId), companyFilter(teams, companyId)))
+              .returning({ id: teams.id }),
+          );
+          if (updated.length === 0) return yield* new TeamNotFound({ teamId });
+        }),
+
+        deleteTeam: Effect.fn("TeamService.deleteTeam")(function* (
+          teamId: string,
+        ) {
+          yield* requireManager;
+          if (!isUuid(teamId)) return yield* new TeamNotFound({ teamId });
+          const { companyId } = yield* CompanyContext;
+          const deleted = yield* runQuery(() =>
+            db
+              .delete(teams)
+              .where(and(eq(teams.id, teamId), companyFilter(teams, companyId)))
+              .returning({ id: teams.id }),
+          );
+          if (deleted.length === 0) return yield* new TeamNotFound({ teamId });
+        }),
+
+        addSkill: Effect.fn("TeamService.addSkill")(function* (
+          teamId: string,
+          name: string,
+        ) {
+          yield* requireManager;
+          const validName = yield* decodeName(name);
+          const team = yield* findTeam(teamId);
+          const { companyId } = yield* CompanyContext;
+          yield* runNameWrite((tx) =>
+            tx
+              .insert(skills)
+              .values({ companyId, teamId: team.id, name: validName }),
+          );
+        }),
+
+        removeSkill: Effect.fn("TeamService.removeSkill")(function* (
+          skillId: string,
+        ) {
+          yield* requireManager;
+          if (!isUuid(skillId)) return yield* new SkillNotFound({ skillId });
+          const { companyId } = yield* CompanyContext;
+          const deleted = yield* runQuery(() =>
+            db
+              .delete(skills)
+              .where(
+                and(eq(skills.id, skillId), companyFilter(skills, companyId)),
+              )
+              .returning({ id: skills.id }),
+          );
+          if (deleted.length === 0)
+            return yield* new SkillNotFound({ skillId });
+        }),
+
+        assign: Effect.fn("TeamService.assign")(function* (
+          teamId: string,
+          userId: string,
+        ) {
+          yield* requireManager;
+          const team = yield* findTeam(teamId);
+          // taimei に membership の表は無いので、帰属は taimei-auth の一覧で確かめる (ADR-0002 D2 の外部参照の検証)
+          const members = yield* companyMembers.list;
+          if (!members.some((member) => member.userId === userId))
+            return yield* new NotCompanyMember({ userId });
+          const { companyId } = yield* CompanyContext;
+          yield* runQuery(() =>
+            db
+              .insert(teamAssignments)
+              .values({ companyId, teamId: team.id, userId })
+              .onConflictDoNothing(),
+          );
+        }),
+
+        saveMyLevels: Effect.fn("TeamService.saveMyLevels")(function* (
+          teamId: string,
+          entries: readonly LevelEntry[],
+        ) {
+          const team = yield* findTeam(teamId);
+          const { userId } = yield* AuthorizationContext;
+          const { companyId } = yield* CompanyContext;
+          const [[assignment], teamSkills] = yield* Effect.all([
+            runQuery(() =>
               db
-                .select({ id: teams.id, name: teams.name })
-                .from(teams)
-                .where(visible)
-                .orderBy(asc(teams.createdAt)),
-            );
-          }),
-
-        getTeam: (teamId: string) =>
-          Effect.gen(function* () {
-            const team = yield* findTeam(teamId);
-            const { companyId } = yield* CompanyContext;
-            const [teamSkills, assignments, levels] = yield* Effect.all([
-              runQuery(() =>
-                db
-                  .select({ id: skills.id, name: skills.name })
-                  .from(skills)
-                  .where(
-                    and(
-                      eq(skills.teamId, team.id),
-                      companyFilter(skills, companyId),
-                    ),
-                  )
-                  .orderBy(asc(skills.createdAt)),
-              ),
-              runQuery(() =>
-                db
-                  .select({ userId: teamAssignments.userId })
-                  .from(teamAssignments)
-                  .where(
-                    and(
-                      eq(teamAssignments.teamId, team.id),
-                      companyFilter(teamAssignments, companyId),
-                    ),
-                  ),
-              ),
-              runQuery(() =>
-                db
-                  .select({
-                    userId: memberSkills.userId,
-                    skillId: memberSkills.skillId,
-                    level: memberSkills.level,
-                    wantsToLearn: memberSkills.wantsToLearn,
-                  })
-                  .from(memberSkills)
-                  .where(
-                    and(
-                      eq(memberSkills.teamId, team.id),
-                      companyFilter(memberSkills, companyId),
-                    ),
-                  ),
-              ),
-            ]);
-            return {
-              ...team,
-              skills: teamSkills,
-              assignedUserIds: assignments.map((a) => a.userId),
-              levels,
-            };
-          }),
-
-        createTeam: (name: string) =>
-          Effect.gen(function* () {
-            yield* requireManager;
-            const validName = yield* decodeName(name);
-            const { companyId } = yield* CompanyContext;
-            const [team] = yield* runNameWrite((tx) =>
-              tx
-                .insert(teams)
-                .values({ companyId, name: validName })
-                .returning({ id: teams.id }),
-            );
-            return team;
-          }),
-
-        renameTeam: (teamId: string, name: string) =>
-          Effect.gen(function* () {
-            yield* requireManager;
-            const validName = yield* decodeName(name);
-            if (!isUuid(teamId)) return yield* new TeamNotFound({ teamId });
-            const { companyId } = yield* CompanyContext;
-            const updated = yield* runNameWrite((tx) =>
-              tx
-                .update(teams)
-                .set({ name: validName })
-                .where(
-                  and(eq(teams.id, teamId), companyFilter(teams, companyId)),
-                )
-                .returning({ id: teams.id }),
-            );
-            if (updated.length === 0)
-              return yield* new TeamNotFound({ teamId });
-          }),
-
-        deleteTeam: (teamId: string) =>
-          Effect.gen(function* () {
-            yield* requireManager;
-            if (!isUuid(teamId)) return yield* new TeamNotFound({ teamId });
-            const { companyId } = yield* CompanyContext;
-            const deleted = yield* runQuery(() =>
-              db
-                .delete(teams)
-                .where(
-                  and(eq(teams.id, teamId), companyFilter(teams, companyId)),
-                )
-                .returning({ id: teams.id }),
-            );
-            if (deleted.length === 0)
-              return yield* new TeamNotFound({ teamId });
-          }),
-
-        addSkill: (teamId: string, name: string) =>
-          Effect.gen(function* () {
-            yield* requireManager;
-            const validName = yield* decodeName(name);
-            const team = yield* findTeam(teamId);
-            const { companyId } = yield* CompanyContext;
-            yield* runNameWrite((tx) =>
-              tx
-                .insert(skills)
-                .values({ companyId, teamId: team.id, name: validName }),
-            );
-          }),
-
-        removeSkill: (skillId: string) =>
-          Effect.gen(function* () {
-            yield* requireManager;
-            if (!isUuid(skillId)) return yield* new SkillNotFound({ skillId });
-            const { companyId } = yield* CompanyContext;
-            const deleted = yield* runQuery(() =>
-              db
-                .delete(skills)
-                .where(
-                  and(eq(skills.id, skillId), companyFilter(skills, companyId)),
-                )
-                .returning({ id: skills.id }),
-            );
-            if (deleted.length === 0)
-              return yield* new SkillNotFound({ skillId });
-          }),
-
-        assign: (teamId: string, userId: string) =>
-          Effect.gen(function* () {
-            yield* requireManager;
-            const team = yield* findTeam(teamId);
-            // taimei に membership の表は無いので、帰属は taimei-auth の一覧で確かめる (ADR-0002 D2 の外部参照の検証)
-            const members = yield* companyMembers.list;
-            if (!members.some((member) => member.userId === userId))
-              return yield* new NotCompanyMember({ userId });
-            const { companyId } = yield* CompanyContext;
-            yield* runQuery(() =>
-              db
-                .insert(teamAssignments)
-                .values({ companyId, teamId: team.id, userId })
-                .onConflictDoNothing(),
-            );
-          }),
-
-        saveMyLevels: (teamId: string, entries: readonly LevelEntry[]) =>
-          Effect.gen(function* () {
-            const team = yield* findTeam(teamId);
-            const { userId } = yield* AuthorizationContext;
-            const { companyId } = yield* CompanyContext;
-            const [[assignment], teamSkills] = yield* Effect.all([
-              runQuery(() =>
-                db
-                  .select({ userId: teamAssignments.userId })
-                  .from(teamAssignments)
-                  .where(
-                    and(
-                      eq(teamAssignments.teamId, team.id),
-                      eq(teamAssignments.userId, userId),
-                      companyFilter(teamAssignments, companyId),
-                    ),
-                  ),
-              ),
-              runQuery(() =>
-                db
-                  .select({ id: skills.id })
-                  .from(skills)
-                  .where(
-                    and(
-                      eq(skills.teamId, team.id),
-                      companyFilter(skills, companyId),
-                    ),
-                  ),
-              ),
-            ]);
-            if (!assignment) return yield* new NotAssigned();
-            const rows = yield* Effect.forEach(entries, (entry) =>
-              decodeLevel(entry.level).pipe(
-                Effect.map((level) => ({
-                  companyId,
-                  teamId: team.id,
-                  skillId: entry.skillId,
-                  userId,
-                  level,
-                  wantsToLearn: entry.wantsToLearn,
-                })),
-              ),
-            );
-            // 1 つの upsert で同じ行を 2 回更新すると PostgreSQL が文ごと失敗する
-            if (new Set(rows.map((row) => row.skillId)).size !== rows.length)
-              return yield* new InvalidLevel();
-            const teamSkillIds = new Set(teamSkills.map((skill) => skill.id));
-            const rowOutsideTeam = rows.find(
-              (row) => !teamSkillIds.has(row.skillId),
-            );
-            if (rowOutsideTeam)
-              return yield* new SkillNotFound({
-                skillId: rowOutsideTeam.skillId,
-              });
-            if (rows.length === 0) return;
-            yield* runQuery(() =>
-              db
-                .insert(memberSkills)
-                .values(rows)
-                .onConflictDoUpdate({
-                  target: [memberSkills.skillId, memberSkills.userId],
-                  set: {
-                    level: sql.raw(`excluded.${memberSkills.level.name}`),
-                    wantsToLearn: sql.raw(
-                      `excluded.${memberSkills.wantsToLearn.name}`,
-                    ),
-                    updatedAt: sql`now()`,
-                  },
-                }),
-            );
-          }),
-
-        unassign: (teamId: string, userId: string) =>
-          Effect.gen(function* () {
-            yield* requireManager;
-            const team = yield* findTeam(teamId);
-            const { companyId } = yield* CompanyContext;
-            yield* runQuery(() =>
-              db
-                .delete(teamAssignments)
+                .select({ userId: teamAssignments.userId })
+                .from(teamAssignments)
                 .where(
                   and(
                     eq(teamAssignments.teamId, team.id),
@@ -362,11 +404,81 @@ export class TeamService extends Context.Service<TeamService>()(
                     companyFilter(teamAssignments, companyId),
                   ),
                 ),
-            );
-          }),
-      };
+            ),
+            runQuery(() =>
+              db
+                .select({ id: skills.id })
+                .from(skills)
+                .where(
+                  and(
+                    eq(skills.teamId, team.id),
+                    companyFilter(skills, companyId),
+                  ),
+                ),
+            ),
+          ]);
+          if (!assignment) return yield* new NotAssigned();
+          const rows = yield* Effect.forEach(entries, (entry) =>
+            decodeLevel(entry.level).pipe(
+              Effect.map((level) => ({
+                companyId,
+                teamId: team.id,
+                skillId: entry.skillId,
+                userId,
+                level,
+                wantsToLearn: entry.wantsToLearn,
+              })),
+            ),
+          );
+          // 1 つの upsert で同じ行を 2 回更新すると PostgreSQL が文ごと失敗する
+          if (new Set(rows.map((row) => row.skillId)).size !== rows.length)
+            return yield* new InvalidLevel();
+          const teamSkillIds = new Set(teamSkills.map((skill) => skill.id));
+          const rowOutsideTeam = rows.find(
+            (row) => !teamSkillIds.has(row.skillId),
+          );
+          if (rowOutsideTeam)
+            return yield* new SkillNotFound({
+              skillId: rowOutsideTeam.skillId,
+            });
+          if (rows.length === 0) return;
+          yield* runQuery(() =>
+            db
+              .insert(memberSkills)
+              .values(rows)
+              .onConflictDoUpdate({
+                target: [memberSkills.skillId, memberSkills.userId],
+                set: {
+                  level: sql.raw(`excluded.${memberSkills.level.name}`),
+                  wantsToLearn: sql.raw(
+                    `excluded.${memberSkills.wantsToLearn.name}`,
+                  ),
+                  updatedAt: sql`now()`,
+                },
+              }),
+          );
+        }),
+
+        unassign: Effect.fn("TeamService.unassign")(function* (
+          teamId: string,
+          userId: string,
+        ) {
+          yield* requireManager;
+          const team = yield* findTeam(teamId);
+          const { companyId } = yield* CompanyContext;
+          yield* runQuery(() =>
+            db
+              .delete(teamAssignments)
+              .where(
+                and(
+                  eq(teamAssignments.teamId, team.id),
+                  eq(teamAssignments.userId, userId),
+                  companyFilter(teamAssignments, companyId),
+                ),
+              ),
+          );
+        }),
+      });
     }),
-  },
-) {
-  static readonly layer = Layer.effect(this, this.make);
+  );
 }

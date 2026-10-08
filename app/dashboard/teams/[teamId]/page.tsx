@@ -1,5 +1,5 @@
 import type { Member } from "@taimei-code/auth-client";
-import { type Effect, Result } from "effect";
+import { Result } from "effect";
 import { notFound } from "next/navigation";
 import { requireCompany } from "@/app/lib/auth-guard";
 import { fetchCompanyMembers } from "@/app/lib/company-members";
@@ -7,7 +7,7 @@ import { buildSkillMatrix } from "@/app/lib/skill-matrix";
 import { splitByAssignment } from "@/app/lib/team-members";
 import { isManager } from "@/app/services/authorization-context";
 import { levelLabels, levelSymbols } from "@/app/services/level";
-import type { TeamService } from "@/app/services/team-service";
+import type { TeamDetail } from "@/app/services/team-service";
 import { Input } from "@/components/ui/input";
 import { LEVELS, NAME_MAX_LENGTH } from "@/db/drizzle/schema";
 import { lusitana } from "@/lib/fonts";
@@ -65,9 +65,7 @@ export default async function Page({
   );
 }
 
-type Team = Effect.Success<ReturnType<TeamService["Service"]["getTeam"]>>;
-
-function TeamSettingsForms({ team }: { team: Team }) {
+function TeamSettingsForms({ team }: { team: TeamDetail }) {
   return (
     <div className="flex flex-wrap gap-4">
       <ActionForm
@@ -92,7 +90,7 @@ function TeamSettingsForms({ team }: { team: Team }) {
   );
 }
 
-function Skills({ team, canManage }: { team: Team; canManage: boolean }) {
+function Skills({ team, canManage }: { team: TeamDetail; canManage: boolean }) {
   return (
     <section className="space-y-2">
       <h2 className="text-lg font-medium">スキル</h2>
@@ -137,7 +135,7 @@ function Assignments({
   members,
   canManage,
 }: {
-  team: Team;
+  team: TeamDetail;
   members: readonly Member[] | null;
   canManage: boolean;
 }) {
@@ -271,7 +269,7 @@ function SkillMatrix({
   team,
   members,
 }: {
-  team: Team;
+  team: TeamDetail;
   members: readonly Member[] | null;
 }) {
   if (!members) return <p>メンバー一覧を取得できませんでした</p>;
@@ -377,7 +375,7 @@ function CellContent({
 const levelOptionLabel = (level: (typeof LEVELS)[number]) =>
   `${levelSymbols[level] || "空欄"}: ${levelLabels[level]}`;
 
-function MyLevelsForm({ team, userId }: { team: Team; userId: string }) {
+function MyLevelsForm({ team, userId }: { team: TeamDetail; userId: string }) {
   if (!team.assignedUserIds.includes(userId) || team.skills.length === 0)
     return null;
   const [myRow] = buildSkillMatrix(team.skills, [{ userId }], team.levels).rows;
