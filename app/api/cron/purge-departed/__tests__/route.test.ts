@@ -35,10 +35,14 @@ describe("GET /api/cron/purge-departed", () => {
     expect(purgeDeparted).toHaveBeenCalledOnce();
   });
 
-  it("Bearer が一致しなければ 401 で、照合を流さない", async () => {
+  it.each([
+    ["長さが同じで一致しない Bearer", "Bearer s3creT"],
+    ["長さの違う Bearer", "Bearer s3cret-and-more"],
+    ["Authorization なし", undefined],
+  ])("%s なら 401 で、照合を流さない", async (_, authorization) => {
     vi.stubEnv("CRON_SECRET", "s3cret");
 
-    const response = await call("Bearer wrong");
+    const response = await call(authorization);
 
     expect(response.status).toBe(401);
     expect(purgeDeparted).not.toHaveBeenCalled();
