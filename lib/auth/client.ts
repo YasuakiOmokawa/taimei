@@ -12,7 +12,7 @@ const interceptors = authClientConfig.serviceKey
 
 // Vercel Node runtime 想定で httpVersion 1.1 を指定。Edge / Workers に乗せ替える際は
 // @connectrpc/connect-web に差し替え、httpVersion を省略する (ADR-007 README §3)。
-// RPC を待つ間も runScopedService の transaction が DB の接続を持つので、待ち時間に上限を置く
+// RPC を待つ間も事業所スコープの実行口の transaction が DB の接続を持つので、待ち時間に上限を置く
 const RPC_TIMEOUT_MS = 10_000;
 
 const transport = createConnectTransport({

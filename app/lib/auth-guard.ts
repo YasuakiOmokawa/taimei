@@ -65,7 +65,7 @@ const buildAuthUrl = (path: string, returnTo: string) => {
 export const inviteMembersUrl = () =>
   buildAuthUrl("/account/members", "/dashboard");
 
-// redirect + companyId 導出の SSOT。data 層の runScopedService と page 層の requireCompany が共有する。
+// redirect + companyId 導出の SSOT。data 層の事業所スコープの実行口と page 層の requireCompany が共有する。
 // redirect() は Next の control-flow throw なので、Effect の外 (Next 境界) でしか実行できない。
 export const resolveCompanyIdOrRedirect = async (returnTo = "/dashboard") => {
   const session = await getSession();

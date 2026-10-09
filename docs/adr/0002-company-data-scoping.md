@@ -147,7 +147,7 @@ export async function fetchInvoiceById(id: string) {
 ```
 
 **3 重の閉じ**:
-1. Service が `yield* CompanyContext` を持つ → 型上 `CompanyContext` が `R` に乗り、`runScopedService` (provideService 済) でしか実行できない。`runService` に渡すとコンパイルエラー → 「company-scoped 処理を context 無しで実行」が型で不能。**前提不変条件「`CompanyContext` を `Live` に含めない」は規律でなく型で固定する**: 上記 `_NoCompanyContextInLive` 番兵が `Live` の ROut に `CompanyContext` が混入した瞬間コンパイルエラーを出す。`AllScopedServices` も `Live` から機械導出し手書き union にしない (Service 追加時の漏れ防止)。2026-10-06 から `AllScopedServices` は `Live` と `RequestScoped` から導出する (ADR-0005)。`bun tsc --noEmit` でこの閉じが成立することを CI で確認 (Phase 1 AC)。
+1. Service が `yield* CompanyContext` を持つ → 型上 `CompanyContext` が `R` に乗り、`runScopedService` (provideService 済) でしか実行できない。`runService` に渡すとコンパイルエラー → 「company-scoped 処理を context 無しで実行」が型で不能。**前提不変条件「`CompanyContext` を `Live` に含めない」は規律でなく型で固定する**: 上記 `_NoCompanyContextInLive` 番兵が `Live` の ROut に `CompanyContext` が混入した瞬間コンパイルエラーを出す。`AllScopedServices` も `Live` から機械導出し手書き union にしない (Service 追加時の漏れ防止)。2026-10-09 から `AllScopedServices` の型は無く、実行口ごとに `Live` とその実行口が provide する Layer から導出する (詳細は ADR-0005 の Decision)。`runManagerScopedService` も `runScopedService` と同じ `app/services/index.ts` の `runInCompanyScope` で session から companyId を導くので、この 3 重の閉じと D5 の権威ガードは 2 つの実行口の両方に成り立つ。`bun tsc --noEmit` でこの閉じが成立することを CI で確認 (Phase 1 AC)。
 2. `runScopedService` は companyId 引数を持たない → 呼出側が値を供給する経路が存在しない。
 3. companyId は認証済 session から導出 → リクエストパラメータ由来の companyId injection (IDOR) も不能。
 
