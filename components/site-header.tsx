@@ -1,16 +1,9 @@
 "use client";
 
 import { SidebarIcon } from "lucide-react";
+import Link from "next/link";
 
-import { SearchForm } from "@/components/search-form";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import MyServiceName from "@/components/my-service-name";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -25,25 +18,15 @@ export function SiteHeader() {
           className="h-8 w-8"
           variant="ghost"
           size="icon"
+          aria-label="サイドバーを開閉"
           onClick={toggleSidebar}
         >
           <SidebarIcon />
         </Button>
         <Separator orientation="vertical" className="mr-2 h-4" />
-        <Breadcrumb className="hidden sm:block">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="#">
-                Building Your Application
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-        <SearchForm className="w-full sm:ml-auto sm:w-auto" />
+        <Link href="/dashboard" className="text-lg font-bold text-brand">
+          <MyServiceName />
+        </Link>
       </div>
     </header>
   );

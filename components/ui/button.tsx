@@ -1,3 +1,5 @@
+"use client";
+
 import { BProgress } from "@bprogress/core";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -46,7 +48,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const status = useFormStatus();
     const isSending = status.pending && props["type"] === "submit";
-    props["children"] = isSending ? "Sending..." : props["children"];
     const Comp = asChild ? Slot : "button";
 
     React.useEffect(() => {
@@ -69,4 +70,4 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 Button.displayName = "Button";
 
-export { Button };
+export { Button, buttonVariants };
