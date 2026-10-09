@@ -966,6 +966,34 @@ describe("saveMyLevels", () => {
       expect(await memberSkillRows(tx)).toEqual(before);
     }));
 
+  it("member_skills に書く権限が無い role で保存すると、見つからないではなく予期しない失敗になり、行は変わらない", () =>
+    withRollback(async (tx) => {
+      const teamId = await seedTeam(tx, "cmp_a", "X");
+      const skillId = await seedSkill(tx, "cmp_a", teamId, "設計");
+      await seedAssignment(tx, "cmp_a", teamId, MEMBER.userId);
+      const before = await memberSkillRows(tx);
+      await tx.execute(
+        sql`select set_config(${COMPANY_ID_SETTING}, ${MEMBER.companyId}, true)`,
+      );
+      const role = await switchToRoleWithoutRlsBypass(tx);
+      await tx.execute(sql`RESET ROLE`);
+      await tx.execute(
+        sql.raw(`REVOKE INSERT, UPDATE ON member_skills FROM "${role}"`),
+      );
+      await tx.execute(sql.raw(`SET LOCAL ROLE "${role}"`));
+
+      const result = await runAs(
+        tx,
+        MEMBER,
+      )((s) =>
+        s.saveMyLevels(teamId, [{ skillId, level: "2", wantsToLearn: false }]),
+      );
+      await tx.execute(sql`RESET ROLE`);
+
+      expect(failureTag(result)).toBe("TeamServiceError");
+      expect(await memberSkillRows(tx)).toEqual(before);
+    }));
+
   it("UUID でないスキルの id は DB の失敗ではなく見つからない", () =>
     withRollback(async (tx) => {
       const teamId = await seedTeam(tx, "cmp_a", "X");

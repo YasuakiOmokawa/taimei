@@ -55,12 +55,15 @@ const UNIQUE_VIOLATION = "23505";
 const FOREIGN_KEY_VIOLATION = "23503";
 const CARDINALITY_VIOLATION = "21000";
 const INSUFFICIENT_PRIVILEGE = "42501";
+// PostgreSQL は RLS の policy の違反も権限の不足も 42501 で返し、翻訳されない routine (関数名) だけが分かれる
+const RLS_POLICY_VIOLATION_ROUTINE = "ExecWithCheckOptions";
 
 // drizzle は pg のエラーを cause に包む
 const ErrorWithPgCause = Schema.Struct({
   cause: Schema.Struct({
     code: Schema.optional(Schema.String),
     constraint: Schema.optional(Schema.String),
+    routine: Schema.optional(Schema.String),
   }),
 });
 type Violation = (typeof ErrorWithPgCause.Type)["cause"];
@@ -96,12 +99,16 @@ const runWrite = <A, E>(
 const nameWriteFailure = ({ code }: Violation) =>
   code === UNIQUE_VIOLATION ? new DuplicateName() : undefined;
 
-const levelWriteFailure = ({ code, constraint }: Violation) => {
+const levelWriteFailure = ({ code, constraint, routine }: Violation) => {
   if (code === CARDINALITY_VIOLATION) return new InvalidLevel();
   if (constraint === MEMBER_SKILLS_ASSIGNMENT_FK) return new NotAssigned();
   if (constraint === MEMBER_SKILLS_SKILL_FK) return new SkillNotFound();
-  // 別の事業所の行に当たる ON CONFLICT は、その行が RLS で見えないので insufficient_privilege になる
-  if (code === INSUFFICIENT_PRIVILEGE) return new SkillNotFound();
+  // 別の事業所の行と主キーが重なる ON CONFLICT は、その行が RLS で見えず policy の違反になる
+  if (
+    code === INSUFFICIENT_PRIVILEGE &&
+    routine === RLS_POLICY_VIOLATION_ROUTINE
+  )
+    return new SkillNotFound();
   return undefined;
 };
 

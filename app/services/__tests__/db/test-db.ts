@@ -50,4 +50,5 @@ export const switchToRoleWithoutRlsBypass = async (tx: TestDb) => {
     ),
   );
   await tx.execute(sql.raw(`SET LOCAL ROLE "${role}"`));
+  return role;
 };
