@@ -8,6 +8,7 @@ import {
   teamAssignments,
   teams,
 } from "@/db/drizzle/schema";
+import { CompanyId, type SkillId, TeamId } from "@/db/ids";
 import { AuthorizationContext } from "../authorization-context";
 import { CompanyContext } from "../company-context";
 import { CompanyMembers, MemberListError } from "../company-members-service";
@@ -50,7 +51,9 @@ const runInRequest = <A, E>(
     Effect.result(
       effect.pipe(
         Effect.provideService(Db, tx),
-        Effect.provideService(CompanyContext, { companyId: actor.companyId }),
+        Effect.provideService(CompanyContext, {
+          companyId: CompanyId.make(actor.companyId),
+        }),
         Effect.provideService(AuthorizationContext, {
           userId: actor.userId,
           role: actor.role,
@@ -103,7 +106,7 @@ const seedTeam = async (
 ) => {
   const [row] = await tx
     .insert(teams)
-    .values({ companyId, name, createdAt })
+    .values({ companyId: CompanyId.make(companyId), name, createdAt })
     .returning({ id: teams.id });
   return row.id;
 };
@@ -111,13 +114,13 @@ const seedTeam = async (
 const seedSkill = async (
   tx: TestDb,
   companyId: string,
-  teamId: string,
+  teamId: TeamId,
   name: string,
   createdAt?: Date,
 ) => {
   const [row] = await tx
     .insert(skills)
-    .values({ companyId, teamId, name, createdAt })
+    .values({ companyId: CompanyId.make(companyId), teamId, name, createdAt })
     .returning({ id: skills.id });
   return row.id;
 };
@@ -125,9 +128,12 @@ const seedSkill = async (
 const seedAssignment = (
   tx: TestDb,
   companyId: string,
-  teamId: string,
+  teamId: TeamId,
   userId: string,
-) => tx.insert(teamAssignments).values({ companyId, teamId, userId });
+) =>
+  tx
+    .insert(teamAssignments)
+    .values({ companyId: CompanyId.make(companyId), teamId, userId });
 
 const countRows = async (
   tx: TestDb,
@@ -138,7 +144,7 @@ const countRows = async (
   return row.n;
 };
 
-const teamName = async (tx: TestDb, id: string) => {
+const teamName = async (tx: TestDb, id: TeamId) => {
   const [row] = await tx
     .select({ name: teams.name })
     .from(teams)
@@ -171,7 +177,10 @@ describe("createTeam", () => {
       const result = await manageAs(tx, ADMIN)((s) => s.createTeam("  開発  "));
 
       const { id } = Result.getOrThrow(result);
-      const rows = await tx.select().from(teams).where(eq(teams.id, id));
+      const rows = await tx
+        .select()
+        .from(teams)
+        .where(eq(teams.id, TeamId.make(id)));
       expect(rows).toMatchObject([{ companyId: "cmp_a", name: "開発" }]);
     }));
 
@@ -382,7 +391,7 @@ describe("deleteTeam", () => {
       const result = await manageAs(tx, ADMIN)((s) => s.deleteTeam(id));
 
       expect(failureTag(result)).toBe("success");
-      const remaining = async (teamId: string) => [
+      const remaining = async (teamId: TeamId) => [
         await countRows(tx, teams, eq(teams.id, teamId)),
         await countRows(tx, skills, eq(skills.teamId, teamId)),
         await countRows(
@@ -593,7 +602,9 @@ describe("事業所をまたぐ参照は DB が拒否する", () => {
 
       await foreignKeyViolation(() =>
         tx.transaction((sp) =>
-          sp.insert(skills).values({ companyId: "cmp_b", teamId, name: "a" }),
+          sp
+            .insert(skills)
+            .values({ companyId: CompanyId.make("cmp_b"), teamId, name: "a" }),
         ),
       );
     }));
@@ -604,9 +615,11 @@ describe("事業所をまたぐ参照は DB が拒否する", () => {
 
       await foreignKeyViolation(() =>
         tx.transaction((sp) =>
-          sp
-            .insert(teamAssignments)
-            .values({ companyId: "cmp_b", teamId, userId: "u_1" }),
+          sp.insert(teamAssignments).values({
+            companyId: CompanyId.make("cmp_b"),
+            teamId,
+            userId: "u_1",
+          }),
         ),
       );
     }));
@@ -753,7 +766,7 @@ describe("saveMyLevels", () => {
       const skillId = await seedSkill(tx, "cmp_b", teamId, "設計");
       await seedAssignment(tx, "cmp_b", teamId, MEMBER.userId);
       await tx.insert(memberSkills).values({
-        companyId: "cmp_b",
+        companyId: CompanyId.make("cmp_b"),
         teamId,
         skillId,
         userId: MEMBER.userId,
@@ -950,12 +963,18 @@ const seedLevel = (
   tx: TestDb,
   row: {
     companyId: string;
-    teamId: string;
-    skillId: string;
+    teamId: TeamId;
+    skillId: SkillId;
     userId: string;
     level?: Level;
   },
-) => tx.insert(memberSkills).values({ level: 1, wantsToLearn: false, ...row });
+) =>
+  tx.insert(memberSkills).values({
+    level: 1,
+    wantsToLearn: false,
+    ...row,
+    companyId: CompanyId.make(row.companyId),
+  });
 
 describe("getTeam の levels", () => {
   it("そのチームの行だけを返し、同じ事業所のほかのチームと他社の行を返さない", () =>
@@ -1007,13 +1026,13 @@ describe("評価は割り当て・スキル・チームと一緒に消える", (
     for (const userId of ["u_m", "u_2"])
       await seedAssignment(tx, "cmp_a", x, userId);
     await seedAssignment(tx, "cmp_a", y, "u_m");
-    for (const [teamId, skillId, userId] of [
-      [x, s1, "u_m"],
-      [x, s2, "u_m"],
-      [x, s1, "u_2"],
-      [y, ySkill, "u_m"],
+    for (const row of [
+      { teamId: x, skillId: s1, userId: "u_m" },
+      { teamId: x, skillId: s2, userId: "u_m" },
+      { teamId: x, skillId: s1, userId: "u_2" },
+      { teamId: y, skillId: ySkill, userId: "u_m" },
     ])
-      await seedLevel(tx, { companyId: "cmp_a", teamId, skillId, userId });
+      await seedLevel(tx, { companyId: "cmp_a", ...row });
     return { x, y, s1, s2 };
   };
 

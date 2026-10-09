@@ -15,12 +15,14 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { CompanyId, SkillId, TeamId } from "../ids";
 
 export const NAME_MAX_LENGTH = 50;
 export const LEVELS = [0, 1, 2, 3] as const;
 
 // taimei-auth の company.id (cmp_<nanoid24>) への論理参照。cross-DB のため FK は張らない (docs/adr/0002-company-data-scoping.md)。
-const companyId = () => varchar("company_id", { length: 32 }).notNull();
+const companyId = () =>
+  varchar("company_id", { length: 32 }).notNull().$type<CompanyId>();
 export const COMPANY_ID_SETTING = "app.company_id";
 
 // docs/adr/0005
@@ -38,7 +40,7 @@ const createdAt = () =>
 export const teams = pgTable(
   "teams",
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().defaultRandom().primaryKey().$type<TeamId>(),
     companyId: companyId(),
     name: varchar({ length: NAME_MAX_LENGTH }).notNull(),
     createdAt: createdAt(),
@@ -53,9 +55,9 @@ export const teams = pgTable(
 export const skills = pgTable(
   "skills",
   {
-    id: uuid().defaultRandom().primaryKey(),
+    id: uuid().defaultRandom().primaryKey().$type<SkillId>(),
     companyId: companyId(),
-    teamId: uuid("team_id").notNull(),
+    teamId: uuid("team_id").notNull().$type<TeamId>(),
     name: varchar({ length: NAME_MAX_LENGTH }).notNull(),
     createdAt: createdAt(),
   },
@@ -74,7 +76,7 @@ export const teamAssignments = pgTable(
   "team_assignments",
   {
     companyId: companyId(),
-    teamId: uuid("team_id").notNull(),
+    teamId: uuid("team_id").notNull().$type<TeamId>(),
     userId: text("user_id").notNull(),
     createdAt: createdAt(),
   },
@@ -92,8 +94,8 @@ export const memberSkills = pgTable(
   "member_skills",
   {
     companyId: companyId(),
-    teamId: uuid("team_id").notNull(),
-    skillId: uuid("skill_id").notNull(),
+    teamId: uuid("team_id").notNull().$type<TeamId>(),
+    skillId: uuid("skill_id").notNull().$type<SkillId>(),
     userId: text("user_id").notNull(),
     level: smallint().$type<(typeof LEVELS)[number]>().notNull(),
     wantsToLearn: boolean("wants_to_learn").notNull(),

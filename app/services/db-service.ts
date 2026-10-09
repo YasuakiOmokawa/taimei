@@ -3,6 +3,7 @@ import type { PgDatabase } from "drizzle-orm/pg-core";
 import { Context, Schema } from "effect";
 import { db } from "@/db/drizzle/client";
 import type * as schema from "@/db/drizzle/schema";
+import type { CompanyId } from "@/db/ids";
 import { withCompanyScope } from "@/db/scoped";
 
 // テストで rollback 用 transaction を差し込めるよう PgDatabase (NodePgDatabase と PgTransaction の共通基底) で受ける。
@@ -12,7 +13,7 @@ export class Db extends Context.Service<
   PgDatabase<NodePgQueryResultHKT, typeof schema>
 >()("taimei/app/services/Db") {
   static readonly inCompanyScope = <T>(
-    companyId: string,
+    companyId: CompanyId,
     fn: (tx: Db["Service"]) => Promise<T>,
   ) => withCompanyScope(db, companyId, fn);
 }

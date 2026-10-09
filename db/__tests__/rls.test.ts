@@ -7,11 +7,15 @@ import {
   teamAssignments,
   teams,
 } from "../drizzle/schema";
+import { CompanyId } from "../ids";
 import { withCompanyScope } from "../scoped";
 
 const scopedTables = { teams, skills, teamAssignments, memberSkills };
 
-const seedCompany = async (tx: TestDb, companyId: string) => {
+const COMPANY_A = CompanyId.make("cmp_a");
+
+const seedCompany = async (tx: TestDb, unbrandedCompanyId: string) => {
+  const companyId = CompanyId.make(unbrandedCompanyId);
   const [team] = await tx
     .insert(teams)
     .values({ companyId, name: `${companyId} のチーム` })
@@ -115,7 +119,7 @@ describe("RLS (BYPASSRLS の無い role)", () => {
       await seedCompany(tx, "cmp_b");
       await switchToRoleWithoutRlsBypass(tx);
 
-      const seen = await withCompanyScope(tx, "cmp_a", async (scoped) => ({
+      const seen = await withCompanyScope(tx, COMPANY_A, async (scoped) => ({
         rows: await countRows(scoped),
         companies: await scoped
           .selectDistinct({ companyId: teams.companyId })
@@ -132,10 +136,10 @@ describe("RLS (BYPASSRLS の無い role)", () => {
     withRollback(async (tx) => {
       await switchToRoleWithoutRlsBypass(tx);
 
-      const insertOtherCompany = withCompanyScope(tx, "cmp_a", (scoped) =>
+      const insertOtherCompany = withCompanyScope(tx, COMPANY_A, (scoped) =>
         scoped
           .insert(teams)
-          .values({ companyId: "cmp_b", name: "他社のチーム" }),
+          .values({ companyId: CompanyId.make("cmp_b"), name: "他社のチーム" }),
       );
 
       await expect(insertOtherCompany).rejects.toMatchObject({
@@ -148,7 +152,7 @@ describe("RLS (BYPASSRLS の無い role)", () => {
       const other = await seedCompany(tx, "cmp_b");
       await switchToRoleWithoutRlsBypass(tx);
 
-      const changed = await withCompanyScope(tx, "cmp_a", async (scoped) => ({
+      const changed = await withCompanyScope(tx, COMPANY_A, async (scoped) => ({
         updated: await scoped
           .update(teams)
           .set({ name: "書き換え" })
@@ -171,7 +175,7 @@ describe("RLS (BYPASSRLS の無い role)", () => {
       expect(await countRows(tx)).toEqual(oneRowPerTable);
       await switchToRoleWithoutRlsBypass(tx);
 
-      const deleted = await withCompanyScope(tx, "cmp_a", (scoped) =>
+      const deleted = await withCompanyScope(tx, COMPANY_A, (scoped) =>
         scoped.delete(teams).where(eq(teams.id, own.id)).returning(),
       );
       await tx.execute(sql`RESET ROLE`);
