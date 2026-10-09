@@ -10,5 +10,4 @@ Effect の書き方 (Service・Layer・エラー・テスト) は `node_modules/
 - `bun vitest run <file>` の前に `docker compose up -d test_db --wait` が要る。全件は `bun run test:db`。
 - `// eslint-disable-next-line` は Biome の改行で対象行がずれる。複数行の式はブロック形式で囲む。
 - Stacked PR の上流は `--delete-branch` なしでマージする。付けると下流 PR が auto-close され reopen できない。ブランチは下流のマージ後に消す。
-- `bun run dev` はこのファイルに Next.js の agent rules のブロックを足す。commit に混ぜない時は `git checkout -- CLAUDE.md`。
 - e2e の流し方と、手元で taimei-auth と一緒に配信して画面を確かめる手順は `e2e/CLAUDE.md`。
