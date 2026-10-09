@@ -11,9 +11,7 @@ export class TeamNotFound extends Schema.TaggedError<TeamNotFound>()(
 
 export class SkillNotFound extends Schema.TaggedError<SkillNotFound>()(
   "SkillNotFound",
-  {
-    skillId: Schema.String,
-  },
+  {},
 ) {}
 
 export class NotManager extends Schema.TaggedError<NotManager>()(

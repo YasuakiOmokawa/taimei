@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveCompanyIdOrRedirect } from "@/app/lib/auth-guard";
 import { db } from "@/db/drizzle/client";
 import { teams } from "@/db/drizzle/schema";
+import { CompanyId } from "@/db/ids";
 import { runManagerScopedService, runScopedService } from "..";
 import { AuthorizationContext } from "../authorization-context";
 import { CompanyContext } from "../company-context";
@@ -98,7 +99,7 @@ describe("runScopedService", () => {
           db
             .insert(teams)
             .values({
-              companyId: "cmp_from_session",
+              companyId: CompanyId.make("cmp_from_session"),
               name: "未 commit のチーム",
             })
             .returning(),

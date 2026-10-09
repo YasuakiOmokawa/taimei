@@ -7,14 +7,16 @@ import {
   teamAssignments,
   teams,
 } from "@/db/drizzle/schema";
+import { CompanyId } from "@/db/ids";
 import { type CheckMemberships, purgeDeparted } from "../purge-departed";
 
 const seedTeam = async (
   tx: TestDb,
-  companyId: string,
+  unbrandedCompanyId: string,
   userIds: readonly string[],
   assignedAt = new Date("2026-10-01T00:00:00Z"),
 ) => {
+  const companyId = CompanyId.make(unbrandedCompanyId);
   const [team] = await tx
     .insert(teams)
     .values({ companyId, name: `${companyId} のチーム` })
@@ -50,7 +52,7 @@ const rowsOf = async (tx: TestDb, companyId: string) => {
     const [{ value }] = await tx
       .select({ value: count() })
       .from(table)
-      .where(eq(table.companyId, companyId));
+      .where(eq(table.companyId, CompanyId.make(companyId)));
     counts[name] = value;
   }
   return counts;
@@ -61,7 +63,7 @@ const assignedUserIds = async (tx: TestDb, companyId: string) =>
     await tx
       .select({ userId: teamAssignments.userId })
       .from(teamAssignments)
-      .where(eq(teamAssignments.companyId, companyId))
+      .where(eq(teamAssignments.companyId, CompanyId.make(companyId)))
   )
     .map((row) => row.userId)
     .sort();

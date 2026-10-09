@@ -9,6 +9,7 @@ import {
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { CompanyId } from "@/db/ids";
 import { authClient } from "@/lib/auth/client";
 
 const guard = createAuthGuard({
@@ -72,7 +73,7 @@ export const resolveCompanyIdOrRedirect = async (returnTo = "/dashboard") => {
   if (!session) redirect(`/auth?callbackUrl=${encodeURIComponent(returnTo)}`);
   if (!session.companyId)
     redirect(buildAuthUrl("/auth/signup/company", returnTo));
-  return { companyId: session.companyId, session };
+  return { companyId: CompanyId.make(session.companyId), session };
 };
 
 // layout は client 側の遷移で再実行されない (Next の Partial Rendering) ので、page ごとに呼ぶ。security backstop ではない。

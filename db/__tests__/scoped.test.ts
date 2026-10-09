@@ -8,7 +8,10 @@ import {
   withRollback,
 } from "@/app/services/__tests__/db/test-db";
 import * as schema from "../drizzle/schema";
+import { CompanyId } from "../ids";
 import { companyFilter, withCompanyScope } from "../scoped";
+
+const COMPANY_X = CompanyId.make("cmp_x");
 
 const scopedRows = pgTable("scoped_rows", {
   companyId: varchar("company_id", { length: 32 }).notNull(),
@@ -16,7 +19,9 @@ const scopedRows = pgTable("scoped_rows", {
 
 it("companyFilter は company_id が渡した事業所と一致する行に絞る", () => {
   expect(
-    new PgDialect().sqlToQuery(companyFilter(scopedRows, "cmp_a")),
+    new PgDialect().sqlToQuery(
+      companyFilter(scopedRows, CompanyId.make("cmp_a")),
+    ),
   ).toMatchObject({
     sql: '"scoped_rows"."company_id" = $1',
     params: ["cmp_a"],
@@ -25,7 +30,7 @@ it("companyFilter は company_id が渡した事業所と一致する行に絞�
 
 it("withCompanyScope の中では、渡した事業所が app.company_id に入っている", () =>
   withRollback(async (tx) => {
-    const seen = await withCompanyScope(tx, "cmp_x", currentCompanySetting);
+    const seen = await withCompanyScope(tx, COMPANY_X, currentCompanySetting);
     expect(seen).toBe("cmp_x");
   }));
 
@@ -35,7 +40,7 @@ it("withCompanyScope を抜けると、同じ接続の app.company_id は渡し�
   await client.connect();
   try {
     const db = drizzle(client, { schema });
-    await withCompanyScope(db, "cmp_x", async (scoped) => {
+    await withCompanyScope(db, COMPANY_X, async (scoped) => {
       expect(await currentCompanySetting(scoped)).toBe("cmp_x");
     });
     expect(await currentCompanySetting(db)).not.toBe("cmp_x");
@@ -48,10 +53,10 @@ it("withCompanyScope の fn が throw すると、fn の中の書き込みは残
   withRollback(async (tx) => {
     const failure = new Error("fn failed");
     await expect(
-      withCompanyScope(tx, "cmp_x", async (scoped) => {
+      withCompanyScope(tx, COMPANY_X, async (scoped) => {
         const inserted = await scoped
           .insert(schema.teams)
-          .values({ companyId: "cmp_x", name: "消えるチーム" })
+          .values({ companyId: COMPANY_X, name: "消えるチーム" })
           .returning();
         expect(inserted).toHaveLength(1);
         throw failure;
