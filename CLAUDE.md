@@ -11,3 +11,4 @@ Effect の書き方 (Service・Layer・エラー・テスト) は `node_modules/
 - `// eslint-disable-next-line` は Biome の改行で対象行がずれる。複数行の式はブロック形式で囲む。
 - Stacked PR の上流は `--delete-branch` なしでマージする。付けると下流 PR が auto-close され reopen できない。ブランチは下流のマージ後に消す。
 - e2e の流し方と、手元で taimei-auth と一緒に配信して画面を確かめる手順は `e2e/CLAUDE.md`。
+- 既存の写像や規則を変える前に、`git log -S '<識別子>'` で入れた PR の commit の本文を読む。理由と、それと引き換えにしたものが書いてある。
