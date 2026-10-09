@@ -10,10 +10,6 @@ export const LevelFromForm = Schema.Literals(["0", "1", "2", "3"]).pipe(
 
 export type Level = typeof Level.Type;
 
-const CAN_DO_ALONE: Level = 2;
-
-export const canDoAlone = (level: Level) => level >= CAN_DO_ALONE;
-
 export const levelSymbols: Record<Level, string> = {
   0: "",
   1: "△",

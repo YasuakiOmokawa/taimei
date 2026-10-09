@@ -3,13 +3,18 @@ import { Result } from "effect";
 import { notFound } from "next/navigation";
 import { requireCompany } from "@/app/lib/auth-guard";
 import { fetchCompanyMembers } from "@/app/lib/company-members";
-import { buildSkillMatrix } from "@/app/lib/skill-matrix";
-import { splitByAssignment } from "@/app/lib/team-members";
+import {
+  BIAS_RULE,
+  type Cell,
+  type Roster,
+  teamSkillMatrix,
+} from "@/app/lib/skill-matrix";
 import { isManager } from "@/app/services/authorization-context";
 import { levelLabels, levelSymbols } from "@/app/services/level";
 import type { TeamDetail } from "@/app/services/team-service";
 import { Input } from "@/components/ui/input";
 import { LEVELS, NAME_MAX_LENGTH } from "@/db/drizzle/schema";
+import type { TeamId } from "@/db/ids";
 import { lusitana } from "@/lib/fonts";
 import { memberLabel } from "@/lib/member-label";
 import { ActionForm } from "../action-form";
@@ -42,6 +47,7 @@ export default async function Page({
   const team = result.success;
   const canManage = isManager(role);
   const members = await fetchCompanyMembers();
+  const { myCells, roster } = teamSkillMatrix(team, members, user.id);
 
   return (
     <div className="space-y-8">
@@ -54,12 +60,12 @@ export default async function Page({
       <Skills team={team} canManage={canManage} />
       <section className="space-y-2">
         <h2 className="text-lg font-medium">星取表</h2>
-        <SkillMatrix team={team} members={members} />
+        <SkillMatrix roster={roster} />
       </section>
-      <MyLevelsForm team={team} userId={user.id} />
+      <MyLevelsForm teamId={team.id} cells={myCells} />
       <section className="space-y-2">
         <h2 className="text-lg font-medium">割り当てたメンバー</h2>
-        <Assignments team={team} members={members} canManage={canManage} />
+        <Assignments teamId={team.id} roster={roster} canManage={canManage} />
       </section>
     </div>
   );
@@ -131,31 +137,28 @@ function Skills({ team, canManage }: { team: TeamDetail; canManage: boolean }) {
 }
 
 function Assignments({
-  team,
-  members,
+  teamId,
+  roster,
   canManage,
 }: {
-  team: TeamDetail;
-  members: readonly Member[] | null;
+  teamId: TeamId;
+  roster: Roster;
   canManage: boolean;
 }) {
-  if (!members) return <p>メンバー一覧を取得できませんでした</p>;
-  const { assigned, candidates, departedUserIds } = splitByAssignment(
-    members,
-    team.assignedUserIds,
-  );
+  if (roster._tag === "MembersUnavailable")
+    return <p>メンバー一覧を取得できませんでした</p>;
   return (
     <>
       <AssignedMemberList
-        teamId={team.id}
-        assigned={assigned}
+        teamId={teamId}
+        assigned={roster.assigned}
         canManage={canManage}
       />
       {canManage ? (
         <ManagerAssignmentForms
-          teamId={team.id}
-          candidates={candidates}
-          departedUserIds={departedUserIds}
+          teamId={teamId}
+          candidates={roster.candidates}
+          departedUserIds={roster.departedUserIds}
         />
       ) : null}
     </>
@@ -265,22 +268,12 @@ function AssignForm({
   );
 }
 
-function SkillMatrix({
-  team,
-  members,
-}: {
-  team: TeamDetail;
-  members: readonly Member[] | null;
-}) {
-  if (!members) return <p>メンバー一覧を取得できませんでした</p>;
-  const { assigned } = splitByAssignment(members, team.assignedUserIds);
-  if (team.skills.length === 0 || assigned.length === 0)
+function SkillMatrix({ roster }: { roster: Roster }) {
+  if (roster._tag === "MembersUnavailable")
+    return <p>メンバー一覧を取得できませんでした</p>;
+  if (roster._tag === "MatrixIncomplete")
     return <p>スキルと割り当てたメンバーがそろうと星取表が出ます</p>;
-  const { rows, skillSummaries } = buildSkillMatrix(
-    team.skills,
-    assigned,
-    team.levels,
-  );
+  const { rows, summaries } = roster;
 
   return (
     <>
@@ -291,7 +284,7 @@ function SkillMatrix({
               <th scope="col" className="px-2 py-1 text-left">
                 メンバー
               </th>
-              {team.skills.map((skill) => (
+              {summaries.map(({ skill }) => (
                 <th key={skill.id} scope="col" className="px-2 py-1">
                   {skill.name}
                 </th>
@@ -304,8 +297,8 @@ function SkillMatrix({
                 <th scope="row" className="px-2 py-1 text-left font-normal">
                   {memberLabel(member)}
                 </th>
-                {cells.map((cell, i) => (
-                  <td key={team.skills[i].id} className="px-2 py-1 text-center">
+                {cells.map((cell) => (
+                  <td key={cell.skill.id} className="px-2 py-1 text-center">
                     <CellContent cell={cell} />
                   </td>
                 ))}
@@ -317,8 +310,8 @@ function SkillMatrix({
               <th scope="row" className="px-2 py-1 text-left">
                 偏り
               </th>
-              {skillSummaries.map((summary) => (
-                <td key={summary.skillId} className="px-2 py-1 text-center">
+              {summaries.map((summary) => (
+                <td key={summary.skill.id} className="px-2 py-1 text-center">
                   {summary.isBiased ? "偏り" : ""}
                 </td>
               ))}
@@ -327,8 +320,8 @@ function SkillMatrix({
               <th scope="row" className="px-2 py-1 text-left">
                 学びたい
               </th>
-              {skillSummaries.map((summary) => (
-                <td key={summary.skillId} className="px-2 py-1 text-center">
+              {summaries.map((summary) => (
+                <td key={summary.skill.id} className="px-2 py-1 text-center">
                   {summary.wantsToLearnCount}
                 </td>
               ))}
@@ -338,7 +331,8 @@ function SkillMatrix({
       </div>
       <p className="text-sm text-muted-foreground">
         {LEVELS.map(levelOptionLabel).join(" / ")} / {UNRECORDED_MARK}: 未記入 /
-        学: 学びたい。偏り: 一人でできる以上の人が 1 人以下
+        学: 学びたい。偏り: {levelLabels[BIAS_RULE.atOrAboveLevel]}以上の人が{" "}
+        {BIAS_RULE.atMostPeople} 人以下
       </p>
     </>
   );
@@ -346,11 +340,7 @@ function SkillMatrix({
 
 const UNRECORDED_MARK = "—";
 
-function CellContent({
-  cell,
-}: {
-  cell: ReturnType<typeof buildSkillMatrix>["rows"][number]["cells"][number];
-}) {
+function CellContent({ cell }: { cell: Cell }) {
   if (!cell.recorded)
     return (
       <>
@@ -375,25 +365,29 @@ function CellContent({
 const levelOptionLabel = (level: (typeof LEVELS)[number]) =>
   `${levelSymbols[level] || "空欄"}: ${levelLabels[level]}`;
 
-function MyLevelsForm({ team, userId }: { team: TeamDetail; userId: string }) {
-  if (!team.assignedUserIds.includes(userId) || team.skills.length === 0)
-    return null;
-  const [myRow] = buildSkillMatrix(team.skills, [{ userId }], team.levels).rows;
+function MyLevelsForm({
+  teamId,
+  cells,
+}: {
+  teamId: TeamId;
+  cells: readonly Cell[];
+}) {
+  if (cells.length === 0) return null;
 
   return (
     <section className="space-y-2">
       <h2 className="text-lg font-medium">自分のレベル</h2>
-      <ActionForm action={saveMyLevels.bind(null, team.id)} submitLabel="保存">
+      <ActionForm action={saveMyLevels.bind(null, teamId)} submitLabel="保存">
         <div className="space-y-2">
-          {team.skills.map((skill, i) => (
-            <div key={skill.id} className="flex items-center gap-4">
-              <span className="min-w-24">{skill.name}</span>
+          {cells.map((cell) => (
+            <div key={cell.skill.id} className="flex items-center gap-4">
+              <span className="min-w-24">{cell.skill.name}</span>
               <select
-                // defaultValue は mount の時だけ効くので、保存後の form の reset が古い値に戻さないよう保存値で作り直す
-                key={myRow.cells[i].level}
-                name={levelFieldName(skill.id)}
-                aria-label={`${skill.name} のレベル`}
-                defaultValue={myRow.cells[i].level}
+                // defaultValue は mount の時にだけ初期値になるので、保存後の form の reset が古い値に戻さないよう保存値で作り直す
+                key={cell.level}
+                name={levelFieldName(cell.skill.id)}
+                aria-label={`${cell.skill.name} のレベル`}
+                defaultValue={cell.level}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
               >
                 {LEVELS.map((level) => (
@@ -405,9 +399,9 @@ function MyLevelsForm({ team, userId }: { team: TeamDetail; userId: string }) {
               <label className="flex items-center gap-1 text-sm">
                 <input
                   type="checkbox"
-                  name={wantsToLearnFieldName(skill.id)}
-                  aria-label={`${skill.name} を学びたい`}
-                  defaultChecked={myRow.cells[i].wantsToLearn}
+                  name={wantsToLearnFieldName(cell.skill.id)}
+                  aria-label={`${cell.skill.name} を学びたい`}
+                  defaultChecked={cell.wantsToLearn}
                 />
                 学びたい
               </label>
