@@ -1,7 +1,7 @@
 import { Exit, Schema } from "effect";
 import { expect, it } from "vitest";
 import { LEVELS } from "@/db/drizzle/schema";
-import { canDoAlone, type Level, LevelFromForm, levelSymbols } from "../level";
+import { LevelFromForm, levelSymbols } from "../level";
 
 const decode = Schema.decodeUnknownExit(LevelFromForm);
 
@@ -15,15 +15,6 @@ it("フォームの文字列を、DB と同じ範囲 (LEVELS) の数のレベル
 it("0〜3 でない値はレベルにならない", () => {
   for (const value of ["4", "-1", "a", ""])
     expect(Exit.isFailure(decode(value))).toBe(true);
-});
-
-it("一人でできる以上は ○ と ◎", () => {
-  expect([0, 1, 2, 3].map((level) => canDoAlone(level as Level))).toEqual([
-    false,
-    false,
-    true,
-    true,
-  ]);
 });
 
 it("記号は未経験が空欄、△・○・◎ の順", () => {

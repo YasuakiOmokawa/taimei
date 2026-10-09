@@ -1,4 +1,4 @@
-import { canDoAlone, type Level } from "@/app/services/level";
+import type { Level } from "@/app/services/level";
 
 type RecordedValue = { readonly level: Level; readonly wantsToLearn: boolean };
 type LevelRow = RecordedValue & {
@@ -7,7 +7,10 @@ type LevelRow = RecordedValue & {
 };
 type Cell = RecordedValue & { readonly recorded: boolean };
 
+const CAN_DO_ALONE: Level = 2;
 const MAX_CAN_DO_ALONE_IN_BIASED_SKILL = 1;
+
+const canDoAlone = (level: Level) => level >= CAN_DO_ALONE;
 
 const UNRECORDED_CELL: Cell = {
   level: 0,
