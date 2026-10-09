@@ -11,6 +11,17 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        // Inter の ○ は和文フォントの ◎△ より小さいので、レベルの記号は和文フォントでそろえる
+        symbol: [
+          "Hiragino Sans",
+          "Hiragino Kaku Gothic ProN",
+          "Noto Sans JP",
+          "Yu Gothic",
+          "Meiryo",
+          "sans-serif",
+        ],
+      },
       colors: {
         blue: {
           "400": "#2589FE",
