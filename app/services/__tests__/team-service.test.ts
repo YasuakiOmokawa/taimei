@@ -933,7 +933,7 @@ describe("saveMyLevels", () => {
       expect(await memberSkillRows(tx)).toEqual(before);
     }));
 
-  it("別の事業所で行を持つスキルを含めて保存すると、RLS の下でも見つからず、その行は変わらない", () =>
+  it("別の事業所で行を持つスキルを含める保存は form の書き換えでしか起きないので、RLS の下でも予期しない失敗ではなく見つからないにし、その行は変わらない", () =>
     withRollback(async (tx) => {
       const teamId = await seedTeam(tx, "cmp_a", "X");
       await seedAssignment(tx, "cmp_a", teamId, MEMBER.userId);
