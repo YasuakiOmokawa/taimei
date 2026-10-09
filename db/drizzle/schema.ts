@@ -24,6 +24,8 @@ export const LEVELS = [0, 1, 2, 3] as const;
 const companyId = () =>
   varchar("company_id", { length: 32 }).notNull().$type<CompanyId>();
 export const COMPANY_ID_SETTING = "app.company_id";
+export const MEMBER_SKILLS_ASSIGNMENT_FK = "member_skills_assignment_fk";
+export const MEMBER_SKILLS_SKILL_FK = "member_skills_skill_fk";
 
 // docs/adr/0005
 const companyIsolation = (table: { companyId: PgColumn }) => {
@@ -110,12 +112,12 @@ export const memberSkills = pgTable(
     companyIsolation(table),
     // drizzle-kit の既定の名前は PostgreSQL の識別子の上限 (63 バイト) を超える
     foreignKey({
-      name: "member_skills_assignment_fk",
+      name: MEMBER_SKILLS_ASSIGNMENT_FK,
       columns: [table.teamId, table.userId],
       foreignColumns: [teamAssignments.teamId, teamAssignments.userId],
     }).onDelete("cascade"),
     foreignKey({
-      name: "member_skills_skill_fk",
+      name: MEMBER_SKILLS_SKILL_FK,
       columns: [table.skillId, table.teamId, table.companyId],
       foreignColumns: [skills.id, skills.teamId, skills.companyId],
     }).onDelete("cascade"),

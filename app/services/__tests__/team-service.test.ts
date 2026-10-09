@@ -1,8 +1,9 @@
 import type { Role } from "@taimei-code/auth-client";
-import { count, eq, type SQL } from "drizzle-orm";
+import { count, eq, type SQL, sql } from "drizzle-orm";
 import { Effect, Layer, Result } from "effect";
 import { describe, expect, it, vi } from "vitest";
 import {
+  COMPANY_ID_SETTING,
   memberSkills,
   skills,
   teamAssignments,
@@ -15,7 +16,11 @@ import { CompanyMembers, MemberListError } from "../company-members-service";
 import { Db } from "../db-service";
 import type { Level } from "../level";
 import { TeamManagement, TeamService } from "../team-service";
-import { type TestDb, withRollback } from "./db/test-db";
+import {
+  switchToRoleWithoutRlsBypass,
+  type TestDb,
+  withRollback,
+} from "./db/test-db";
 
 type Actor = {
   companyId: string;
@@ -423,6 +428,27 @@ describe("deleteTeam", () => {
 });
 
 describe("addSkill", () => {
+  it("確かめた後に書く前にチームが消えていれば、見つからず、スキルを作らない", () =>
+    withRollback(async (tx) => {
+      const teamId = await seedTeam(tx, "cmp_a", "X");
+      // 確認と書き込みの間の削除を、書き込みの直前に走る trigger で起こす
+      await tx.execute(sql`
+        create function delete_team_before_skill() returns trigger
+        language plpgsql as $$
+        begin delete from teams where id = new.team_id; return new; end $$`);
+      await tx.execute(sql`
+        create trigger delete_team_before_skill before insert on skills
+        for each row execute function delete_team_before_skill()`);
+
+      const result = await manageAs(
+        tx,
+        ADMIN,
+      )((s) => s.addSkill(teamId, "設計"));
+
+      expect(failureTag(result)).toBe("TeamNotFound");
+      expect(await countRows(tx, skills)).toBe(0);
+    }));
+
   it("管理者は自社のチームにスキルを足せる。名前の前後の空白は除く", () =>
     withRollback(async (tx) => {
       const teamId = await seedTeam(tx, "cmp_a", "X");
@@ -502,6 +528,30 @@ describe("removeSkill", () => {
 });
 
 describe("assign", () => {
+  it("割り当てる人を確かめる間にチームが消えていれば、見つからず、行を作らない", () =>
+    withRollback(async (tx) => {
+      const teamId = await seedTeam(tx, "cmp_a", "X");
+      const listWhileTeamIsDeleted = Effect.promise(async () => {
+        await tx.delete(teams).where(eq(teams.id, teamId));
+        return [{ userId: "u_2", name: "", email: "" }];
+      });
+
+      const result = await runInRequest(
+        tx,
+        ADMIN,
+        TeamManagement.use((s) => s.assign(teamId, "u_2")).pipe(
+          Effect.provide(
+            TeamManagement.layer.pipe(
+              Layer.provide(CompanyMembers.layerTest(listWhileTeamIsDeleted)),
+            ),
+          ),
+        ),
+      );
+
+      expect(failureTag(result)).toBe("TeamNotFound");
+      expect(await countRows(tx, teamAssignments)).toBe(0);
+    }));
+
   it("事業所のメンバーをチームに割り当て、同じ割り当ての繰り返しは 1 行のまま", () =>
     withRollback(async (tx) => {
       const teamId = await seedTeam(tx, "cmp_a", "X");
@@ -627,6 +677,23 @@ describe("事業所をまたぐ参照は DB が拒否する", () => {
 
 const memberSkillRows = async (tx: TestDb) =>
   (await tx.select().from(memberSkills)).map(({ updatedAt: _, ...row }) => row);
+
+const seedLevel = (
+  tx: TestDb,
+  row: {
+    companyId: string;
+    teamId: TeamId;
+    skillId: SkillId;
+    userId: string;
+    level?: Level;
+  },
+) =>
+  tx.insert(memberSkills).values({
+    level: 1,
+    wantsToLearn: false,
+    ...row,
+    companyId: CompanyId.make(row.companyId),
+  });
 
 describe("saveMyLevels", () => {
   it("割り当てられた人は自分の行にレベルと学びたいを保存できる", () =>
@@ -765,13 +832,11 @@ describe("saveMyLevels", () => {
       const teamId = await seedTeam(tx, "cmp_b", "X");
       const skillId = await seedSkill(tx, "cmp_b", teamId, "設計");
       await seedAssignment(tx, "cmp_b", teamId, MEMBER.userId);
-      await tx.insert(memberSkills).values({
-        companyId: CompanyId.make("cmp_b"),
+      await seedLevel(tx, {
+        companyId: "cmp_b",
         teamId,
         skillId,
         userId: MEMBER.userId,
-        level: 1,
-        wantsToLearn: false,
       });
 
       const result = await runAs(
@@ -838,6 +903,67 @@ describe("saveMyLevels", () => {
 
       expect(failureTag(result)).toBe("SkillNotFound");
       expect(await memberSkillRows(tx)).toEqual([]);
+    }));
+
+  it("別チームのスキルの行を持つ人がそのスキルを含めて保存しても、別チームの行は変わらない", () =>
+    withRollback(async (tx) => {
+      const x = await seedTeam(tx, "cmp_a", "X");
+      const y = await seedTeam(tx, "cmp_a", "Y");
+      const ySkill = await seedSkill(tx, "cmp_a", y, "設計");
+      await seedAssignment(tx, "cmp_a", x, MEMBER.userId);
+      await seedAssignment(tx, "cmp_a", y, MEMBER.userId);
+      await seedLevel(tx, {
+        companyId: "cmp_a",
+        teamId: y,
+        skillId: ySkill,
+        userId: MEMBER.userId,
+      });
+      const before = await memberSkillRows(tx);
+
+      const result = await runAs(
+        tx,
+        MEMBER,
+      )((s) =>
+        s.saveMyLevels(x, [
+          { skillId: ySkill, level: "3", wantsToLearn: true },
+        ]),
+      );
+
+      expect(failureTag(result)).toBe("SkillNotFound");
+      expect(await memberSkillRows(tx)).toEqual(before);
+    }));
+
+  it("別の事業所で行を持つスキルを含めて保存すると、RLS の下でも見つからず、その行は変わらない", () =>
+    withRollback(async (tx) => {
+      const teamId = await seedTeam(tx, "cmp_a", "X");
+      await seedAssignment(tx, "cmp_a", teamId, MEMBER.userId);
+      const otherTeamId = await seedTeam(tx, "cmp_b", "Y");
+      const otherSkill = await seedSkill(tx, "cmp_b", otherTeamId, "設計");
+      await seedAssignment(tx, "cmp_b", otherTeamId, MEMBER.userId);
+      await seedLevel(tx, {
+        companyId: "cmp_b",
+        teamId: otherTeamId,
+        skillId: otherSkill,
+        userId: MEMBER.userId,
+      });
+      const before = await memberSkillRows(tx);
+      await tx.execute(
+        sql`select set_config(${COMPANY_ID_SETTING}, ${MEMBER.companyId}, true)`,
+      );
+      await switchToRoleWithoutRlsBypass(tx);
+
+      const result = await runAs(
+        tx,
+        MEMBER,
+      )((s) =>
+        s.saveMyLevels(teamId, [
+          { skillId: otherSkill, level: "3", wantsToLearn: true },
+        ]),
+      );
+      await tx.execute(sql`RESET ROLE`);
+
+      expect(failureTag(result)).toBe("SkillNotFound");
+      expect(await memberSkillRows(tx)).toEqual(before);
     }));
 
   it("UUID でないスキルの id は DB の失敗ではなく見つからない", () =>
@@ -950,6 +1076,7 @@ describe("saveMyLevels", () => {
         MEMBER,
       )((s) =>
         s.saveMyLevels(teamId, [
+          { skillId: "not-a-uuid", level: "2", wantsToLearn: false },
           { skillId, level: "4", wantsToLearn: false },
           { skillId: otherTeamSkill, level: "2", wantsToLearn: false },
         ]),
@@ -958,23 +1085,6 @@ describe("saveMyLevels", () => {
       expect(failureTag(result)).toBe("InvalidLevel");
     }));
 });
-
-const seedLevel = (
-  tx: TestDb,
-  row: {
-    companyId: string;
-    teamId: TeamId;
-    skillId: SkillId;
-    userId: string;
-    level?: Level;
-  },
-) =>
-  tx.insert(memberSkills).values({
-    level: 1,
-    wantsToLearn: false,
-    ...row,
-    companyId: CompanyId.make(row.companyId),
-  });
 
 describe("getTeam の levels", () => {
   it("そのチームの行だけを返し、同じ事業所のほかのチームと他社の行を返さない", () =>

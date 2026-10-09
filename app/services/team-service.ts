@@ -1,6 +1,8 @@
 import { and, asc, eq, exists, type SQL, sql } from "drizzle-orm";
-import { Context, Effect, Layer, Predicate, Schema } from "effect";
+import { Context, Effect, Layer, Option, Schema } from "effect";
 import {
+  MEMBER_SKILLS_ASSIGNMENT_FK,
+  MEMBER_SKILLS_SKILL_FK,
   memberSkills,
   skills,
   teamAssignments,
@@ -38,7 +40,7 @@ const decodeTeamId = (teamId: string) =>
 const decodeUnknownSkillId = Schema.decodeUnknownEffect(SkillId);
 const decodeSkillId = (skillId: string) =>
   decodeUnknownSkillId(skillId).pipe(
-    Effect.mapError(() => new SkillNotFound({ skillId })),
+    Effect.mapError(() => new SkillNotFound()),
   );
 
 const decodeTeamOrSkillName = Schema.decodeUnknownEffect(TeamOrSkillName);
@@ -49,11 +51,23 @@ const decodeLevelFromForm = Schema.decodeUnknownEffect(LevelFromForm);
 const decodeLevel = (level: string) =>
   decodeLevelFromForm(level).pipe(Effect.mapError(() => new InvalidLevel()));
 
+const UNIQUE_VIOLATION = "23505";
+const FOREIGN_KEY_VIOLATION = "23503";
+const CARDINALITY_VIOLATION = "21000";
+const INSUFFICIENT_PRIVILEGE = "42501";
+
 // drizzle は pg のエラーを cause に包む
-const isUniqueViolation = (error: unknown) =>
-  Predicate.hasProperty(error, "cause") &&
-  Predicate.hasProperty(error.cause, "code") &&
-  error.cause.code === "23505";
+const ErrorWithPgCause = Schema.Struct({
+  cause: Schema.Struct({
+    code: Schema.optional(Schema.String),
+    constraint: Schema.optional(Schema.String),
+  }),
+});
+type Violation = (typeof ErrorWithPgCause.Type)["cause"];
+
+const decodeErrorWithPgCause = Schema.decodeUnknownOption(ErrorWithPgCause);
+const violationOf = (error: unknown): Violation =>
+  Option.getOrUndefined(decodeErrorWithPgCause(error))?.cause ?? {};
 
 export type LevelEntry = {
   readonly skillId: string;
@@ -66,6 +80,33 @@ const runQuery = <A>(run: () => Promise<A>) =>
     try: run,
     catch: (cause) => new TeamServiceError({ cause }),
   });
+
+// 違反で外側の transaction を中断しないよう、savepoint の中で書く
+const runWrite = <A, E>(
+  db: Db["Service"],
+  run: (tx: Db["Service"]) => Promise<A>,
+  failureOf: (violation: Violation) => E | undefined,
+) =>
+  Effect.tryPromise({
+    try: () => db.transaction(run),
+    catch: (cause) =>
+      failureOf(violationOf(cause)) ?? new TeamServiceError({ cause }),
+  });
+
+const nameWriteFailure = ({ code }: Violation) =>
+  code === UNIQUE_VIOLATION ? new DuplicateName() : undefined;
+
+const levelWriteFailure = ({ code, constraint }: Violation) => {
+  if (code === CARDINALITY_VIOLATION) return new InvalidLevel();
+  if (constraint === MEMBER_SKILLS_ASSIGNMENT_FK) return new NotAssigned();
+  if (constraint === MEMBER_SKILLS_SKILL_FK) return new SkillNotFound();
+  // 別の事業所の行に当たる ON CONFLICT は、その行が RLS で見えないので insufficient_privilege になる
+  if (code === INSUFFICIENT_PRIVILEGE) return new SkillNotFound();
+  return undefined;
+};
+
+const missingTeam = (teamId: string, { code }: Violation) =>
+  code === FOREIGN_KEY_VIOLATION ? new TeamNotFound({ teamId }) : undefined;
 
 const findTeam = Effect.fnUntraced(function* (
   db: Db["Service"],
@@ -230,8 +271,14 @@ export class TeamService extends Context.Service<
           const team = yield* findVisibleTeam(teamId);
           const { userId } = yield* AuthorizationContext;
           const { companyId } = yield* CompanyContext;
-          const [[assignment], teamSkills] = yield* Effect.all([
-            runQuery(() =>
+          const levels = yield* Effect.forEach(entries, (entry) =>
+            decodeLevel(entry.level),
+          );
+          const skillIds = yield* Effect.forEach(entries, (entry) =>
+            decodeSkillId(entry.skillId),
+          );
+          if (entries.length === 0) {
+            const [assignment] = yield* runQuery(() =>
               db
                 .select({ userId: teamAssignments.userId })
                 .from(teamAssignments)
@@ -242,60 +289,38 @@ export class TeamService extends Context.Service<
                     companyFilter(teamAssignments, companyId),
                   ),
                 ),
-            ),
-            runQuery(() =>
-              db
-                .select({ id: skills.id })
-                .from(skills)
-                .where(
-                  and(
-                    eq(skills.teamId, team.id),
-                    companyFilter(skills, companyId),
-                  ),
-                ),
-            ),
-          ]);
-          if (!assignment) return yield* new NotAssigned();
-          const levels = yield* Effect.forEach(entries, (entry) =>
-            decodeLevel(entry.level),
-          );
-          const skillIds = yield* Effect.forEach(entries, (entry) =>
-            decodeSkillId(entry.skillId),
-          );
-          const rows = entries.map((entry, i) => ({
-            companyId,
-            teamId: team.id,
-            skillId: skillIds[i],
-            userId,
-            level: levels[i],
-            wantsToLearn: entry.wantsToLearn,
-          }));
-          // 1 つの upsert で同じ行を 2 回更新すると PostgreSQL が文ごと失敗する
-          if (new Set(rows.map((row) => row.skillId)).size !== rows.length)
-            return yield* new InvalidLevel();
-          const teamSkillIds = new Set(teamSkills.map((skill) => skill.id));
-          const rowOutsideTeam = rows.find(
-            (row) => !teamSkillIds.has(row.skillId),
-          );
-          if (rowOutsideTeam)
-            return yield* new SkillNotFound({
-              skillId: rowOutsideTeam.skillId,
-            });
-          if (rows.length === 0) return;
-          yield* runQuery(() =>
-            db
-              .insert(memberSkills)
-              .values(rows)
-              .onConflictDoUpdate({
-                target: [memberSkills.skillId, memberSkills.userId],
-                set: {
-                  level: sql.raw(`excluded.${memberSkills.level.name}`),
-                  wantsToLearn: sql.raw(
-                    `excluded.${memberSkills.wantsToLearn.name}`,
-                  ),
-                  updatedAt: sql`now()`,
-                },
-              }),
+            );
+            if (!assignment) return yield* new NotAssigned();
+            return;
+          }
+          yield* runWrite(
+            db,
+            (tx) =>
+              tx
+                .insert(memberSkills)
+                .values(
+                  entries.map((entry, i) => ({
+                    companyId,
+                    teamId: team.id,
+                    skillId: skillIds[i],
+                    userId,
+                    level: levels[i],
+                    wantsToLearn: entry.wantsToLearn,
+                  })),
+                )
+                .onConflictDoUpdate({
+                  target: [memberSkills.skillId, memberSkills.userId],
+                  set: {
+                    // キー列が変わらない UPDATE は FK を検査しないので、team_id を書き直して別チームの行の上書きを FK で止める
+                    teamId: sql.raw(`excluded.${memberSkills.teamId.name}`),
+                    level: sql.raw(`excluded.${memberSkills.level.name}`),
+                    wantsToLearn: sql.raw(
+                      `excluded.${memberSkills.wantsToLearn.name}`,
+                    ),
+                    updatedAt: sql`now()`,
+                  },
+                }),
+            levelWriteFailure,
           );
         }),
       });
@@ -357,15 +382,8 @@ export class TeamManagement extends Context.Service<
       const db = yield* Db;
       const companyMembers = yield* CompanyMembers;
 
-      // 一意制約の違反で外側の transaction を中断しないよう、savepoint の中で書く
       const runNameWrite = <A>(run: (tx: typeof db) => Promise<A>) =>
-        Effect.tryPromise({
-          try: () => db.transaction(run),
-          catch: (cause) =>
-            isUniqueViolation(cause)
-              ? new DuplicateName()
-              : new TeamServiceError({ cause }),
-        });
+        runWrite(db, run, nameWriteFailure);
 
       return TeamManagement.of({
         createTeam: Effect.fn("TeamManagement.createTeam")(function* (
@@ -420,10 +438,14 @@ export class TeamManagement extends Context.Service<
           const validName = yield* decodeName(name);
           const team = yield* findTeam(db, teamId);
           const { companyId } = yield* CompanyContext;
-          yield* runNameWrite((tx) =>
-            tx
-              .insert(skills)
-              .values({ companyId, teamId: team.id, name: validName }),
+          yield* runWrite(
+            db,
+            (tx) =>
+              tx
+                .insert(skills)
+                .values({ companyId, teamId: team.id, name: validName }),
+            (violation) =>
+              missingTeam(teamId, violation) ?? nameWriteFailure(violation),
           );
         }),
 
@@ -438,8 +460,7 @@ export class TeamManagement extends Context.Service<
               .where(and(eq(skills.id, id), companyFilter(skills, companyId)))
               .returning({ id: skills.id }),
           );
-          if (deleted.length === 0)
-            return yield* new SkillNotFound({ skillId });
+          if (deleted.length === 0) return yield* new SkillNotFound();
         }),
 
         assign: Effect.fn("TeamManagement.assign")(function* (
@@ -452,11 +473,14 @@ export class TeamManagement extends Context.Service<
           if (!members.some((member) => member.userId === userId))
             return yield* new NotCompanyMember({ userId });
           const { companyId } = yield* CompanyContext;
-          yield* runQuery(() =>
-            db
-              .insert(teamAssignments)
-              .values({ companyId, teamId: team.id, userId })
-              .onConflictDoNothing(),
+          yield* runWrite(
+            db,
+            (tx) =>
+              tx
+                .insert(teamAssignments)
+                .values({ companyId, teamId: team.id, userId })
+                .onConflictDoNothing(),
+            (violation) => missingTeam(teamId, violation),
           );
         }),
 

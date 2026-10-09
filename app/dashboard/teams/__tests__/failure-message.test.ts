@@ -16,7 +16,7 @@ import { failureMessage } from "../failure-message";
 it.each([
   [new NotManager(), "管理者だけが操作できます"],
   [new TeamNotFound({ teamId: "t" }), "チームが見つかりません"],
-  [new SkillNotFound({ skillId: "s" }), "スキルが見つかりません"],
+  [new SkillNotFound(), "スキルが見つかりません"],
   [new NotCompanyMember({ userId: "u" }), "事業所のメンバーではありません"],
   [new MemberListError({ cause: 2 }), "メンバー一覧を取得できませんでした"],
   [new InvalidName(), "名前は 1〜50 文字で入力してください"],

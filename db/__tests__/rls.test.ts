@@ -1,6 +1,10 @@
 import { count, eq, sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { type TestDb, withRollback } from "@/app/services/__tests__/db/test-db";
+import {
+  switchToRoleWithoutRlsBypass,
+  type TestDb,
+  withRollback,
+} from "@/app/services/__tests__/db/test-db";
 import {
   memberSkills,
   skills,
@@ -45,19 +49,6 @@ const countRows = async (tx: Pick<TestDb, "select">) => {
     counts[name] = value;
   }
   return counts;
-};
-
-// superuser の postgres は RLS を常に bypass するので、BYPASSRLS の無い role に切り替えて policy を観測する
-const switchToRoleWithoutRlsBypass = async (tx: TestDb) => {
-  const role = `rls_probe_${crypto.randomUUID().slice(0, 8)}`;
-  await tx.execute(sql.raw(`CREATE ROLE "${role}" NOLOGIN`));
-  await tx.execute(sql.raw(`GRANT USAGE ON SCHEMA public TO "${role}"`));
-  await tx.execute(
-    sql.raw(
-      `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "${role}"`,
-    ),
-  );
-  await tx.execute(sql.raw(`SET LOCAL ROLE "${role}"`));
 };
 
 const oneRowPerTable = {
