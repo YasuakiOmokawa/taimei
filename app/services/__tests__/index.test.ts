@@ -5,11 +5,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveCompanyIdOrRedirect } from "@/app/lib/auth-guard";
 import { db } from "@/db/drizzle/client";
 import { teams } from "@/db/drizzle/schema";
-import { runScopedService } from "..";
+import { runManagerScopedService, runScopedService } from "..";
 import { AuthorizationContext } from "../authorization-context";
 import { CompanyContext } from "../company-context";
 import { Db, DbUnavailable } from "../db-service";
-import { TeamService } from "../team-service";
+import { NotManager } from "../team-errors";
+import { TeamManagement, TeamService } from "../team-service";
 import { currentCompanySetting } from "./db/test-db";
 
 vi.mock("@/app/lib/auth-guard", () => ({
@@ -116,6 +117,16 @@ describe("runScopedService", () => {
     expect(Result.getOrThrow(result)).toEqual(["未 commit のチーム"]);
   });
 
+  it("MEMBER の本体も TeamService を使える (管理の Layer を組み立てない)", async () => {
+    resolveSession({ userId: "u_m", role: "MEMBER" });
+
+    const result = await runScopedService(() =>
+      TeamService.use((service) => service.listTeams),
+    );
+
+    expect(Result.isSuccess(result)).toBe(true);
+  });
+
   it("transaction を開けない時は、reject せず DbUnavailable の失敗を返す", async () => {
     resolveSession({ userId: "u_1", role: "ADMIN" });
     const cause = new Error("connection refused");
@@ -145,5 +156,36 @@ describe("runScopedService", () => {
     await expect(runScopedService(body)).rejects.toThrow("NEXT_REDIRECT");
     expect(body).not.toHaveBeenCalled();
     expect(transaction).not.toHaveBeenCalled();
+  });
+});
+
+describe("runManagerScopedService", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("管理者には TeamManagement を渡す", async () => {
+    resolveSession({ userId: "u_1", role: "ADMIN" });
+
+    const result = await runManagerScopedService(() =>
+      TeamManagement.use(() => Effect.void),
+    );
+
+    expect(Result.isSuccess(result)).toBe(true);
+  });
+
+  it("管理者でない人には、管理者の request の後でも NotManager を返し、本体を実行しない", async () => {
+    resolveSession({ userId: "u_admin", role: "ADMIN" });
+    const byManager = await runManagerScopedService(() =>
+      TeamManagement.use(() => Effect.void),
+    );
+    resolveSession({ userId: "u_m", role: "MEMBER" });
+    const body = vi.fn();
+
+    const byMember = await runManagerScopedService(() => Effect.sync(body));
+
+    expect(Result.isSuccess(byManager)).toBe(true);
+    expect(byMember).toEqual(Result.fail(new NotManager()));
+    expect(body).not.toHaveBeenCalled();
   });
 });
