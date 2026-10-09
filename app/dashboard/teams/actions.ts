@@ -3,9 +3,10 @@
 import { Result } from "effect";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { TeamFailure } from "@/app/services/team-errors";
 import { type FailureMessage, failureMessage } from "./failure-message";
 import { parseLevelForm } from "./level-form";
-import { runTeamService } from "./run-team-service";
+import { runTeamManagement, runTeamService } from "./run-team-service";
 
 const formText = (formData: FormData, name: string) => {
   const value = formData.get(name);
@@ -13,10 +14,10 @@ const formText = (formData: FormData, name: string) => {
 };
 
 const submit = async <A>(
-  use: Parameters<typeof runTeamService<A>>[0],
+  pendingResult: Promise<Result.Result<A, TeamFailure>>,
   onSuccess: (value: A) => void,
 ): Promise<FailureMessage> => {
-  const result = await runTeamService(use);
+  const result = await pendingResult;
   if (Result.isFailure(result)) return failureMessage(result.failure);
   onSuccess(result.success);
   return null;
@@ -30,7 +31,7 @@ export async function createTeam(
   formData: FormData,
 ): Promise<FailureMessage> {
   return submit(
-    (s) => s.createTeam(formText(formData, "name")),
+    runTeamManagement((s) => s.createTeam(formText(formData, "name"))),
     (team) => redirect(`/dashboard/teams/${team.id}`),
   );
 }
@@ -41,14 +42,14 @@ export async function renameTeam(
   formData: FormData,
 ): Promise<FailureMessage> {
   return submit(
-    (s) => s.renameTeam(teamId, formText(formData, "name")),
+    runTeamManagement((s) => s.renameTeam(teamId, formText(formData, "name"))),
     refreshTeamPage,
   );
 }
 
 export async function deleteTeam(teamId: string): Promise<FailureMessage> {
   return submit(
-    (s) => s.deleteTeam(teamId),
+    runTeamManagement((s) => s.deleteTeam(teamId)),
     () => redirect("/dashboard/teams"),
   );
 }
@@ -59,13 +60,16 @@ export async function addSkill(
   formData: FormData,
 ): Promise<FailureMessage> {
   return submit(
-    (s) => s.addSkill(teamId, formText(formData, "name")),
+    runTeamManagement((s) => s.addSkill(teamId, formText(formData, "name"))),
     refreshTeamPage,
   );
 }
 
 export async function removeSkill(skillId: string): Promise<FailureMessage> {
-  return submit((s) => s.removeSkill(skillId), refreshTeamPage);
+  return submit(
+    runTeamManagement((s) => s.removeSkill(skillId)),
+    refreshTeamPage,
+  );
 }
 
 export async function saveMyLevels(
@@ -74,7 +78,7 @@ export async function saveMyLevels(
   formData: FormData,
 ): Promise<FailureMessage> {
   return submit(
-    (s) => s.saveMyLevels(teamId, parseLevelForm(formData)),
+    runTeamService((s) => s.saveMyLevels(teamId, parseLevelForm(formData))),
     refreshTeamPage,
   );
 }
@@ -85,7 +89,7 @@ export async function assign(
   formData: FormData,
 ): Promise<FailureMessage> {
   return submit(
-    (s) => s.assign(teamId, formText(formData, "userId")),
+    runTeamManagement((s) => s.assign(teamId, formText(formData, "userId"))),
     refreshTeamPage,
   );
 }
@@ -94,5 +98,8 @@ export async function unassign(
   teamId: string,
   userId: string,
 ): Promise<FailureMessage> {
-  return submit((s) => s.unassign(teamId, userId), refreshTeamPage);
+  return submit(
+    runTeamManagement((s) => s.unassign(teamId, userId)),
+    refreshTeamPage,
+  );
 }
