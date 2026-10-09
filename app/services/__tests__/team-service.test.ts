@@ -1,7 +1,7 @@
 import type { Role } from "@taimei-code/auth-client";
 import { count, eq, type SQL } from "drizzle-orm";
 import { Effect, Layer, Result } from "effect";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   memberSkills,
   skills,
@@ -13,13 +13,16 @@ import { CompanyContext } from "../company-context";
 import { CompanyMembers, MemberListError } from "../company-members-service";
 import { Db } from "../db-service";
 import type { Level } from "../level";
-import { TeamService } from "../team-service";
+import { TeamManagement, TeamService } from "../team-service";
 import { type TestDb, withRollback } from "./db/test-db";
 
 type Actor = {
   companyId: string;
   userId: string;
   role: Role | undefined;
+};
+
+type ManagerActor = Actor & {
   companyMemberIds?: readonly string[] | "listMembersFails";
 };
 
@@ -28,7 +31,7 @@ const MEMBER: Actor = { companyId: "cmp_a", userId: "u_m", role: "MEMBER" };
 const NO_ROLE: Actor = { companyId: "cmp_a", userId: "u_m", role: undefined };
 
 const companyMembersLayer = (
-  companyMemberIds: Actor["companyMemberIds"] = [],
+  companyMemberIds: ManagerActor["companyMemberIds"] = [],
 ) =>
   CompanyMembers.layerTest(
     companyMemberIds === "listMembersFails"
@@ -38,6 +41,24 @@ const companyMembersLayer = (
         ),
   );
 
+const runInRequest = <A, E>(
+  tx: TestDb,
+  actor: Actor,
+  effect: Effect.Effect<A, E, Db | CompanyContext | AuthorizationContext>,
+) =>
+  Effect.runPromise(
+    Effect.result(
+      effect.pipe(
+        Effect.provideService(Db, tx),
+        Effect.provideService(CompanyContext, { companyId: actor.companyId }),
+        Effect.provideService(AuthorizationContext, {
+          userId: actor.userId,
+          role: actor.role,
+        }),
+      ),
+    ),
+  );
+
 const runAs =
   (tx: TestDb, actor: Actor) =>
   <A, E>(
@@ -45,22 +66,27 @@ const runAs =
       service: TeamService["Service"],
     ) => Effect.Effect<A, E, CompanyContext | AuthorizationContext>,
   ) =>
-    Effect.runPromise(
-      Effect.result(
-        TeamService.use(f).pipe(
-          Effect.provide(
-            TeamService.layer.pipe(
-              Layer.provide(Layer.succeed(Db, tx)),
-              Layer.provide(companyMembersLayer(actor.companyMemberIds)),
-            ),
+    runInRequest(
+      tx,
+      actor,
+      TeamService.use(f).pipe(Effect.provide(TeamService.layer)),
+    );
+
+const manageAs =
+  (tx: TestDb, actor: ManagerActor) =>
+  <A, E>(
+    f: (
+      service: TeamManagement["Service"],
+    ) => Effect.Effect<A, E, CompanyContext>,
+  ) =>
+    runInRequest(
+      tx,
+      actor,
+      TeamManagement.use(f).pipe(
+        Effect.provide(
+          TeamManagement.layer.pipe(
+            Layer.provide(companyMembersLayer(actor.companyMemberIds)),
           ),
-          Effect.provideService(CompanyContext, {
-            companyId: actor.companyId,
-          }),
-          Effect.provideService(AuthorizationContext, {
-            userId: actor.userId,
-            role: actor.role,
-          }),
         ),
       ),
     );
@@ -123,35 +149,37 @@ const teamName = async (tx: TestDb, id: string) => {
 const createdAtMinute = (minute: number) =>
   new Date(Date.UTC(2026, 0, 1, 0, minute));
 
+describe("TeamManagement", () => {
+  it.each([
+    ["MEMBER", MEMBER],
+    ["role の無い人", NO_ROLE],
+  ])("%s には組み立てられず、どの操作も実行しない", (_, actor) =>
+    withRollback(async (tx) => {
+      const use = vi.fn((_: TeamManagement["Service"]) => Effect.void);
+
+      const result = await manageAs(tx, actor)(use);
+
+      expect(failureTag(result)).toBe("NotManager");
+      expect(use).not.toHaveBeenCalled();
+    }),
+  );
+});
+
 describe("createTeam", () => {
   it("管理者は自社のチームを作れる。名前の前後の空白は除く", () =>
     withRollback(async (tx) => {
-      const result = await runAs(tx, ADMIN)((s) => s.createTeam("  開発  "));
+      const result = await manageAs(tx, ADMIN)((s) => s.createTeam("  開発  "));
 
       const { id } = Result.getOrThrow(result);
       const rows = await tx.select().from(teams).where(eq(teams.id, id));
       expect(rows).toMatchObject([{ companyId: "cmp_a", name: "開発" }]);
     }));
 
-  it.each([
-    ["MEMBER", MEMBER],
-    ["role の無い人", NO_ROLE],
-  ])("%s は作れない", (_, actor) =>
-    withRollback(async (tx) => {
-      const before = await countRows(tx, teams);
-
-      const result = await runAs(tx, actor)((s) => s.createTeam("開発"));
-
-      expect(failureTag(result)).toBe("NotManager");
-      expect(await countRows(tx, teams)).toBe(before);
-    }),
-  );
-
   it("空白だけの名前では作れない", () =>
     withRollback(async (tx) => {
       const before = await countRows(tx, teams);
 
-      const result = await runAs(tx, ADMIN)((s) => s.createTeam("   "));
+      const result = await manageAs(tx, ADMIN)((s) => s.createTeam("   "));
 
       expect(failureTag(result)).toBe("InvalidName");
       expect(await countRows(tx, teams)).toBe(before);
@@ -162,7 +190,7 @@ describe("createTeam", () => {
       await seedTeam(tx, "cmp_a", "開発");
       await seedTeam(tx, "cmp_b", "営業");
       const before = await countRows(tx, teams);
-      const admin = runAs(tx, ADMIN);
+      const admin = manageAs(tx, ADMIN);
 
       const duplicate = await admin((s) => s.createTeam(" 開発 "));
       const otherCompanyName = await admin((s) => s.createTeam("営業"));
@@ -216,7 +244,7 @@ describe("listTeams", () => {
     withRollback(async (tx) => {
       const x = await seedTeam(tx, "cmp_a", "X", createdAtMinute(1));
       const y = await seedTeam(tx, "cmp_a", "Y", createdAtMinute(2));
-      const admin = runAs(tx, { ...ADMIN, companyMemberIds: ["u_m"] });
+      const admin = manageAs(tx, { ...ADMIN, companyMemberIds: ["u_m"] });
       await admin((s) => s.assign(x, "u_m"));
       await admin((s) => s.assign(y, "u_m"));
 
@@ -303,7 +331,7 @@ describe("renameTeam", () => {
     withRollback(async (tx) => {
       const id = await seedTeam(tx, "cmp_a", "旧");
 
-      await runAs(tx, ADMIN)((s) => s.renameTeam(id, "  新  "));
+      await manageAs(tx, ADMIN)((s) => s.renameTeam(id, "  新  "));
 
       expect(await teamName(tx, id)).toBe("新");
     }));
@@ -312,27 +340,17 @@ describe("renameTeam", () => {
     withRollback(async (tx) => {
       const id = await seedTeam(tx, "cmp_b", "他社");
 
-      const result = await runAs(tx, ADMIN)((s) => s.renameTeam(id, "新"));
+      const result = await manageAs(tx, ADMIN)((s) => s.renameTeam(id, "新"));
 
       expect(failureTag(result)).toBe("TeamNotFound");
       expect(await teamName(tx, id)).toBe("他社");
-    }));
-
-  it("MEMBER は変えられない", () =>
-    withRollback(async (tx) => {
-      const id = await seedTeam(tx, "cmp_a", "旧");
-
-      const result = await runAs(tx, MEMBER)((s) => s.renameTeam(id, "新"));
-
-      expect(failureTag(result)).toBe("NotManager");
-      expect(await teamName(tx, id)).toBe("旧");
     }));
 
   it("空白だけの名前には変えられない", () =>
     withRollback(async (tx) => {
       const id = await seedTeam(tx, "cmp_a", "旧");
 
-      const result = await runAs(tx, ADMIN)((s) => s.renameTeam(id, "   "));
+      const result = await manageAs(tx, ADMIN)((s) => s.renameTeam(id, "   "));
 
       expect(failureTag(result)).toBe("InvalidName");
       expect(await teamName(tx, id)).toBe("旧");
@@ -342,7 +360,7 @@ describe("renameTeam", () => {
       await seedTeam(tx, "cmp_a", "開発");
       const id = await seedTeam(tx, "cmp_a", "旧");
 
-      const result = await runAs(tx, ADMIN)((s) => s.renameTeam(id, "開発"));
+      const result = await manageAs(tx, ADMIN)((s) => s.renameTeam(id, "開発"));
 
       expect(failureTag(result)).toBe("DuplicateName");
       expect(await teamName(tx, id)).toBe("旧");
@@ -361,7 +379,7 @@ describe("deleteTeam", () => {
       await seedSkill(tx, "cmp_a", kept, "c");
       await seedAssignment(tx, "cmp_a", kept, "u_1");
 
-      const result = await runAs(tx, ADMIN)((s) => s.deleteTeam(id));
+      const result = await manageAs(tx, ADMIN)((s) => s.deleteTeam(id));
 
       expect(failureTag(result)).toBe("success");
       const remaining = async (teamId: string) => [
@@ -381,26 +399,15 @@ describe("deleteTeam", () => {
     withRollback(async (tx) => {
       const id = await seedTeam(tx, "cmp_b", "他社");
 
-      const result = await runAs(tx, ADMIN)((s) => s.deleteTeam(id));
+      const result = await manageAs(tx, ADMIN)((s) => s.deleteTeam(id));
 
       expect(failureTag(result)).toBe("TeamNotFound");
       expect(await teamName(tx, id)).toBe("他社");
     }));
 
-  it("MEMBER は消せない", () =>
-    withRollback(async (tx) => {
-      const id = await seedTeam(tx, "cmp_a", "X");
-      const before = await countRows(tx, teams);
-
-      const result = await runAs(tx, MEMBER)((s) => s.deleteTeam(id));
-
-      expect(failureTag(result)).toBe("NotManager");
-      expect(await countRows(tx, teams)).toBe(before);
-    }));
-
   it("UUID でない id は DB の失敗ではなく見つからない", () =>
     withRollback(async (tx) => {
-      const result = await runAs(tx, ADMIN)((s) => s.deleteTeam("x"));
+      const result = await manageAs(tx, ADMIN)((s) => s.deleteTeam("x"));
 
       expect(failureTag(result)).toBe("TeamNotFound");
     }));
@@ -411,7 +418,7 @@ describe("addSkill", () => {
     withRollback(async (tx) => {
       const teamId = await seedTeam(tx, "cmp_a", "X");
 
-      await runAs(tx, ADMIN)((s) => s.addSkill(teamId, "  設計  "));
+      await manageAs(tx, ADMIN)((s) => s.addSkill(teamId, "  設計  "));
 
       const rows = await tx
         .select()
@@ -421,15 +428,14 @@ describe("addSkill", () => {
     }));
 
   it.each([
-    ["他社のチーム", ADMIN, "cmp_b", "設計", "TeamNotFound"],
-    ["MEMBER", MEMBER, "cmp_a", "設計", "NotManager"],
-    ["空白だけの名前", ADMIN, "cmp_a", "   ", "InvalidName"],
-  ])("%s には足せない", (_, actor, companyId, name, tag) =>
+    ["他社のチーム", "cmp_b", "設計", "TeamNotFound"],
+    ["空白だけの名前", "cmp_a", "   ", "InvalidName"],
+  ])("%s には足せない", (_, companyId, name, tag) =>
     withRollback(async (tx) => {
       const teamId = await seedTeam(tx, companyId, "X");
       const before = await countRows(tx, skills);
 
-      const result = await runAs(tx, actor)((s) => s.addSkill(teamId, name));
+      const result = await manageAs(tx, ADMIN)((s) => s.addSkill(teamId, name));
 
       expect(failureTag(result)).toBe(tag);
       expect(await countRows(tx, skills)).toBe(before);
@@ -440,7 +446,7 @@ describe("addSkill", () => {
       const x = await seedTeam(tx, "cmp_a", "X");
       const y = await seedTeam(tx, "cmp_a", "Y");
       await seedSkill(tx, "cmp_a", x, "設計");
-      const admin = runAs(tx, ADMIN);
+      const admin = manageAs(tx, ADMIN);
 
       const duplicate = await admin((s) => s.addSkill(x, "設計"));
       const otherTeam = await admin((s) => s.addSkill(y, "設計"));
@@ -458,7 +464,7 @@ describe("removeSkill", () => {
       const removed = await seedSkill(tx, "cmp_a", teamId, "a");
       const kept = await seedSkill(tx, "cmp_a", teamId, "b");
 
-      await runAs(tx, ADMIN)((s) => s.removeSkill(removed));
+      await manageAs(tx, ADMIN)((s) => s.removeSkill(removed));
 
       const rows = await tx
         .select({ id: skills.id })
@@ -467,24 +473,20 @@ describe("removeSkill", () => {
       expect(rows).toEqual([{ id: kept }]);
     }));
 
-  it.each([
-    ["他社のスキル", ADMIN, "cmp_b", "SkillNotFound"],
-    ["MEMBER", MEMBER, "cmp_a", "NotManager"],
-  ])("%s は消せない", (_, actor, companyId, tag) =>
+  it("他社のスキルは消せない", () =>
     withRollback(async (tx) => {
-      const teamId = await seedTeam(tx, companyId, "X");
-      const skillId = await seedSkill(tx, companyId, teamId, "a");
+      const teamId = await seedTeam(tx, "cmp_b", "X");
+      const skillId = await seedSkill(tx, "cmp_b", teamId, "a");
 
-      const result = await runAs(tx, actor)((s) => s.removeSkill(skillId));
+      const result = await manageAs(tx, ADMIN)((s) => s.removeSkill(skillId));
 
-      expect(failureTag(result)).toBe(tag);
+      expect(failureTag(result)).toBe("SkillNotFound");
       expect(await countRows(tx, skills)).toBe(1);
-    }),
-  );
+    }));
 
   it("UUID でない id は DB の失敗ではなく見つからない", () =>
     withRollback(async (tx) => {
-      const result = await runAs(tx, ADMIN)((s) => s.removeSkill("x"));
+      const result = await manageAs(tx, ADMIN)((s) => s.removeSkill("x"));
 
       expect(failureTag(result)).toBe("SkillNotFound");
     }));
@@ -494,7 +496,7 @@ describe("assign", () => {
   it("事業所のメンバーをチームに割り当て、同じ割り当ての繰り返しは 1 行のまま", () =>
     withRollback(async (tx) => {
       const teamId = await seedTeam(tx, "cmp_a", "X");
-      const admin = runAs(tx, { ...ADMIN, companyMemberIds: ["u_2"] });
+      const admin = manageAs(tx, { ...ADMIN, companyMemberIds: ["u_2"] });
 
       await admin((s) => s.assign(teamId, "u_2"));
       const again = await admin((s) => s.assign(teamId, "u_2"));
@@ -525,12 +527,11 @@ describe("assign", () => {
       "cmp_b",
       "TeamNotFound",
     ],
-    ["MEMBER", { ...MEMBER, companyMemberIds: ["u_x"] }, "cmp_a", "NotManager"],
   ])("%s は割り当てられない", (_, actor, companyId, tag) =>
     withRollback(async (tx) => {
       const teamId = await seedTeam(tx, companyId, "X");
 
-      const result = await runAs(tx, actor)((s) => s.assign(teamId, "u_x"));
+      const result = await manageAs(tx, actor)((s) => s.assign(teamId, "u_x"));
 
       expect(failureTag(result)).toBe(tag);
       expect(await countRows(tx, teamAssignments)).toBe(0);
@@ -545,7 +546,7 @@ describe("unassign", () => {
       await seedAssignment(tx, "cmp_a", teamId, "u_1");
       await seedAssignment(tx, "cmp_a", teamId, "u_2");
 
-      await runAs(tx, ADMIN)((s) => s.unassign(teamId, "u_1"));
+      await manageAs(tx, ADMIN)((s) => s.unassign(teamId, "u_1"));
 
       const rows = await tx
         .select({ userId: teamAssignments.userId })
@@ -558,26 +559,28 @@ describe("unassign", () => {
       const teamId = await seedTeam(tx, "cmp_a", "X");
       await seedAssignment(tx, "cmp_a", teamId, "u_1");
 
-      const result = await runAs(tx, ADMIN)((s) => s.unassign(teamId, "u_x"));
+      const result = await manageAs(
+        tx,
+        ADMIN,
+      )((s) => s.unassign(teamId, "u_x"));
 
       expect(failureTag(result)).toBe("success");
       expect(await countRows(tx, teamAssignments)).toBe(1);
     }));
 
-  it.each([
-    ["他社のチーム", ADMIN, "cmp_b", "TeamNotFound"],
-    ["MEMBER", MEMBER, "cmp_a", "NotManager"],
-  ])("%s の割り当ては外せない", (_, actor, companyId, tag) =>
+  it("他社のチームの割り当ては外せない", () =>
     withRollback(async (tx) => {
-      const teamId = await seedTeam(tx, companyId, "X");
-      await seedAssignment(tx, companyId, teamId, "u_1");
+      const teamId = await seedTeam(tx, "cmp_b", "X");
+      await seedAssignment(tx, "cmp_b", teamId, "u_1");
 
-      const result = await runAs(tx, actor)((s) => s.unassign(teamId, "u_1"));
+      const result = await manageAs(
+        tx,
+        ADMIN,
+      )((s) => s.unassign(teamId, "u_1"));
 
-      expect(failureTag(result)).toBe(tag);
+      expect(failureTag(result)).toBe("TeamNotFound");
       expect(await countRows(tx, teamAssignments)).toBe(1);
-    }),
-  );
+    }));
 });
 
 describe("事業所をまたぐ参照は DB が拒否する", () => {
@@ -1023,7 +1026,7 @@ describe("評価は割り当て・スキル・チームと一緒に消える", (
     withRollback(async (tx) => {
       const { x, y } = await seedTwoTeams(tx);
 
-      await runAs(tx, ADMIN)((s) => s.unassign(x, "u_m"));
+      await manageAs(tx, ADMIN)((s) => s.unassign(x, "u_m"));
 
       const rows = await memberSkillRows(tx);
       expect(rows.filter((r) => r.teamId === x && r.userId === "u_m")).toEqual(
@@ -1037,7 +1040,7 @@ describe("評価は割り当て・スキル・チームと一緒に消える", (
     withRollback(async (tx) => {
       const { s1, s2 } = await seedTwoTeams(tx);
 
-      await runAs(tx, ADMIN)((s) => s.removeSkill(s1));
+      await manageAs(tx, ADMIN)((s) => s.removeSkill(s1));
 
       const rows = await remaining(tx);
       expect(rows.filter((r) => r.includes(s1))).toEqual([]);
@@ -1048,7 +1051,7 @@ describe("評価は割り当て・スキル・チームと一緒に消える", (
     withRollback(async (tx) => {
       const { x, y } = await seedTwoTeams(tx);
 
-      await runAs(tx, ADMIN)((s) => s.deleteTeam(x));
+      await manageAs(tx, ADMIN)((s) => s.deleteTeam(x));
 
       const rows = await remaining(tx);
       expect(rows.filter((r) => r.startsWith(x))).toEqual([]);
