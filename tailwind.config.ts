@@ -17,6 +17,7 @@ const config: Config = {
           "500": "#0070F3",
           "600": "#2F6FEB",
         },
+        brand: "hsl(var(--brand))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
