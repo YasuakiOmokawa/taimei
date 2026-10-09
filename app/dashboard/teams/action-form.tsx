@@ -1,8 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
+import type { FailureMessage } from "@/app/lib/team-failure";
 import { Button } from "@/components/ui/button";
-import type { FailureMessage } from "./failure-message";
 
 export function ActionForm({
   action,

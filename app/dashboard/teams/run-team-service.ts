@@ -1,6 +1,6 @@
 import "server-only";
 import { type Effect, Result } from "effect";
-import { reportUnexpectedFailure } from "@/app/lib/report-failure";
+import { reportUnexpectedFailure } from "@/app/lib/team-failure";
 import { runManagerScopedService, runScopedService } from "@/app/services";
 import type { AuthorizationContext } from "@/app/services/authorization-context";
 import type { CompanyContext } from "@/app/services/company-context";
