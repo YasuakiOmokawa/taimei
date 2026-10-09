@@ -3,8 +3,8 @@
 import { Result } from "effect";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { type FailureMessage, failureMessage } from "@/app/lib/team-failure";
 import type { TeamFailure } from "@/app/services/team-errors";
-import { type FailureMessage, failureMessage } from "./failure-message";
 import { parseLevelForm } from "./level-form";
 import { runTeamManagement, runTeamService } from "./run-team-service";
 
