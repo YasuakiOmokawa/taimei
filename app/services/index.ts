@@ -1,9 +1,11 @@
 import { Effect, Layer, ManagedRuntime, Result } from "effect";
 import { resolveCompanyIdOrRedirect } from "../lib/auth-guard";
+import { reportUnexpectedFailure } from "../lib/team-failure";
 import { AuthorizationContext } from "./authorization-context";
 import { CompanyContext } from "./company-context";
 import { CompanyMembers } from "./company-members-service";
 import { Db, DbUnavailable } from "./db-service";
+import type { TeamFailure } from "./team-errors";
 import { TeamManagement, TeamService } from "./team-service";
 
 const Live = CompanyMembers.layer;
@@ -16,9 +18,16 @@ const ManagerScoped = TeamManagement.layer;
 
 const runtime = ManagedRuntime.make(Live);
 
-export const runService = <A, E>(
+const reportingUnexpectedFailure = <A, E extends TeamFailure>(
+  result: Result.Result<A, E>,
+) => {
+  if (Result.isFailure(result)) reportUnexpectedFailure(result.failure);
+  return result;
+};
+
+export const runService = <A, E extends TeamFailure>(
   body: () => Effect.Effect<A, E, LiveServices>,
-) => runtime.runPromise(Effect.result(body()));
+) => runtime.runPromise(Effect.result(body())).then(reportingUnexpectedFailure);
 
 type ProvidedPerRequest = Db | CompanyContext | AuthorizationContext;
 
@@ -37,13 +46,14 @@ class BodyDefect {
 }
 
 // companyId を引数で受けず session から導く理由は docs/adr/0002-company-data-scoping.md (D3)
-const runInCompanyScope = async <A, E>(
+const runInCompanyScope = async <A, E extends TeamFailure>(
   body: () => Effect.Effect<A, E, LiveServices | ProvidedPerRequest>,
 ): Promise<Result.Result<A, E | DbUnavailable>> => {
   const { companyId, session } = await resolveCompanyIdOrRedirect();
   // ponytail: CompanyMembers の RPC を待つ間も接続を 1 本持つ (上限は auth の RPC の timeout)。pool が足りなくなったら RPC を transaction の外に出す
+  let result: Result.Result<A, E | DbUnavailable>;
   try {
-    return await Db.inCompanyScope(companyId, (tx) =>
+    result = await Db.inCompanyScope(companyId, (tx) =>
       runtime
         .runPromise(
           Effect.result(
@@ -63,12 +73,13 @@ const runInCompanyScope = async <A, E>(
     );
   } catch (error) {
     if (error instanceof BodyDefect) throw error.defect;
-    return Result.fail(new DbUnavailable({ cause: error }));
+    result = Result.fail(new DbUnavailable({ cause: error }));
   }
+  return reportingUnexpectedFailure(result);
 };
 
 // Service の union を手書きすると、Layer に足した Service が実行口の型から漏れる
-export const runScopedService = <A, E>(
+export const runScopedService = <A, E extends TeamFailure>(
   body: () => Effect.Effect<
     A,
     E,
@@ -76,7 +87,7 @@ export const runScopedService = <A, E>(
   >,
 ) => runInCompanyScope(() => body().pipe(Effect.provide(RequestScoped)));
 
-export const runManagerScopedService = <A, E>(
+export const runManagerScopedService = <A, E extends TeamFailure>(
   body: () => Effect.Effect<
     A,
     E,

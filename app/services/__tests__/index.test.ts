@@ -1,18 +1,25 @@
+import * as Sentry from "@sentry/nextjs";
 import type { Role } from "@taimei-code/auth-client";
 import { eq } from "drizzle-orm";
 import { Effect, Result } from "effect";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveCompanyIdOrRedirect } from "@/app/lib/auth-guard";
 import { db } from "@/db/drizzle/client";
 import { teams } from "@/db/drizzle/schema";
 import { CompanyId } from "@/db/ids";
-import { runManagerScopedService, runScopedService } from "..";
+import { runManagerScopedService, runScopedService, runService } from "..";
 import { AuthorizationContext } from "../authorization-context";
 import { CompanyContext } from "../company-context";
+import { MemberListError } from "../company-members-service";
 import { Db, DbUnavailable } from "../db-service";
-import { NotManager } from "../team-errors";
+import { NotManager, TeamServiceError } from "../team-errors";
 import { TeamManagement, TeamService } from "../team-service";
 import { currentCompanySetting } from "./db/test-db";
+
+vi.mock("@sentry/nextjs", () => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+}));
 
 vi.mock("@/app/lib/auth-guard", () => ({
   resolveCompanyIdOrRedirect: vi.fn(),
@@ -25,6 +32,13 @@ vi.mock("@/db/drizzle/client", async () => {
   return { db: drizzle(TEST_DATABASE_URL, { schema }) };
 });
 
+beforeEach(() => vi.clearAllMocks());
+
+const expectNotReported = () => {
+  expect(Sentry.captureException).not.toHaveBeenCalled();
+  expect(Sentry.captureMessage).not.toHaveBeenCalled();
+};
+
 const resolveSession = ({ userId, role }: { userId: string; role?: Role }) =>
   vi.mocked(resolveCompanyIdOrRedirect).mockResolvedValue({
     companyId: "cmp_from_session",
@@ -36,7 +50,7 @@ describe("runScopedService", () => {
     vi.restoreAllMocks();
   });
 
-  it("session の事業所を CompanyContext として本体に渡す", async () => {
+  it("session の事業所を CompanyContext として本体に渡し、成功は Sentry に送らない", async () => {
     resolveSession({ userId: "u_1", role: "ADMIN" });
 
     const result = await runScopedService(() =>
@@ -48,6 +62,7 @@ describe("runScopedService", () => {
 
     expect(Result.isSuccess(result)).toBe(true);
     expect(Result.getOrThrow(result)).toBe("cmp_from_session");
+    expectNotReported();
   });
 
   it("session の user id と role を AuthorizationContext として本体に渡す", async () => {
@@ -128,7 +143,7 @@ describe("runScopedService", () => {
     expect(Result.isSuccess(result)).toBe(true);
   });
 
-  it("transaction を開けない時は、reject せず DbUnavailable の失敗を返す", async () => {
+  it("transaction を開けない時は、reject せず DbUnavailable の失敗を返し、原因を Sentry に 1 回送る", async () => {
     resolveSession({ userId: "u_1", role: "ADMIN" });
     const cause = new Error("connection refused");
     vi.spyOn(db, "transaction").mockRejectedValue(cause);
@@ -136,18 +151,45 @@ describe("runScopedService", () => {
     const result = await runScopedService(() => Effect.succeed("unreachable"));
 
     expect(result).toEqual(Result.fail(new DbUnavailable({ cause })));
+    expect(Sentry.captureException).toHaveBeenCalledExactlyOnceWith(cause);
   });
 
-  it("本体の defect は今までどおり reject する", async () => {
+  it("transaction を開く呼び出しが同期で投げても、reject せず DbUnavailable の失敗を返す", async () => {
+    resolveSession({ userId: "u_1", role: "ADMIN" });
+    const cause = new Error("pool closed");
+    vi.spyOn(db, "transaction").mockImplementation(() => {
+      throw cause;
+    });
+
+    const result = await runScopedService(() => Effect.succeed("unreachable"));
+
+    expect(result).toEqual(Result.fail(new DbUnavailable({ cause })));
+    expect(Sentry.captureException).toHaveBeenCalledExactlyOnceWith(cause);
+  });
+
+  it("本体の予期しない失敗は、その失敗を返し、原因を Sentry に 1 回送る", async () => {
+    resolveSession({ userId: "u_1", role: "ADMIN" });
+    const cause = new Error("query failed");
+
+    const result = await runScopedService(() =>
+      Effect.fail(new TeamServiceError({ cause })),
+    );
+
+    expect(result).toEqual(Result.fail(new TeamServiceError({ cause })));
+    expect(Sentry.captureException).toHaveBeenCalledExactlyOnceWith(cause);
+  });
+
+  it("本体の defect は今までどおり reject し、Sentry に送らない", async () => {
     resolveSession({ userId: "u_1", role: "ADMIN" });
     const defect = new Error("bug");
 
     await expect(runScopedService(() => Effect.die(defect))).rejects.toBe(
       defect,
     );
+    expectNotReported();
   });
 
-  it("事業所を導けず redirect するとき本体を実行しない", async () => {
+  it("事業所を導けず redirect するとき本体を実行せず、Sentry に送らない", async () => {
     vi.mocked(resolveCompanyIdOrRedirect).mockRejectedValue(
       new Error("NEXT_REDIRECT"),
     );
@@ -157,6 +199,7 @@ describe("runScopedService", () => {
     await expect(runScopedService(body)).rejects.toThrow("NEXT_REDIRECT");
     expect(body).not.toHaveBeenCalled();
     expect(transaction).not.toHaveBeenCalled();
+    expectNotReported();
   });
 });
 
@@ -175,7 +218,19 @@ describe("runManagerScopedService", () => {
     expect(Result.isSuccess(result)).toBe(true);
   });
 
-  it("管理者でない人には、管理者の request の後でも NotManager を返し、本体を実行しない", async () => {
+  it("管理の本体の予期しない失敗は、その失敗を返し、原因を Sentry に 1 回送る", async () => {
+    resolveSession({ userId: "u_1", role: "ADMIN" });
+    const cause = new Error("query failed");
+
+    const result = await runManagerScopedService(() =>
+      TeamManagement.use(() => Effect.fail(new TeamServiceError({ cause }))),
+    );
+
+    expect(result).toEqual(Result.fail(new TeamServiceError({ cause })));
+    expect(Sentry.captureException).toHaveBeenCalledExactlyOnceWith(cause);
+  });
+
+  it("管理者でない人には、管理者の request の後でも NotManager を返し、本体を実行せず、Sentry に送らない", async () => {
     resolveSession({ userId: "u_admin", role: "ADMIN" });
     const byManager = await runManagerScopedService(() =>
       TeamManagement.use(() => Effect.void),
@@ -188,5 +243,34 @@ describe("runManagerScopedService", () => {
     expect(Result.isSuccess(byManager)).toBe(true);
     expect(byMember).toEqual(Result.fail(new NotManager()));
     expect(body).not.toHaveBeenCalled();
+    expectNotReported();
+  });
+});
+
+describe("runService", () => {
+  it("本体が成功する時は Sentry に送らない", async () => {
+    const result = await runService(() => Effect.succeed("ok"));
+
+    expect(Result.getOrThrow(result)).toBe("ok");
+    expectNotReported();
+  });
+
+  it("本体の defect は reject し、Sentry に送らない", async () => {
+    const defect = new Error("bug");
+
+    await expect(runService(() => Effect.die(defect))).rejects.toBe(defect);
+    expectNotReported();
+  });
+
+  it("本体の予期しない失敗は、その失敗を返し、Sentry に 1 回送る", async () => {
+    const result = await runService(() =>
+      Effect.fail(new MemberListError({ cause: 2 })),
+    );
+
+    expect(result).toEqual(Result.fail(new MemberListError({ cause: 2 })));
+    expect(Sentry.captureMessage).toHaveBeenCalledExactlyOnceWith(
+      "listMembers failed",
+      { level: "error", extra: { reason: 2 } },
+    );
   });
 });
