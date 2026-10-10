@@ -1,7 +1,6 @@
-import * as Sentry from "@sentry/nextjs";
 import { Match } from "effect";
-import type { TeamFailure } from "@/app/services/team-errors";
 import { NAME_MAX_LENGTH } from "@/db/drizzle/schema";
+import type { TeamFailure } from "@/src/services/team-errors";
 
 type FailureHandling = {
   readonly message: string;
@@ -22,7 +21,7 @@ const unexpectedFailure = (
 });
 
 const unexpectedDbFailure = ({ cause }: { readonly cause: unknown }) =>
-  unexpectedFailure("保存に失敗しました", () => Sentry.captureException(cause));
+  unexpectedFailure("保存に失敗しました", () => console.error(cause));
 
 const handlingOf = (failure: TeamFailure) =>
   Match.valueTags(failure, {
@@ -38,10 +37,7 @@ const handlingOf = (failure: TeamFailure) =>
     InvalidLevel: () => expectedFailure("レベルの値が正しくありません"),
     MemberListError: ({ cause }) =>
       unexpectedFailure("メンバー一覧を取得できませんでした", () =>
-        Sentry.captureMessage("listMembers failed", {
-          level: "error",
-          extra: { reason: cause },
-        }),
+        console.error("listMembers failed", cause),
       ),
     TeamServiceError: unexpectedDbFailure,
     DbUnavailable: unexpectedDbFailure,
@@ -52,5 +48,3 @@ export const failureMessage = (failure: TeamFailure) =>
 
 export const reportUnexpectedFailure = (failure: TeamFailure) =>
   handlingOf(failure).report?.();
-
-export type FailureMessage = string | null;

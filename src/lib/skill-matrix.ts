@@ -1,6 +1,6 @@
 import type { Member } from "@taimei-code/auth-client";
-import type { Level } from "@/app/services/level";
-import type { TeamDetail } from "@/app/services/team-service";
+import type { Level } from "@/src/services/level";
+import type { TeamDetail } from "@/src/services/team-service";
 
 type Skill = TeamDetail["skills"][number];
 
@@ -37,11 +37,6 @@ export type Roster =
 
 const CAN_DO_ALONE: Level = 2;
 const MAX_CAN_DO_ALONE_IN_BIASED_SKILL = 1;
-
-export const BIAS_RULE = {
-  atOrAboveLevel: CAN_DO_ALONE,
-  atMostPeople: MAX_CAN_DO_ALONE_IN_BIASED_SKILL,
-} as const;
 
 const canDoAlone = (level: Level) => level >= CAN_DO_ALONE;
 

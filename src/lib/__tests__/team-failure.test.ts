@@ -1,7 +1,6 @@
-import * as Sentry from "@sentry/nextjs";
 import { beforeEach, expect, it, vi } from "vitest";
-import { MemberListError } from "@/app/services/company-members-service";
-import { DbUnavailable } from "@/app/services/db-service";
+import { MemberListError } from "@/src/services/company-members-service";
+import { DbUnavailable } from "@/src/services/db-service";
 import {
   DuplicateName,
   InvalidLevel,
@@ -13,13 +12,10 @@ import {
   type TeamFailure,
   TeamNotFound,
   TeamServiceError,
-} from "@/app/services/team-errors";
+} from "@/src/services/team-errors";
 import { failureMessage, reportUnexpectedFailure } from "../team-failure";
 
-vi.mock("@sentry/nextjs", () => ({
-  captureException: vi.fn(),
-  captureMessage: vi.fn(),
-}));
+const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -86,43 +82,36 @@ it.each(handlings)("%s の文言", (failure, message) => {
 });
 
 it.each(handlings.filter(([, , reporting]) => reporting === "reported"))(
-  "予期しない失敗 %s は Sentry に 1 回送る",
+  "予期しない失敗 %s は 1 回報告する",
   (failure) => {
     reportUnexpectedFailure(failure);
 
-    expect(
-      vi.mocked(Sentry.captureException).mock.calls.length +
-        vi.mocked(Sentry.captureMessage).mock.calls.length,
-    ).toBe(1);
+    expect(consoleError).toHaveBeenCalledOnce();
   },
 );
 
 it.each(handlings.filter(([, , reporting]) => reporting === "notReported"))(
-  "利用者の操作で起きる失敗 %s は送らない",
+  "利用者の操作で起きる失敗 %s は報告しない",
   (failure) => {
     reportUnexpectedFailure(failure);
 
-    expect(Sentry.captureException).not.toHaveBeenCalled();
-    expect(Sentry.captureMessage).not.toHaveBeenCalled();
+    expect(consoleError).not.toHaveBeenCalled();
   },
 );
 
 const cause = new Error("connection refused");
 
 it.each([new TeamServiceError({ cause }), new DbUnavailable({ cause })])(
-  "DB の失敗 %s は原因の例外を送る",
+  "DB の失敗 %s は原因の例外を報告する",
   (failure) => {
     reportUnexpectedFailure(failure);
 
-    expect(Sentry.captureException).toHaveBeenCalledExactlyOnceWith(cause);
+    expect(consoleError).toHaveBeenCalledExactlyOnceWith(cause);
   },
 );
 
-it("メンバー一覧の取得の失敗は、listMembers failed と reason で送る", () => {
+it("メンバー一覧の取得の失敗は、listMembers failed と reason で報告する", () => {
   reportUnexpectedFailure(new MemberListError({ cause: 2 }));
 
-  expect(Sentry.captureMessage).toHaveBeenCalledExactlyOnceWith(
-    "listMembers failed",
-    { level: "error", extra: { reason: 2 } },
-  );
+  expect(consoleError).toHaveBeenCalledExactlyOnceWith("listMembers failed", 2);
 });

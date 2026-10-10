@@ -4,7 +4,7 @@ import {
   switchToRoleWithoutRlsBypass,
   type TestDb,
   withRollback,
-} from "@/app/services/__tests__/db/test-db";
+} from "@/src/services/__tests__/db/test-db";
 import {
   memberSkills,
   skills,

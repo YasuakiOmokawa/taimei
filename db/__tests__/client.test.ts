@@ -1,10 +1,10 @@
 import { sql } from "drizzle-orm";
 import { afterEach, expect, it, vi } from "vitest";
-import { TEST_DATABASE_URL } from "@/app/services/__tests__/db/global-setup";
+import { TEST_DATABASE_URL } from "@/src/services/__tests__/db/global-setup";
 import {
   currentCompanySetting,
   type TestDb,
-} from "@/app/services/__tests__/db/test-db";
+} from "@/src/services/__tests__/db/test-db";
 import { CompanyId } from "../ids";
 import { withCompanyScope } from "../scoped";
 

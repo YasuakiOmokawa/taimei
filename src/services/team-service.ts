@@ -72,7 +72,7 @@ const decodeErrorWithPgCause = Schema.decodeUnknownOption(ErrorWithPgCause);
 const violationOf = (error: unknown): Violation =>
   Option.getOrUndefined(decodeErrorWithPgCause(error))?.cause ?? {};
 
-export type LevelEntry = {
+type LevelEntry = {
   readonly skillId: string;
   readonly level: string;
   readonly wantsToLearn: boolean;
@@ -174,7 +174,7 @@ export class TeamService extends Context.Service<
       RequestContext
     >;
   }
->()("taimei/app/services/TeamService") {
+>()("taimei/src/services/TeamService") {
   static readonly layer = Layer.effect(
     TeamService,
     Effect.gen(function* () {
@@ -380,7 +380,7 @@ export class TeamManagement extends Context.Service<
       userId: string,
     ): Effect.Effect<void, TeamNotFound | TeamServiceError, CompanyContext>;
   }
->()("taimei/app/services/TeamManagement") {
+>()("taimei/src/services/TeamManagement") {
   static readonly layer = Layer.effect(
     TeamManagement,
     Effect.gen(function* () {

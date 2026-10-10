@@ -1,8 +1,8 @@
 import type { Member } from "@taimei-code/auth-client";
 import { expect, it } from "vitest";
-import type { Level } from "@/app/services/level";
-import type { TeamDetail } from "@/app/services/team-service";
 import { SkillId, TeamId } from "@/db/ids";
+import type { Level } from "@/src/services/level";
+import type { TeamDetail } from "@/src/services/team-service";
 import { teamSkillMatrix } from "../skill-matrix";
 
 const member = (userId: string): Member => ({

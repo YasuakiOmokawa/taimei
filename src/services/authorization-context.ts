@@ -5,7 +5,7 @@ import { Context } from "effect";
 export class AuthorizationContext extends Context.Service<
   AuthorizationContext,
   { readonly userId: string; readonly role: Role | undefined }
->()("taimei/app/services/AuthorizationContext") {}
+>()("taimei/src/services/AuthorizationContext") {}
 
 // undefined は SDK の約束で権限なし
 export const isManager = (role: Role | undefined) =>

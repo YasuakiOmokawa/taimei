@@ -5,4 +5,4 @@ import type { CompanyId } from "@/db/ids";
 export class CompanyContext extends Context.Service<
   CompanyContext,
   { readonly companyId: CompanyId }
->()("taimei/app/services/CompanyContext") {}
+>()("taimei/src/services/CompanyContext") {}

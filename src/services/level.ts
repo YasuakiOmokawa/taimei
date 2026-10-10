@@ -16,10 +16,3 @@ export const levelSymbols: Record<Level, string> = {
   2: "○",
   3: "◎",
 };
-
-export const levelLabels: Record<Level, string> = {
-  0: "未経験",
-  1: "支援があればできる",
-  2: "一人でできる",
-  3: "教えられる",
-};

@@ -1,9 +1,8 @@
-import * as Sentry from "@sentry/nextjs";
 import { and, inArray, lte, sql } from "drizzle-orm";
-import type { Db } from "@/app/services/db-service";
 import { teamAssignments, teams } from "@/db/drizzle/schema";
 import { CompanyId } from "@/db/ids";
 import { companyFilter, withCompanyScope } from "@/db/scoped";
+import type { Db } from "@/src/services/db-service";
 
 export type CheckMemberships = (request: {
   companyId: string;
@@ -44,7 +43,7 @@ export const purgeDeparted = async ({
     );
     const answer = await checkMemberships({ companyId, userIds }).catch(
       (cause: unknown) => {
-        Sentry.captureException(cause, { extra: { companyId } });
+        console.error("checkMemberships failed", companyId, cause);
         return undefined;
       },
     );
