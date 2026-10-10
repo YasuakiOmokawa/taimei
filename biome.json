@@ -16,6 +16,21 @@
       "!vendor/**"
     ]
   },
+  "plugins": [
+    {
+      "path": "./biome-plugins/no-raw-request-input.grit",
+      "includes": ["**/src/**/*.ts", "!**/web/**", "!**/__tests__/**"]
+    },
+    {
+      "path": "./biome-plugins/no-direct-json.grit",
+      "includes": [
+        "**/src/**/*.ts",
+        "!**/web/**",
+        "!**/src/run-json.ts",
+        "!**/__tests__/**"
+      ]
+    }
+  ],
   "formatter": {
     "enabled": true,
     "indentStyle": "space",

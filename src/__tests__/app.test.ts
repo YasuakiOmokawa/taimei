@@ -227,6 +227,15 @@ describe("/auth の着地", () => {
     },
   );
 
+  it("callbackUrl を重ねた /auth は callbackUrl 無しと同じ", async () => {
+    const response = await get(
+      "/auth?callbackUrl=/a&callbackUrl=/b",
+      envWith(sessionOk),
+    );
+
+    expect(response.headers.get("Location")).toBe(login());
+  });
+
   it.each(["/.//evil.example/x", "/a/..//evil.example/x"])(
     "正規化すると // で始まる callbackUrl %s の after-signin は別の origin へ移さない",
     async (callbackUrl) => {
@@ -273,6 +282,16 @@ describe("/auth の着地", () => {
 
     expect(response.status).toBe(302);
     expect(response.headers.get("Location")).toBe(`${ORIGIN}/dashboard/teams`);
+  });
+
+  it("callbackUrl を重ねた after-signin は /dashboard へ", async () => {
+    const response = await get(
+      "/auth/after-signin?callbackUrl=/a&callbackUrl=/b",
+      envWith(sessionOk),
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("Location")).toBe(`${ORIGIN}/dashboard`);
   });
 
   it("callbackUrl の無い after-signin は /dashboard へ", async () => {
