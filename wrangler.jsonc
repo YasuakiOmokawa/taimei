@@ -1,0 +1,15 @@
+{
+  "name": "taimei-prototype",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-06-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "alias": { "server-only": "./__tests__/utils/server-only-mock.ts" },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "00000000000000000000000000000000",
+      "localConnectionString": "postgresql://taimei_app:taimei_app@localhost:5434/taimei_proto"
+    }
+  ]
+}
