@@ -24,6 +24,7 @@ const applicationNameOf = async (db: Pick<TestDb, "execute">) =>
 const importClientWithDatabaseUrl = async (databaseUrl: string | undefined) => {
   vi.stubEnv("DATABASE_URL", databaseUrl);
   const client = await import("../drizzle/client");
+  // biome-ignore lint/style/noRestrictedImports: 要求の Pool の振る舞いを確かめる
   const pools = await import("../drizzle/pool");
   const insideRequestPool = async <T>(
     applicationName: string,

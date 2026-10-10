@@ -63,6 +63,17 @@
         "noCommonJs": "error",
         "noHeadElement": "warn",
         "noNamespace": "error",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["**/drizzle/pool", "./pool"],
+                "message": "db/drizzle/pool は Worker の入口と db/drizzle/client.ts だけが使う (db/CLAUDE.md)"
+              }
+            ]
+          }
+        },
         "useArrayLiterals": "error",
         "useAsConstAssertion": "error"
       },
