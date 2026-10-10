@@ -13,73 +13,100 @@ import {
   TeamNotFound,
   TeamServiceError,
 } from "@/src/services/team-errors";
-import { failureMessage, reportUnexpectedFailure } from "../team-failure";
+import {
+  failureMessage,
+  failureStatus,
+  reportUnexpectedFailure,
+} from "../team-failure";
 
 const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
 beforeEach(() => vi.clearAllMocks());
 
 type Reporting = "reported" | "notReported";
+type Handling = readonly [TeamFailure, string, Reporting, number];
 
 const handlingByTag = {
-  NotManager: [new NotManager(), "管理者だけが操作できます", "notReported"],
+  NotManager: [
+    new NotManager(),
+    "管理者だけが操作できます",
+    "notReported",
+    403,
+  ],
   TeamNotFound: [
     new TeamNotFound({ teamId: "t" }),
     "チームが見つかりません",
     "notReported",
+    404,
   ],
-  SkillNotFound: [new SkillNotFound(), "スキルが見つかりません", "notReported"],
+  SkillNotFound: [
+    new SkillNotFound(),
+    "スキルが見つかりません",
+    "notReported",
+    404,
+  ],
   NotCompanyMember: [
     new NotCompanyMember({ userId: "u" }),
     "事業所のメンバーではありません",
     "notReported",
+    422,
   ],
   MemberListError: [
     new MemberListError({ cause: 2 }),
     "メンバー一覧を取得できませんでした",
     "reported",
+    502,
   ],
   InvalidName: [
     new InvalidName(),
     "名前は 1〜50 文字で入力してください",
     "notReported",
+    422,
   ],
   DuplicateName: [
     new DuplicateName(),
     "同じ名前がすでにあります",
     "notReported",
+    409,
   ],
   NotAssigned: [
     new NotAssigned(),
     "チームに割り当てられた人だけが記入できます",
     "notReported",
+    403,
   ],
   InvalidLevel: [
     new InvalidLevel(),
     "レベルの値が正しくありません",
     "notReported",
+    422,
   ],
   TeamServiceError: [
     new TeamServiceError({ cause: "db" }),
     "保存に失敗しました",
     "reported",
+    500,
   ],
   DbUnavailable: [
     new DbUnavailable({ cause: "db" }),
     "保存に失敗しました",
     "reported",
+    503,
   ],
-} satisfies Record<
-  TeamFailure["_tag"],
-  readonly [TeamFailure, string, Reporting]
->;
+} satisfies Record<TeamFailure["_tag"], Handling>;
 
-const handlings: readonly (readonly [TeamFailure, string, Reporting])[] =
-  Object.values(handlingByTag);
+const handlings: readonly Handling[] = Object.values(handlingByTag);
 
 it.each(handlings)("%s の文言", (failure, message) => {
   expect(failureMessage(failure)).toBe(message);
 });
+
+it.each(handlings)(
+  "%s の状態コード",
+  (failure, _message, _reporting, status) => {
+    expect(failureStatus(failure)).toBe(status);
+  },
+);
 
 it.each(handlings.filter(([, , reporting]) => reporting === "reported"))(
   "予期しない失敗 %s は 1 回報告する",

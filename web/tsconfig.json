@@ -2,7 +2,7 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "types": ["vite/client", "node"],
-    "paths": { "@/*": ["./src/*"] }
+    "paths": { "@/*": ["./src/*", "../*"] }
   },
   "include": ["src", "prerender.tsx", "vite.config.ts", "tailwind.config.ts"],
   "exclude": ["dist"]

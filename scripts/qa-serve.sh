@@ -65,7 +65,7 @@ serve() {
       nohup bun run src/index.ts >"$STATE/auth.log" 2>&1 &
   )
   bun run build >"$STATE/app.log" 2>&1
-  PORT=3000 AUTH_SERVICE_URL=http://localhost:3110 DATABASE_URL=postgres://$app_db_user@localhost:5446/taimei \
+  PORT=3000 AUTH_URL=http://localhost:3110 AUTH_SERVICE_URL=http://localhost:3110 DATABASE_URL=postgres://$app_db_user@localhost:5446/taimei \
     nohup bun run start >>"$STATE/app.log" 2>&1 &
   wait_for http://localhost:3110/
   wait_for http://localhost:3000/

@@ -12,6 +12,14 @@
   </head>
   <body class="antialiased">
     <div id="root"></div>
+    <script>
+      // Static Assets は prerender していない path にも / の prerender (index.html) を返すので、JS が描くまで LP を見せない
+      {
+        const root = document.getElementById("root");
+        if (root.dataset.prerenderedPath !== location.pathname)
+          root.replaceChildren();
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
