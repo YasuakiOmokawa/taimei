@@ -64,13 +64,13 @@ serve() {
       AUTH_SERVICE_KEY= AUTH_SERVICE_KEY_PREVIOUS= \
       nohup bun run src/index.ts >"$STATE/auth.log" 2>&1 &
   )
-  NEXT_PUBLIC_AUTH_URL=http://localhost:3110 NEXT_PUBLIC_APP_URL=http://localhost:3000 \
-    AUTH_SERVICE_URL=http://localhost:3110 DATABASE_URL=postgres://$app_db_user@localhost:5446/taimei \
-    nohup bun run dev >"$STATE/app.log" 2>&1 &
+  bun run build >"$STATE/app.log" 2>&1
+  PORT=3000 AUTH_SERVICE_URL=http://localhost:3110 DATABASE_URL=postgres://$app_db_user@localhost:5446/taimei \
+    nohup bun run start >>"$STATE/app.log" 2>&1 &
   wait_for http://localhost:3110/
   wait_for http://localhost:3000/
 
-  echo "http://localhost:3000/dashboard を開き、$email に Magic Link を送ってから bun run qa:login"
+  echo "http://localhost:3000/ を開き、$email に Magic Link を送ってから bun run qa:login"
 }
 
 login() {
@@ -92,6 +92,8 @@ down() {
   for port in 3000 3110; do
     lsof -tiTCP:"$port" -sTCP:LISTEN | xargs kill 2>/dev/null || true
   done
+  # port 3000 を持つのは workerd だけで、親の wrangler (node) は残る
+  pkill -f "wrangler.js dev --ip 0.0.0.0 --port 3000" || true
   docker rm -f "$PG" >/dev/null 2>&1 || true
   rm -rf "$STATE"
 }

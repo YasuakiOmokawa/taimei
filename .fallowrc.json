@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/fallow/schema.json",
-  "ignoreDependencies": ["pg", "typescript7"],
+  "entry": ["web/src/main.tsx"],
+  "ignoreDependencies": ["pg"],
   "ignorePatterns": ["vendor/**"]
 }

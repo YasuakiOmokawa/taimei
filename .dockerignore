@@ -8,9 +8,9 @@ docker-compose*
 README.md
 LICENSE
 .vscode
-.next
+.wrangler
+web/dist
 *.swp
-/scripts
 
 /vendor
 

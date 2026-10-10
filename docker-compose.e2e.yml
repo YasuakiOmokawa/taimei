@@ -14,7 +14,7 @@ networks:
     driver: bridge
 
 services:
-  # taimei (Next.js) 用 DB
+  # taimei 用 DB
   e2e-postgres:
     image: postgres:16.8-alpine3.21
     volumes:
@@ -81,23 +81,19 @@ services:
         aliases:
           - auth.taimei-code.local
 
-  # taimei (Next.js) — taimei-auth 経由でログインを行う
+  # taimei (build 済みの SPA と Worker を wrangler dev で配る)
   e2e-application:
     build:
       context: '.'
       dockerfile: Dockerfile
       args:
         NPM_TOKEN: ${NPM_TOKEN}
-        NEXT_PUBLIC_APP_URL: http://app.taimei-code.local:3001
-        NEXT_PUBLIC_AUTH_URL: http://auth.taimei-code.local:3100
     command: >
-      sh -c "bunx drizzle-kit migrate && bun start"
+      sh -c "bunx drizzle-kit migrate && bun run start"
     user: vscode
     environment:
       - DATABASE_URL=postgres://postgres:password@e2e-postgres:5433/postgres
       - PORT=3001
-      - NEXT_PUBLIC_APP_URL=http://app.taimei-code.local:3001
-      - NEXT_PUBLIC_AUTH_URL=http://auth.taimei-code.local:3100
       - AUTH_SERVICE_URL=http://auth.taimei-code.local:3100
     develop:
       watch:

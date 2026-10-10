@@ -13,7 +13,7 @@ networks:
     external: true
 
 services:
-  # taimei (Next.js) 用 DB
+  # taimei 用 DB
   postgres:
     image: postgres:16.8-alpine3.21
     volumes:
@@ -55,7 +55,7 @@ services:
     networks:
       - taimei-network
 
-  # taimei (Next.js dev server) — taimei-auth (sibling compose) の auth-service に依存。
+  # taimei (SPA を build して wrangler dev で配る) — taimei-auth (sibling compose) の auth-service に依存。
   # 別 compose のため depends_on で起動順を担保できない。先に taimei-auth 側 compose を起動すること。
   application:
     build:
@@ -63,25 +63,16 @@ services:
       dockerfile: Dockerfile
       args:
         NPM_TOKEN: ${NPM_TOKEN}
-        NEXT_PUBLIC_APP_URL: http://app.taimei-code.local:3001
-        NEXT_PUBLIC_AUTH_URL: http://auth.taimei-code.local:3100
-        # APP_BUILD_CMD="" で Dockerfile の RUN ${APP_BUILD_CMD} を skip する。
-        # next dev (turbopack) が runtime コンパイルするため build 段階は不要。
-        APP_BUILD_CMD: ""
     ports:
       - "3001:3001"
     command: >
-      sh -c "bunx drizzle-kit migrate && bun dev"
+      sh -c "bunx drizzle-kit migrate && bun run build && bun run start"
     user: vscode
     environment:
       - DATABASE_URL=postgres://postgres:password@postgres:5432/postgres
       - PORT=3001
-      - NEXT_PUBLIC_APP_URL=http://app.taimei-code.local:3001
-      - NEXT_PUBLIC_AUTH_URL=http://auth.taimei-code.local:3100
       - AUTH_SERVICE_URL=http://auth.taimei-code.local:3100
-      # taimei → auth-service の ConnectRPC (verifySession 等) で送信する X-Service-Key。
-      # taimei-auth 側の AUTH_SERVICE_KEY と一致必須。一致しないと session 検証が落ち、
-      # after-signin page が getSession()===null を観測して signin_failed に飛ぶ症状になる。
+      # taimei-auth 側の AUTH_SERVICE_KEY と同じ値にする。違うと taimei-auth の RPC が 401 を返す
       - AUTH_SERVICE_KEY=local-dev-key
     develop:
       watch:

@@ -8,9 +8,9 @@
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
+# wrangler・vite
+/.wrangler/
+/web/dist/
 
 # production
 /build
@@ -34,7 +34,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 /test-results/
 /playwright-report/
 /blob-report/
@@ -43,13 +42,7 @@ next-env.d.ts
 # dump
 /dump
 
-
-# Sentry Config File
-.env.sentry-build-plugin
-
 # playwright auth data file
 playwright/.auth
-
-*storybook.log
 
 certs/*.pem
