@@ -1,14 +1,18 @@
 {
-  // 手元の Hyperdrive の接続先は scripts/wrangler-dev.sh が環境変数で渡す
+  // 手元の Hyperdrive の接続先と AUTH_URL・AUTH_SERVICE_URL は scripts/wrangler-dev.sh が環境変数で渡す
   "name": "taimei",
   "main": "src/worker.ts",
   "compatibility_date": "2026-06-18",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": "./web/dist",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    // 配列にすると Sec-Fetch-Mode での振り分けが止まり、ここに無い path は fetch も Static Assets が返す (ADR-0006)
+    "run_worker_first": ["/api/*", "/auth", "/auth/*"]
   },
   "hyperdrive": [
     { "binding": "HYPERDRIVE", "id": "00000000000000000000000000000000" }
-  ]
+  ],
+  "services": [{ "binding": "AUTH", "service": "taimei-auth" }],
+  "vars": { "AUTH_URL": "https://auth.taimei-code.com" }
 }
