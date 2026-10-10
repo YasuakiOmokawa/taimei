@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { buildAuthLoginUrl } from "@taimei-code/auth-client";
 import { Effect, Schema } from "effect";
 import { Hono } from "hono";
@@ -60,6 +61,19 @@ const envWith = (response: () => Response | Promise<Response>): Env => {
 const get = (path: string, env: Env, headers: HeadersInit = COOKIE) =>
   app.request(`${ORIGIN}${path}`, { headers }, env);
 
+const EVERY_PATH = "/*";
+const routes = [
+  ...new Map(
+    app.routes.map(({ method, path }) => [
+      `${method} ${path}`,
+      { method, path },
+    ]),
+  ).values(),
+];
+const routeKey = (r: (typeof routes)[number]) => `${r.method} ${r.path}`;
+const requestMethod = (method: string) => (method === "ALL" ? "GET" : method);
+const pathWithParamsFilled = (path: string) => path.replace(/:[^/]+|\*/g, "x");
+
 const locationOf = (response: Response) =>
   new URL(response.headers.get("Location") ?? "");
 
@@ -73,16 +87,6 @@ afterEach(() => {
 });
 
 describe("/api の session", () => {
-  it("cookie が無ければ 401 で、taimei-auth を呼ばない", async () => {
-    const env = envWith(sessionOk);
-
-    const response = await get("/api/teams", env, {});
-
-    expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ _tag: "Unauthenticated" });
-    expect(binding).not.toHaveBeenCalled();
-  });
-
   it("事業所の無い session は 401", async () => {
     const response = await get(
       "/api/teams",
@@ -110,6 +114,87 @@ describe("/api の session", () => {
 
     expect(response.status).toBe(401);
     expect(consoleError).toHaveBeenCalledOnce();
+  });
+});
+
+describe("全ての route の認証", () => {
+  const PUBLIC_ENDPOINTS = [
+    "GET /auth",
+    "GET /auth/after-signin",
+    "GET /auth/after-signup",
+    "GET /auth/account",
+  ];
+  const nonPublicRoutes = routes.filter(
+    (r) => !PUBLIC_ENDPOINTS.includes(routeKey(r)),
+  );
+
+  it("公開の口は全て route にある", () => {
+    expect(routes.map(routeKey)).toEqual(
+      expect.arrayContaining(PUBLIC_ENDPOINTS),
+    );
+  });
+
+  it("公開でない route がある", () => {
+    expect(nonPublicRoutes.map(routeKey)).toEqual(
+      expect.arrayContaining(["GET /api/me", "GET /api/teams"]),
+    );
+  });
+
+  it.each(PUBLIC_ENDPOINTS)(
+    "%s は cookie 無しでも 401 にしない",
+    async (key) => {
+      const [method, path] = key.split(" ");
+
+      const response = await app.request(
+        `${ORIGIN}${path}`,
+        { method },
+        envWith(sessionError),
+      );
+
+      expect(response.status).not.toBe(401);
+    },
+  );
+
+  it.each(nonPublicRoutes)(
+    "$method $path は cookie 無しで 401",
+    async (route) => {
+      const env = envWith(sessionOk);
+
+      const response = await app.request(
+        `${ORIGIN}${pathWithParamsFilled(route.path)}`,
+        { method: requestMethod(route.method), headers: { Origin: ORIGIN } },
+        env,
+      );
+
+      expect(response.status).toBe(401);
+      expect(await response.json()).toEqual({ _tag: "Unauthenticated" });
+      expect(binding).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe("Worker に届く path", () => {
+  const wranglerConfig = JSON.parse(
+    readFileSync(new URL("../../wrangler.jsonc", import.meta.url), "utf8")
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("//"))
+      .join("\n"),
+  );
+  const runWorkerFirst: string[] = wranglerConfig.assets.run_worker_first;
+  const reachesWorker = (path: string) =>
+    runWorkerFirst.some((pattern) =>
+      pattern.endsWith("*")
+        ? path.startsWith(pattern.slice(0, -1))
+        : path === pattern,
+    );
+
+  it("全ての route の path は run_worker_first に当たる", () => {
+    expect(
+      routes
+        .map((r) => r.path)
+        .filter((path) => path !== EVERY_PATH)
+        .filter((path) => !reachesWorker(pathWithParamsFilled(path))),
+    ).toEqual([]);
   });
 });
 
@@ -156,22 +241,53 @@ describe("GET /api/me", () => {
 });
 
 describe("CSRF と CORS", () => {
-  it("別の origin の form の POST は 403", async () => {
-    const response = await app.request(
-      `${ORIGIN}/api/teams`,
-      {
-        method: "POST",
-        headers: {
-          ...COOKIE,
-          Origin: "https://evil.example",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: "name=x",
-      },
+  const FORM_CONTENT_TYPES = [
+    "application/x-www-form-urlencoded",
+    "multipart/form-data",
+    "text/plain",
+  ];
+  const endpointPaths = [
+    ...new Set(routes.map((r) => pathWithParamsFilled(r.path))),
+  ];
+  const stateChangingFormRequests = endpointPaths.flatMap((path) =>
+    ["POST", "PUT", "PATCH", "DELETE"].flatMap((method) =>
+      FORM_CONTENT_TYPES.map((type) => ({ path, method, type })),
+    ),
+  );
+
+  const formRequest = (
+    origin: string,
+    { path, method, type }: (typeof stateChangingFormRequests)[number],
+  ) =>
+    app.request(
+      `${ORIGIN}${path}`,
+      { method, headers: { Origin: origin, "Content-Type": type }, body: "x" },
       envWith(sessionOk),
     );
 
-    expect(response.status).toBe(403);
+  it("列挙は /api と /api の外の path を含む", () => {
+    expect(endpointPaths).toEqual(
+      expect.arrayContaining(["/api/teams", "/auth"]),
+    );
+  });
+
+  it.each(stateChangingFormRequests)(
+    "$method $path に別の origin から $type で送ると 403",
+    async (request) => {
+      const response = await formRequest("https://evil.example", request);
+
+      expect(response.status).toBe(403);
+    },
+  );
+
+  it("同じ origin の form の POST は CSRF で止めない", async () => {
+    const response = await formRequest(ORIGIN, {
+      path: "/api/teams",
+      method: "POST",
+      type: "application/x-www-form-urlencoded",
+    });
+
+    expect(response.status).toBe(401);
   });
 
   it("別の origin の GET にも Access-Control-Allow-Origin を付けない", async () => {

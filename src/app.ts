@@ -53,21 +53,7 @@ const callbackPathValidator = validator("query", (query, c) => ({
 }));
 
 export const app = new Hono<AppEnv>()
-  .use("/api/*", csrf())
-  .use("/api/*", requireSession)
-  .get("/api/me", (c) =>
-    encodedJson(c, Me, {
-      name: c.var.session.userName,
-      canManage: isManager(c.var.session.role),
-    }),
-  )
-  .get("/api/teams", (c) =>
-    runJson(c, Teams, () =>
-      TeamService.use((service) => service.listTeams).pipe(
-        Effect.map((teams) => ({ teams })),
-      ),
-    ),
-  )
+  .use(csrf())
   .get("/auth", callbackPathValidator, (c) =>
     c.redirect(
       loginLocation(
@@ -97,6 +83,20 @@ export const app = new Hono<AppEnv>()
       ),
     ),
   )
-  .get("/auth/account", (c) => c.redirect(accountLocation(c.env.AUTH_URL)));
+  .get("/auth/account", (c) => c.redirect(accountLocation(c.env.AUTH_URL)))
+  .use(requireSession)
+  .get("/api/me", (c) =>
+    encodedJson(c, Me, {
+      name: c.var.session.userName,
+      canManage: isManager(c.var.session.role),
+    }),
+  )
+  .get("/api/teams", (c) =>
+    runJson(c, Teams, () =>
+      TeamService.use((service) => service.listTeams).pipe(
+        Effect.map((teams) => ({ teams })),
+      ),
+    ),
+  );
 
 export type AppType = typeof app;
