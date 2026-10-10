@@ -1,0 +1,14 @@
+{
+  // 手元の Hyperdrive の接続先は scripts/wrangler-dev.sh が環境変数で渡す
+  "name": "taimei",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-06-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./web/dist",
+    "not_found_handling": "single-page-application"
+  },
+  "hyperdrive": [
+    { "binding": "HYPERDRIVE", "id": "00000000000000000000000000000000" }
+  ]
+}

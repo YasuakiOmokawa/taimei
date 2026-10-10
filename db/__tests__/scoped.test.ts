@@ -2,11 +2,11 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { PgDialect, pgTable, varchar } from "drizzle-orm/pg-core";
 import { Client } from "pg";
 import { expect, it } from "vitest";
-import { TEST_DATABASE_URL } from "@/app/services/__tests__/db/global-setup";
+import { TEST_DATABASE_URL } from "@/src/services/__tests__/db/global-setup";
 import {
   currentCompanySetting,
   withRollback,
-} from "@/app/services/__tests__/db/test-db";
+} from "@/src/services/__tests__/db/test-db";
 import * as schema from "../drizzle/schema";
 import { CompanyId } from "../ids";
 import { companyFilter, withCompanyScope } from "../scoped";

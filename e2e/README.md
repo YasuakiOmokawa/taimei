@@ -9,7 +9,7 @@ docker-compose.e2e.yml
 ├── e2e-postgres        (taimei DB, port 5433)
 ├── e2e-auth-postgres   (taimei-auth DB, port 5435)
 ├── e2e-auth-service    (taimei-auth, port 3100, alias: auth.taimei-code.local)
-├── e2e-application     (taimei Next.js, port 3001, alias: app.taimei-code.local)
+├── e2e-application     (taimei の SPA と Worker を wrangler dev で配る, port 3001, alias: app.taimei-code.local)
 └── e2e                 (Playwright runner)
 ```
 
@@ -21,19 +21,13 @@ host には port を公開しない (Playwright UI の 9323 のみ) ので、dev
 
 `@taimei-code/auth-client` (GitHub Packages, private) を build 時に install するため `read:packages` 権限を持つ GitHub PAT が必要。プロジェクトルート `.env` に書いておけば docker compose が自動読み込み。
 
-### 2. taimei-auth sibling repo
+### 2. taimei-auth
 
-`docker-compose.e2e.yml` は `context: '../taimei-auth'` を参照する。同じ親ディレクトリに taimei-auth を clone しておく:
-
-```
-parent/
-├── taimei/
-└── taimei-auth/   ← 必須
-```
+`docker-compose.e2e.yml` は submodule の `vendor/taimei-auth` を build する。準備は root の `README.md` の「前提」。
 
 ### 3. TLS 復号 proxy 配下の場合
 
-proxy の CA を `certs/palo-root.pem` に置く (gitignore 済み)。無いと image build 中の `bun install` / `npm ci` / `next build` が `SELF_SIGNED_CERT_IN_CHAIN` で落ちる。
+proxy の CA を `certs/palo-root.pem` に置く (gitignore 済み)。無いと image build 中の `bun install` / `npm ci` が `SELF_SIGNED_CERT_IN_CHAIN` で落ちる。
 
 ## 実行
 
@@ -50,7 +44,7 @@ E2E_SERVICE_COMMAND='npm test' \
 ### 特定 spec のみ実行 (高速)
 
 ```bash
-E2E_SERVICE_COMMAND='npx playwright test --grep "未認証で保護ルート" --reporter=line --retries=0' \
+E2E_SERVICE_COMMAND='npx playwright test --grep "プライバシーポリシー" --reporter=line --retries=0' \
   docker compose -p taimei-e2e -f docker-compose.e2e.yml \
   up --build --abort-on-container-exit --exit-code-from e2e
 ```
@@ -81,14 +75,7 @@ docker logs taimei-e2e-e2e-auth-service-1 2>&1 | grep "Magic Link"
 
 | spec | 内容 |
 |------|------|
-| `auth.spec.ts` | taimei-auth 経由の認証フロー全 7 件 (未認証 redirect / Magic Link / taimei-auth 画面遷移 / Error 画面) |
-| `dashboard.spec.ts` | dashboard ページの表示確認 |
-
-`tests/utils/signIn.ts` の `signInWithMagicLink` helper が:
-1. `/api/auth/sign-in/magic-link` を fetch (verification record DB 書き込み)
-2. `verification` table を post-filter で検索 (Better Auth の value format `{email,name?,attempt}` 対応)
-3. raw token を `/api/auth/magic-link/verify?token=...` に渡す
-4. Set-Cookie を BrowserContext に注入 (cross-subdomain `.taimei-code.local`)
+| `public.spec.ts` | 公開ページ (`/`・`/privacy`) の表示と遷移。hydrate の食い違いを含め、console の error が 0 件 |
 
 ## トラブルシューティング
 

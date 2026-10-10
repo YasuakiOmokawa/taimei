@@ -5,14 +5,11 @@
     "ignoreUnknown": true,
     "includes": [
       "**",
-      "!**/.next/**",
       "!**/node_modules/**",
       "!**/dist/**",
       "!**/build/**",
-      "!**/storybook-static/**",
       "!**/coverage/**",
       "!**/*.generated.*",
-      "!app/_proto/**",
       "!drizzle/migrations/**",
       "!e2e/playwright-report/**",
       "!e2e/test-results/**",
@@ -46,22 +43,17 @@
       "preset": "none",
       "complexity": { "noUselessTypeConstraint": "error" },
       "correctness": {
-        "noNextAsyncClientComponent": "warn",
         "noUnusedVariables": {
           "level": "warn",
           "options": {
             "ignoreRestSiblings": true
           }
-        }
-      },
-      "performance": {
-        "noImgElement": "warn",
-        "noUnwantedPolyfillio": "warn",
-        "useGoogleFontPreconnect": "warn"
+        },
+        "useExhaustiveDependencies": "error",
+        "useHookAtTopLevel": "error"
       },
       "style": {
         "noCommonJs": "error",
-        "noHeadElement": "warn",
         "noNamespace": "error",
         "noRestrictedImports": {
           "level": "error",
@@ -78,34 +70,17 @@
         "useAsConstAssertion": "error"
       },
       "suspicious": {
-        "noDocumentImportInPage": "error",
         "noExplicitAny": "error",
         "noExtraNonNullAssertion": "error",
-        "noHeadImportInDocument": "error",
         "noMisleadingInstantiator": "error",
         "noNonNullAssertedOptionalChain": "error",
         "noUnsafeDeclarationMerging": "error",
         "noUnusedExpressions": "off",
-        "useGoogleFontDisplay": "warn",
         "useNamespaceKeyword": "error"
       }
     }
   },
   "overrides": [
-    {
-      "includes": [
-        "*.config.js",
-        "*.config.cjs",
-        "postcss.config.*",
-        "tailwind.config.*",
-        "next.config.*"
-      ],
-      "linter": {
-        "rules": {
-          "style": { "noCommonJs": "off" }
-        }
-      }
-    },
     {
       "includes": [
         "**/__tests__/**",

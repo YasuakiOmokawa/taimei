@@ -18,14 +18,12 @@ docker compose up --build --watch   # 別ターミナルで taimei 側
 
 `http://app.taimei-code.local:3001` を開く。Magic Link は `docker logs taimei-auth-auth-service-1 | grep "Magic Link"` で取得する。
 
+taimei は SPA (`web/`) を `bun run build` で build し、Worker (`src/worker.ts`) と一緒に `bun run start` (`wrangler dev`) で配る。`wrangler dev` は `.env`・`.dev.vars` を読まず、`APP_`・`AUTH_` で始まる環境変数だけを Worker に渡す (`scripts/wrangler-dev.sh`)。画面だけを直すときは `bun run dev` (vite の dev server) で見る。
+
 ## E2E
 
-```console
-E2E_SERVICE_COMMAND='npm test' \
-  docker compose -p taimei-e2e -f docker-compose.e2e.yml \
-  up --build --abort-on-container-exit --exit-code-from e2e
-```
+流し方は `e2e/README.md`。
 
 ## 型チェック
 
-`bun run typecheck` を使う (TypeScript 7)。bare の `typescript` は typescript-eslint と next build のために 6.0 のまま残しているので、`bun tsc` は 6.0 を指す。
+`bun run typecheck` を使う (TypeScript 7。root と `web/` の tsconfig を両方検査する)。

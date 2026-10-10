@@ -1,9 +1,12 @@
 FROM oven/bun:latest
 
+# image の node は bun の代用で、wrangler dev は bun の上では要求に応答しない
+COPY --from=node:24-bookworm-slim /usr/local/bin/node /usr/local/bin/node
+
 # TLS を復号する proxy 配下では bun install が SELF_SIGNED_CERT_IN_CHAIN で落ちるため certs/palo-root.pem に CA を置く。無い環境では bun が "ignoring extra certs" を 1 行出すだけ
 COPY certs/ /opt/certs/
 ENV NODE_EXTRA_CA_CERTS=/opt/certs/palo-root.pem
-# next build の Google Fonts 取得 (Turbopack の Rust 側) は NODE_EXTRA_CA_CERTS を見ないため OS の CA ストアにも入れる
+# NODE_EXTRA_CA_CERTS を見ない tool のため OS の CA ストアにも入れる
 RUN if [ -f /opt/certs/palo-root.pem ]; then cp /opt/certs/palo-root.pem /usr/local/share/ca-certificates/palo-root.crt && update-ca-certificates; fi
 
 # 一般的なセキュリティ対策として、アプリユーザーの追加。
@@ -34,19 +37,4 @@ RUN bun install --frozen-lockfile --ignore-scripts
 # アプリケーションコードをコピー
 COPY --chown=${username}:${username} . .
 
-# パフォーマンス向上のため、vercelへの情報提供を抑止
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Next.js は NEXT_PUBLIC_* を build 時に bundle / middleware へ static replace するため
-# build args で渡す必要がある (runtime env で override 不可)。production / e2e で
-# 異なる host を渡すため Dockerfile では ARG のみ宣言し、 docker-compose 側で値を渡す。
-ARG NEXT_PUBLIC_APP_URL
-ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
-ARG NEXT_PUBLIC_AUTH_URL
-ENV NEXT_PUBLIC_AUTH_URL=${NEXT_PUBLIC_AUTH_URL}
-
-# 開発環境で環境立ち上げの速度を上げたい場合、以下コマンドを実行して
-# 立ち上げること
-# $ docker compose build --build-arg APP_BUILD_CMD='' && docker compose up --watch
-ARG APP_BUILD_CMD='bun deployable-test'
-RUN ${APP_BUILD_CMD}
+RUN bun run build
