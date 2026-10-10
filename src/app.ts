@@ -1,7 +1,8 @@
 import { Effect, Schema } from "effect";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { csrf } from "hono/csrf";
 import { createMiddleware } from "hono/factory";
+import { validator } from "hono/validator";
 import { isManager } from "@/src/services/authorization-context";
 import { TeamService } from "@/src/services/team-service";
 import {
@@ -28,10 +29,15 @@ const Teams = Schema.Struct({
   ),
 });
 
+const verifySessionCookie = (c: Context<AppEnv>) =>
+  // biome-ignore lint/plugin/no-raw-request-input: session の cookie は taimei-auth が確かめる
+  verifySession(c.env, c.req.header("Cookie"));
+
 // 事業所の無い人も 401 にする。taimei-auth のログインの入口が事業所の登録へ送る
 const requireSession = createMiddleware<AppEnv>(async (c, next) => {
-  const verified = await verifySession(c.env, c.req.header("Cookie"));
+  const verified = await verifySessionCookie(c);
   const session = verified.ok ? requestSessionOf(verified.data) : undefined;
+  // biome-ignore lint/plugin/no-direct-json: 401 の本文は定数で、hc の型に入らない
   if (!session) return c.json({ _tag: "Unauthenticated" as const }, 401);
   c.set("session", session);
   await next();
@@ -39,9 +45,46 @@ const requireSession = createMiddleware<AppEnv>(async (c, next) => {
 
 const originOf = (url: string) => new URL(url).origin;
 
+const callbackPathValidator = validator("query", (query, c) => ({
+  callbackPath: sameOriginCallbackPath(
+    typeof query.callbackUrl === "string" ? query.callbackUrl : undefined,
+    originOf(c.req.url),
+  ),
+}));
+
 export const app = new Hono<AppEnv>()
-  .use("/api/*", csrf())
-  .use("/api/*", requireSession)
+  .use(csrf())
+  .get("/auth", callbackPathValidator, (c) =>
+    c.redirect(
+      loginLocation(
+        c.env.AUTH_URL,
+        originOf(c.req.url),
+        c.req.valid("query").callbackPath,
+      ),
+    ),
+  )
+  .get("/auth/after-signin", callbackPathValidator, async (c) =>
+    c.redirect(
+      afterSignInLocation(
+        await verifySessionCookie(c),
+        c.env.AUTH_URL,
+        originOf(c.req.url),
+        c.req.valid("query").callbackPath,
+      ),
+    ),
+  )
+  .get("/auth/after-signup", async (c) =>
+    c.redirect(
+      afterSignUpLocation(
+        await verifySessionCookie(c),
+        c.env.AUTH_URL,
+        originOf(c.req.url),
+        Date.now(),
+      ),
+    ),
+  )
+  .get("/auth/account", (c) => c.redirect(accountLocation(c.env.AUTH_URL)))
+  .use(requireSession)
   .get("/api/me", (c) =>
     encodedJson(c, Me, {
       name: c.var.session.userName,
@@ -54,38 +97,6 @@ export const app = new Hono<AppEnv>()
         Effect.map((teams) => ({ teams })),
       ),
     ),
-  )
-  .get("/auth", (c) => {
-    const origin = originOf(c.req.url);
-    return c.redirect(
-      loginLocation(
-        c.env.AUTH_URL,
-        origin,
-        sameOriginCallbackPath(c.req.query("callbackUrl"), origin),
-      ),
-    );
-  })
-  .get("/auth/after-signin", async (c) => {
-    const origin = originOf(c.req.url);
-    return c.redirect(
-      afterSignInLocation(
-        await verifySession(c.env, c.req.header("Cookie")),
-        c.env.AUTH_URL,
-        origin,
-        sameOriginCallbackPath(c.req.query("callbackUrl"), origin),
-      ),
-    );
-  })
-  .get("/auth/after-signup", async (c) =>
-    c.redirect(
-      afterSignUpLocation(
-        await verifySession(c.env, c.req.header("Cookie")),
-        c.env.AUTH_URL,
-        originOf(c.req.url),
-        Date.now(),
-      ),
-    ),
-  )
-  .get("/auth/account", (c) => c.redirect(accountLocation(c.env.AUTH_URL)));
+  );
 
 export type AppType = typeof app;

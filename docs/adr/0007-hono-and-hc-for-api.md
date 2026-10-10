@@ -29,18 +29,15 @@ API を呼ぶのは同じ repo で同時に build して配る SPA だけで、�
 - 入力の検証は Service が Effect Schema で decode する (`TeamId`・名前・レベル)。JSON の body や query を取る route には validator を付け、handler で生の値を読まない
 - 応答は `src/run-json.ts` の `runJson`・`encodedJson` だけが返し、route ごとの schema で encode する。schema は契約ではなく許可リストで、書いていない項目は送らない。SPA では応答の JSON がそのまま見え、`c.json` は渡した値をそのまま送るので、画面に出さない他人の個人情報を返さないために置く
 - 失敗の tag ごとの状態コードは `src/lib/team-failure.ts` の表が持ち、`Match.valueTags` で網羅する
-- 認証の middleware (`/api/*`) が返す 401 は `hc` の型に入らない。SPA が API を呼ぶ共通の `fetch` (`web/src/api.ts`) が受けてログインへ移す
+- 認証の middleware (公開の `/auth*` より後の全 path) が返す 401 は `hc` の型に入らない。SPA が API を呼ぶ共通の `fetch` (`web/src/api.ts`) が受けてログインへ移す
 
 ## Consequences
 
 - SPA の bundle に effect が入らない。API 層は安定版の Hono に乗り、taimei-auth と同じ構成で運用できる
-- `HttpApi` なら構造で止まった次の書き忘れが、lint とテストで止める形に下がる (lint は #580 で入れる)
-  - 入力の検証: handler で `c.req.param`・`c.req.query`・`c.req.json`・`c.req.header` を読むのを lint で禁じる
-  - 応答の項目: `run-json.ts` の外の `c.json` を lint で禁じる
-  - lint の規則に穴があると (別名で受け取る、`c.body` で返すなど) すり抜ける
+- `HttpApi` なら構造で止まった入力の検証と応答の項目の書き忘れが、lint (`biome-plugins/` の規則、#580) で止める形に下がる。lint は書き方の形だけを見るので穴がある。規則と、規則に当たらない書き方は `src/CLAUDE.md`
 - 型のまま保てるもの: path と method、成功の本文の型、宣言していない失敗を返さないこと、事業所のデータに session 無しで触れないこと (Service が `CompanyContext` を要求し、provide できるのは `src/services/index.ts` の `runScopedService` だけ。ADR-0002)
 - どちらの方式でも型の外に残るもの: 認証の掛け忘れ (全 route を cookie 無しで叩くと 401 になるテストで止める) と、アプリの外の失敗 (Workers の打ち切り、network、本体の defect)
-- 認証の middleware は path の pattern で掛かるので、先頭で登録しておけば後から足した `/api/` の route にも掛かる。route より後に登録すると掛からない
+- 認証の middleware は、session を見ない公開の route (`/auth*`) の後に全 path へ掛けるので、後から足した route にも掛かる。middleware より前に登録した route には掛からない (#580)
 - 次のどれかが起きたら、`HttpApi` か schema-first の契約を採り直す。決め手は規模 (行数) ではなく、呼び手の数と規則を守らせる相手の多さ
   1. API の呼び手が SPA 以外に増える (スマホのアプリ、提携先、他言語の client)。呼び手ごとに古い版が残り、API の形の変化が呼び手ごとの不具合になる
   2. 呼び手が既に Effect を使う (server 間、CLI、バッチ)。bundle の大きさが問題にならず、失敗が Effect の型付きの失敗として届く

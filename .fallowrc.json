@@ -2,5 +2,13 @@
   "$schema": "./node_modules/fallow/schema.json",
   "entry": ["web/src/main.tsx"],
   "ignoreDependencies": ["pg"],
-  "ignorePatterns": ["vendor/**"]
+  "ignorePatterns": ["vendor/**"],
+  "boundaries": {
+    "zones": [
+      { "name": "api-type", "patterns": ["src/app.ts"] },
+      { "name": "server", "patterns": ["src/**", "db/**"] },
+      { "name": "spa", "patterns": ["web/src/**"] }
+    ],
+    "rules": [{ "from": "spa", "allow": [], "allowTypeOnly": ["api-type"] }]
+  }
 }
