@@ -1,13 +1,26 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
-  createRootRoute,
+  createRootRouteWithContext,
   createRoute,
   createRouter,
   type RouterHistory,
+  redirect,
 } from "@tanstack/react-router";
+import { meQuery, teamsQuery } from "@/api";
+import DashboardLayout, { DashboardError } from "@/dashboard/dashboard-layout";
+import TeamsPage, { TeamsError } from "@/dashboard/teams-page";
 import LandingPage from "@/landing/landing-page";
 import PrivacyPage from "@/privacy/privacy-page";
 
-const rootRoute = createRootRoute();
+const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }>()();
+
+const dashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dashboard",
+  loader: ({ context }) => context.queryClient.fetchQuery(meQuery),
+  component: DashboardLayout,
+  errorComponent: DashboardError,
+});
 
 const routeTree = rootRoute.addChildren([
   createRoute({
@@ -20,11 +33,40 @@ const routeTree = rootRoute.addChildren([
     path: "/privacy",
     component: PrivacyPage,
   }),
+  dashboardRoute.addChildren([
+    createRoute({
+      getParentRoute: () => dashboardRoute,
+      path: "/",
+      beforeLoad: () => {
+        throw redirect({ to: "/dashboard/teams" });
+      },
+    }),
+    createRoute({
+      getParentRoute: () => dashboardRoute,
+      path: "/teams",
+      loader: ({ context }) => context.queryClient.fetchQuery(teamsQuery),
+      component: TeamsPage,
+      errorComponent: TeamsError,
+    }),
+  ]),
 ]);
 
 export const createAppRouter = (
   options: { history?: RouterHistory; origin?: string } = {},
-) => createRouter({ routeTree, ...options });
+) => {
+  const queryClient = new QueryClient({
+    // 画面の移動ごとに loader が取り直す (事業所を切り替えた後に前の事業所の cache を出さない)。描いた component は同じ query を取り直さない
+    defaultOptions: { queries: { refetchOnMount: false } },
+  });
+  return createRouter({
+    routeTree,
+    context: { queryClient },
+    Wrap: ({ children }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    ),
+    ...options,
+  });
+};
 
 declare module "@tanstack/react-router" {
   interface Register {

@@ -18,5 +18,6 @@ E2E は認証・決済など、壊れたら致命的な導線だけに書く。
 
 `bun run qa:serve` が使い捨ての postgres (5446) に auth と taimei の DB を作って migrate し、`../taimei-auth` (3110、`TAIMEI_AUTH_DIR` で変えられる) と、SPA を build した taimei (3000、`wrangler dev`) を起動して、OWNER の test user の email を出す。`bun run qa:serve --app-role` は、taimei を RLS を bypass しない role (本番の `taimei_app` と同じ GRANT) で接続する。
 
-- ログインは Chrome のフォームからその email に Magic Link を送り、`bun run qa:login` が出す file を開く (token は出力に出ず、file は 30 秒で消える)
+- ログインは `http://localhost:3000/auth` から taimei-auth のフォームでその email に Magic Link を送り、`bun run qa:login` が出す file を開く (token は出力に出ず、file は 30 秒で消える)。開くと `/dashboard/teams` に着く
+- taimei の Worker は `AUTH_URL` (ログインの画面の移り先) と `AUTH_SERVICE_URL` (session を確かめる RPC の送り先) を `http://localhost:3110` にして動く。手元の taimei-auth は Bun のサーバーで Service Binding が届かないので、`AUTH_SERVICE_URL` があると RPC はその URL へ送る
 - 終わったら `bun run qa:down` で server を止め、DB を消す

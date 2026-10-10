@@ -76,6 +76,8 @@ docker logs taimei-e2e-e2e-auth-service-1 2>&1 | grep "Magic Link"
 | spec | 内容 |
 |------|------|
 | `public.spec.ts` | 公開ページ (`/`・`/privacy`) の表示と遷移。hydrate の食い違いを含め、console の error が 0 件 |
+| `auth.spec.ts` | 未ログインの誘導、ランディングページのログイン、事業所の登録を経てチーム一覧に戻ること |
+| `teams.spec.ts` | チーム一覧、他の事業所のチームが出ないこと (画面と API)、事業所の切り替え、空と失敗の表示、JS が描く前にランディングページを見せないこと |
 
 ## トラブルシューティング
 
