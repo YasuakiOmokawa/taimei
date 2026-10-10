@@ -1,37 +1,27 @@
-import { drizzle } from "drizzle-orm/node-postgres";
 import { Effect, Option, Result, Schema } from "effect";
-import { Client } from "pg";
+import type { Pool } from "pg";
 import { AuthorizationContext } from "@/app/services/authorization-context";
 import { CompanyContext } from "@/app/services/company-context";
 import { Db } from "@/app/services/db-service";
 import { TeamService } from "@/app/services/team-service";
-import * as schema from "@/db/drizzle/schema";
+import { runWithRequestPool } from "@/db/drizzle/client";
 import { CompanyId } from "@/db/ids";
-import { withCompanyScope } from "@/db/scoped";
 
 type Env = {
   HYPERDRIVE: { connectionString: string };
   PROTOTYPE_SECRET?: string;
 };
 
-// Hyperdrive が pool を持つので、Worker は request ごとに Client を繋いで閉じる
-const withRequestDb = async <A>(
-  connectionString: string,
-  run: (db: Db["Service"]) => Promise<A>,
-) => {
-  const client = new Client({ connectionString });
+const countStatements = (pool: Pool) => {
   let statements = 0;
-  const query = client.query.bind(client);
-  client.query = ((...args: Parameters<typeof query>) => {
-    statements++;
-    return query(...args);
-  }) as typeof client.query;
-  await client.connect();
-  try {
-    return { result: await run(drizzle(client, { schema })), statements };
-  } finally {
-    await client.end();
-  }
+  pool.on("connect", (client) => {
+    const query = client.query.bind(client);
+    client.query = ((...args: Parameters<typeof query>) => {
+      statements++;
+      return query(...args);
+    }) as typeof client.query;
+  });
+  return () => statements;
 };
 
 const Session = Schema.Struct({
@@ -55,12 +45,8 @@ const sessionOf = (request: Request, env: Env) => {
   );
 };
 
-const getTeamInScope = (
-  db: Db["Service"],
-  session: typeof Session.Type,
-  teamId: string,
-) =>
-  withCompanyScope(db, session.companyId, (tx) =>
+const getTeamInScope = (session: typeof Session.Type, teamId: string) =>
+  Db.inCompanyScope(session.companyId, (tx) =>
     Effect.runPromise(
       Effect.result(
         TeamService.use((teams) => teams.getTeam(teamId)).pipe(
@@ -102,11 +88,16 @@ const worker = {
     if (!teamId) return new Response(null, { status: 404 });
     const session = sessionOf(request, env);
     if (!session) return new Response(null, { status: 401 });
-    return toResponse(
-      await withRequestDb(env.HYPERDRIVE.connectionString, (db) =>
-        getTeamInScope(db, session, teamId),
-      ),
-    );
+    // Hyperdrive が pool を持つので、Worker の Pool は request ごとに作って閉じる
+    return runWithRequestPool(env.HYPERDRIVE.connectionString, async (pool) => {
+      const statements = countStatements(pool);
+      try {
+        const result = await getTeamInScope(session, teamId);
+        return toResponse({ result, statements: statements() });
+      } finally {
+        await pool.end();
+      }
+    });
   },
 };
 
