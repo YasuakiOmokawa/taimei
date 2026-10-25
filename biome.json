@@ -84,6 +84,10 @@
                 "message": "画面は web/src/api.ts の atom を useLoadedValue・useLoadFailure で読み、更新を useApiMutation で流す。Atom を直に使えるのは web/src/api.ts と、registry を組む web/src/router.tsx だけ"
               },
               {
+                "group": ["@/testing/*", "**/testing/*"],
+                "message": "testing/ は本番以外の入口で、本番の code (src・db・web) からは import しない。本番以外だけの振る舞いは testing/worker.ts が本番の入口を包んで足す"
+              },
+              {
                 "group": ["@sentry/*"],
                 "message": "Sentry の SDK は Worker の入口 (src/worker.ts) だけが使う。報告は src/lib/report-error.ts の reportError"
               }
