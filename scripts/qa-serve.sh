@@ -23,7 +23,7 @@ wait_for() {
 auth_compose() {
   TAIMEI_AUTH_URL=$AUTH_URL TAIMEI_AUTH_HOSTNAME=taimei-auth-qa TAIMEI_AUTH_COOKIE_DOMAIN= \
     TAIMEI_AUTH_CONSUMER_ORIGINS=$APP_URL TAIMEI_AUTH_SECRET=qa-secret-for-testing-harness-32chars \
-    TAIMEI_AUTH_APP_NAME=taimei \
+    TAIMEI_AUTH_APP_NAME=taimei TAIMEI_AUTH_SERVICE_KEY=qa-service-key \
     docker compose -p taimei-qa -f "$ROOT/node_modules/@taimei-code/auth-client/testing/compose.yml" -f - "$@" <<'YAML'
 services:
   taimei-auth:
@@ -57,11 +57,11 @@ serve() {
 
   bun run build >"$STATE/app.log" 2>&1
   wait "$auth_pid" || { echo "auth が起動しない ($STATE/auth-compose.log を見る)" >&2; exit 1; }
-  PORT=3000 AUTH_URL=$AUTH_URL AUTH_SERVICE_URL=$AUTH_URL DATABASE_URL=postgres://$app_db_user@localhost:5446/taimei \
+  PORT=3000 AUTH_URL=$AUTH_URL AUTH_SERVICE_URL=$AUTH_URL AUTH_SERVICE_KEY=qa-service-key DATABASE_URL=postgres://$app_db_user@localhost:5446/taimei \
     nohup bun run start >>"$STATE/app.log" 2>&1 &
   wait_for "$APP_URL/"
 
-  echo "bun run qa:login でログインする"
+  echo "$APP_URL/dev-home を開いてログインする"
 }
 
 login() {

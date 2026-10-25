@@ -104,7 +104,7 @@ export const requestSessionOf = (
 
 const DEFAULT_LANDING_PATH = "/dashboard";
 
-const SERVICE_NAME = "taimei";
+export const SERVICE_NAME = "taimei";
 
 const signInFailedLocation = (authUrl: string) =>
   buildAuthErrorUrl({ authBaseUrl: authUrl, reason: "signin_failed" });
@@ -121,20 +121,26 @@ export const sameOriginCallbackPath = (
     : undefined;
 };
 
-export const loginLocation = (
-  authUrl: string,
+export const afterSignInUrl = (
   origin: string,
   callbackPath: string | undefined,
 ) => {
   const afterSignIn = new URL("/auth/after-signin", origin);
   if (callbackPath) afterSignIn.searchParams.set("callbackUrl", callbackPath);
-  return buildAuthLoginUrl({
+  return afterSignIn.toString();
+};
+
+export const loginLocation = (
+  authUrl: string,
+  origin: string,
+  callbackPath: string | undefined,
+) =>
+  buildAuthLoginUrl({
     authBaseUrl: authUrl,
     service: SERVICE_NAME,
-    returnTo: afterSignIn.toString(),
+    returnTo: afterSignInUrl(origin, callbackPath),
     signUpUrl: new URL("/auth/after-signup", origin).toString(),
   });
-};
 
 export const inviteMembersLocation = (authUrl: string, origin: string) =>
   buildMembersUrl({
