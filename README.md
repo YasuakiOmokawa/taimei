@@ -3,7 +3,6 @@
 ## 前提
 
 - 開発環境と e2e は、root での `bun install` と `docker login ghcr.io` が要る (手順は `e2e/README.md` の「前提」)。root の `docker compose` は `bun install` が入れる SDK の compose の断片を読むので、`bun run test:db` も `bun install` の後に動く
-- `/etc/hosts` に `127.0.0.1 app.taimei-code.local auth.taimei-code.local`
 - `.env` に `NPM_TOKEN=<read:packages 権限の GitHub PAT>` (`@taimei-code/auth-client` の取得用)
 - port 3001 / 3100 / 5433 / 5434 が空いていること
 

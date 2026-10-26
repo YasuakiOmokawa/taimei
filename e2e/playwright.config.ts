@@ -30,7 +30,14 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions: {
+          args: [
+            "--host-resolver-rules=MAP app.taimei-code.localhost e2e-application, MAP auth.taimei-code.localhost taimei-auth",
+          ],
+        },
+      },
     },
 
     // {

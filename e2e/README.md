@@ -7,13 +7,13 @@ Playwright + Docker Compose で taimei + taimei-auth (認証サーバー) を統
 ```
 docker-compose.e2e.yml
 ├── include: SDK の compose の断片 (taimei-auth と auth の DB。設定は taimei-auth.env)
-│   └── taimei-auth     (port 3100, alias: auth.taimei-code.local)
+│   └── taimei-auth     (port 3100, alias: auth.taimei-code.localhost)
 ├── e2e-postgres        (taimei DB, port 5433)
-├── e2e-application     (taimei の SPA と Worker を wrangler dev で配る, port 3001, alias: app.taimei-code.local)
+├── e2e-application     (taimei の SPA と Worker を wrangler dev で配る, port 3001, alias: app.taimei-code.localhost)
 └── e2e                 (Playwright runner。root の SDK を read-only で mount する)
 ```
 
-host には port を公開しない (Playwright UI の 9323 のみ) ので、dev 環境の compose と並行して動かせる。すべて compose の project の `default` network 内で `app/auth.taimei-code.local` を network alias で解決する。Cookie domain `.taimei-code.local` で cross-subdomain SSO を成立させる。
+host には port を公開しない (Playwright UI の 9323 のみ) ので、dev 環境の compose と並行して動かせる。Worker と Playwright の Node は compose の project の `default` network 内で `app/auth.taimei-code.localhost` を network alias で解決する。container の中の Chromium は `*.localhost` を自身の loopback に向けるので、`playwright.config.ts` の `--host-resolver-rules` で 2 つの host を compose の service に向ける。Cookie domain `.taimei-code.localhost` で cross-subdomain SSO を成立させる。
 
 ## 前提
 

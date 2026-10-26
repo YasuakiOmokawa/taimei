@@ -6,9 +6,9 @@ import {
 } from "@taimei-code/auth-client/testing";
 
 const APP_BASE_URL =
-  process.env.APP_BASE_URL ?? "http://app.taimei-code.local:3001";
+  process.env.APP_BASE_URL ?? "http://app.taimei-code.localhost:3001";
 export const AUTH_BASE_URL =
-  process.env.AUTH_BASE_URL ?? "http://auth.taimei-code.local:3100";
+  process.env.AUTH_BASE_URL ?? "http://auth.taimei-code.localhost:3100";
 export const AFTER_SIGN_IN_URL = `${APP_BASE_URL}/auth/after-signin`;
 
 export const testing = createTestingClient(AUTH_BASE_URL);

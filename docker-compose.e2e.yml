@@ -34,9 +34,10 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:password@e2e-postgres:5433/postgres
       - PORT=3001
-      - LOCAL_UPSTREAM=app.taimei-code.local:3001
-      - AUTH_URL=http://auth.taimei-code.local:3100
-      - AUTH_SERVICE_URL=http://auth.taimei-code.local:3100
+      - LOCAL_UPSTREAM=app.taimei-code.localhost:3001
+      - AUTH_URL=http://auth.taimei-code.localhost:3100
+      - AUTH_SERVICE_URL=http://auth.taimei-code.localhost:3100
+      - AUTH_SERVICE_KEY=test-service-key-for-local-testing
     develop:
       watch:
         - action: sync
@@ -52,7 +53,7 @@ services:
     networks:
       default:
         aliases:
-          - app.taimei-code.local
+          - app.taimei-code.localhost
 
   e2e:
     build:
@@ -62,9 +63,9 @@ services:
         - common=./
     environment:
       - CI=${CI:-true}
-      - PLAYWRIGHT_BASE_URL=http://app.taimei-code.local:3001
-      - APP_BASE_URL=http://app.taimei-code.local:3001
-      - AUTH_BASE_URL=http://auth.taimei-code.local:3100
+      - PLAYWRIGHT_BASE_URL=http://app.taimei-code.localhost:3001
+      - APP_BASE_URL=http://app.taimei-code.localhost:3001
+      - AUTH_BASE_URL=http://auth.taimei-code.localhost:3100
       - APP_DATABASE_URL=postgres://postgres:password@e2e-postgres:5433/postgres
     command: >
       sh -c "${E2E_SERVICE_COMMAND}"
