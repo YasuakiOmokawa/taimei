@@ -7,8 +7,7 @@
   "assets": {
     "directory": "./web/dist",
     "not_found_handling": "single-page-application",
-    // 配列にすると Sec-Fetch-Mode での振り分けが止まり、ここに無い path は fetch も Static Assets が返す (ADR-0006)
-    "run_worker_first": ["/api/*", "/auth", "/auth/*"]
+    "run_worker_first": ["/api/*", "/auth", "/auth/*", "/dev-home"]
   },
   "hyperdrive": [
     { "binding": "HYPERDRIVE", "id": "f35ce63d756548c082f5f82f93d84647" }

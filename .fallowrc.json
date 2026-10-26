@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/fallow/schema.json",
-  "entry": ["web/src/main.tsx"],
+  "entry": ["web/src/main.tsx", "testing/worker.ts"],
   "ignoreDependencies": ["pg", "@effect/tsgo", "@taimei-code/auth-client"],
   "boundaries": {
     "zones": [
@@ -15,6 +15,10 @@
       {
         "name": "spa",
         "patterns": ["web/src/**"]
+      },
+      {
+        "name": "non-production",
+        "patterns": ["testing/**"]
       }
     ],
     "rules": [
@@ -27,6 +31,11 @@
         "from": "contract",
         "allow": ["contract"],
         "allowTypeOnly": ["server"]
+      },
+      {
+        "from": "server",
+        "allow": ["server", "contract"],
+        "allowTypeOnly": []
       }
     ]
   }

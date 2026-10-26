@@ -104,7 +104,7 @@ export const requestSessionOf = (
 
 const DEFAULT_LANDING_PATH = "/dashboard";
 
-const SERVICE_NAME = "taimei";
+export const SERVICE_NAME = "taimei";
 
 const signInFailedLocation = (authUrl: string) =>
   buildAuthErrorUrl({ authBaseUrl: authUrl, reason: "signin_failed" });

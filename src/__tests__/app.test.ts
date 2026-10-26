@@ -517,6 +517,18 @@ describe("Worker に届く path", () => {
         : path === pattern,
     );
 
+  it("本番の deploy の入口は wrangler.jsonc の main の src/worker.ts で、本番以外の入口 testing/worker.ts ではない", () => {
+    expect(wranglerConfig.main).toBe("src/worker.ts");
+  });
+
+  it("本番以外の入口の /dev-home は run_worker_first に当たる (外れると Static Assets が index.html を返す)", () => {
+    expect(reachesWorker("/dev-home")).toBe(true);
+  });
+
+  it("本番の app は /dev-home を持たず、GET /dev-home に 404 を返す", async () => {
+    expect((await get("/dev-home", signedInAs("OWNER"))).status).toBe(404);
+  });
+
   it("purge-departed は毎時 17 分の Cron Trigger で動く", () => {
     expect(wranglerConfig.triggers?.crons).toEqual(["17 * * * *"]);
   });
@@ -535,7 +547,7 @@ describe("Worker に届く path", () => {
     expect(wranglerConfig.preview_urls).toBe(false);
   });
 
-  it("全ての route の path は wrangler.jsonc の run_worker_first に当たる (外れた path は Static Assets が index.html を返す)", () => {
+  it("全ての route の path は wrangler.jsonc の run_worker_first に当たる (配列の run_worker_first は Sec-Fetch-Mode での振り分けを止めるので、外れた path は fetch でも Static Assets が index.html を返す、ADR-0006)", () => {
     expect(
       routes
         .map((r) => r.path)
