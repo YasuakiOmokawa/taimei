@@ -12,11 +12,17 @@
 docker compose up --build --watch
 ```
 
-taimei と taimei の DB に加え、SDK の compose の断片で taimei-auth と auth の DB が起動する。ログインは `bun run dev:login` が出す file を 30 秒以内に開く。`dev:login` は呼ぶたびに新しい OWNER の利用者と事業所を作る。
+taimei と taimei の DB に加え、SDK の compose の断片で taimei-auth と auth の DB が起動する。
+
+ログインは `http://app.taimei-code.localhost:3001/dev-home` を開く。taimei-auth の開発者ホームに移り、開発用アカウントを押すとその利用者でログインして taimei のトップに戻る。ダッシュボードへはトップの「ログイン」で入る。ログインしていない時、トップの「ログイン」は本番と同じログイン画面を開き、開発用アカウントの一覧を出さない。
+
+- 開発用アカウントの role: OWNER は事業所 1・2 で OWNER、ADMIN は事業所 1 で ADMIN・事業所 2 で MEMBER、MEMBER は事業所 1 で MEMBER。事業所の id は固定なので、taimei の DB のデータも起動をまたいで見える
+- 利用者を選ぶたびに Magic Link が 1 通送られる。同じ email に 60 秒で 3 通、全体で 60 秒に 5 通を超えると止まる
+- Chrome で確かめている (`*.localhost` を自分で loopback に解決し、http でも `Secure` の cookie を受け取る)
 
 taimei の DB と auth の DB は `docker compose down` の後も残る。空にする時は `docker compose down -v` を使う。SDK を上げた後は `docker compose up --watch` を起動し直す (起動中の watch は古い compose の断片で taimei-auth を作り直し、起動しないまま残る)。
 
-taimei は SPA (`web/`) を `bun run build` で build し、Worker (`src/worker.ts`) と一緒に `bun run start` (`wrangler dev`) で配る。`wrangler dev` は `.env`・`.dev.vars` を読まず、`APP_`・`AUTH_` で始まる環境変数だけを Worker に渡す (`scripts/wrangler-dev.sh`)。画面だけを直すときは `bun run dev` (vite の dev server) で見る。
+taimei は SPA (`web/`) を `bun run build` で build し、本番以外の入口 `testing/worker.ts` (本番の入口 `src/worker.ts` に `/dev-home` を足したもの、ADR-0010) と一緒に `bun run start` (`wrangler dev`) で配る。`wrangler dev` は `.env`・`.dev.vars` を読まず、`APP_`・`AUTH_` で始まる環境変数だけを Worker に渡す (`scripts/wrangler-dev.sh`)。画面だけを直すときは `bun run dev` (vite の dev server) で見る。
 
 ## E2E
 

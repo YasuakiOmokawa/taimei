@@ -62,29 +62,12 @@ serve() {
     nohup bun run start >>"$STATE/app.log" 2>&1 &
   wait_for "$APP_URL/"
 
-  echo "bun run qa:login でログインする"
-}
-
-login() {
-  mkdir -p "$STATE"
-  local link file=$STATE/login-$$.html
-  link=$(cd "$ROOT" && bun -e '
-    import { createUser } from "./e2e/tests/utils/testing-auth";
-    const user = await createUser({ name: "QA 管理者", companies: [{ name: "QA 事業所", role: "OWNER" }] });
-    console.log(user.loginUrl);
-  ')
-  (
-    umask 077
-    printf '<meta http-equiv="refresh" content="0;url=%s">' "$link" >"$file"
-  )
-  nohup sh -c "sleep 30; rm -f '$file'" >/dev/null 2>&1 &
-  echo "file://$file を 30 秒以内に開く"
+  echo "$APP_URL/dev-home を開いてログインする"
 }
 
 down() {
   lsof -tiTCP:3000 -sTCP:LISTEN | xargs kill 2>/dev/null || true
-  # port 3000 を持つのは workerd だけで、親の wrangler (node) は残る
-  pkill -f "wrangler.js dev --ip 0.0.0.0 --port 3000" || true
+  pkill -f "wrangler.js dev testing/worker.ts --ip 0.0.0.0 --port 3000" || true
   local out
   out=$(auth_compose down -v 2>&1) || { printf '%s\n' "$out" >&2; exit 1; }
   docker rm -f "$PG" >/dev/null 2>&1 || true
@@ -93,11 +76,9 @@ down() {
 
 case ${1:-} in
 serve) shift && serve "$@" ;;
-login) AUTH_BASE_URL=$AUTH_URL APP_BASE_URL=$APP_URL login ;;
-dev-login) login ;;
 down) down ;;
 *)
-  echo "usage: $0 serve [--app-role] | login | dev-login | down" >&2
+  echo "usage: $0 serve [--app-role] | down" >&2
   exit 1
   ;;
 esac

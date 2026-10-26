@@ -18,6 +18,6 @@ E2E は認証など、壊れたら致命的な導線だけに書く。次の 2 �
 e2e と同じく、root の `bun install` と `docker login ghcr.io` を済ませておく (手順は `e2e/README.md` の「前提」)。
 
 - `bun run qa:serve` が taimei の DB を作り、SDK の compose の断片で auth を、host で taimei を起動する。`--app-role` を付けると、taimei は本番の `taimei_app` と同じ RLS を通る role で接続する
-- ログインは `bun run qa:login` が出す file を開く (ログイン URL は出力に出ず、file は 30 秒で消える)。`qa:login` は呼ぶたびに新しい OWNER の利用者と事業所を作るので、ログインし直すと前の事業所のデータは見えない
+- ログインは `http://localhost:3000/dev-home` を開き、開発用アカウントを押す (role は `README.md` の「開発環境」)。開発環境 (`app.taimei-code.localhost`) と host が違うので、同じ browser で両方にログインしたままでいられる
 - 定期処理 (`scheduled` の purge-departed) は `curl 'http://localhost:3000/cdn-cgi/handler/scheduled?cron=17+*+*+*+*'` で起こす。結果は `${TMPDIR:-/tmp}/taimei-qa/app.log` の `purge-departed` の行
 - 終わったら `bun run qa:down` で server を止め、taimei と taimei-auth の DB を消す

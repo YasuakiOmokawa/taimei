@@ -38,6 +38,7 @@ const scannedPaths = execFileSync(
     "db",
     "e2e",
     "scripts",
+    "testing",
     "docker-compose*.yml",
     "README.md",
     ".github",
