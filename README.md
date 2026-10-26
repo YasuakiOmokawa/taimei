@@ -14,7 +14,7 @@ docker compose up --build --watch
 
 taimei と taimei の DB に加え、SDK の compose の断片で taimei-auth と auth の DB が起動する。
 
-ログインは `http://app.taimei-code.localhost:3001/dev-home` を開く。taimei-auth の開発者ホームに移り、開発用アカウントを押すとその利用者でログインして taimei のトップに戻る。ダッシュボードへはトップの「ログイン」で入る。ログインしていない時、トップの「ログイン」は本番と同じログイン画面を開き、開発用アカウントの一覧を出さない。
+ログインは `http://app.taimei-code.localhost:3001/dev-home` を開く。taimei-auth の開発者ホームに移る。開発用アカウントを押すとその利用者でログインして開発者ホームに戻り、別のアカウントを押せば同じ画面のまま利用者が切り替わる。「アプリケーションに戻る」を押すと taimei のトップに移り、ダッシュボードへはトップの「ログイン」で入る。ログインしていない時、トップの「ログイン」は本番と同じログイン画面を開き、開発用アカウントの一覧を出さない。
 
 - 開発用アカウントの role: OWNER は事業所 1・2 で OWNER、ADMIN は事業所 1 で ADMIN・事業所 2 で MEMBER、MEMBER は事業所 1 で MEMBER。事業所の id は固定なので、taimei の DB のデータも起動をまたいで見える
 - 利用者を選ぶたびに Magic Link が 1 通送られる。同じ email に 60 秒で 3 通、全体で 60 秒に 5 通を超えると止まる
