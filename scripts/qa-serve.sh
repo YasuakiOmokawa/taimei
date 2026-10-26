@@ -86,7 +86,7 @@ down() {
   # port 3000 を持つのは workerd だけで、親の wrangler (node) は残る
   pkill -f "wrangler.js dev --ip 0.0.0.0 --port 3000" || true
   local out
-  out=$(auth_compose down 2>&1) || { printf '%s\n' "$out" >&2; exit 1; }
+  out=$(auth_compose down -v 2>&1) || { printf '%s\n' "$out" >&2; exit 1; }
   docker rm -f "$PG" >/dev/null 2>&1 || true
   rm -rf "$STATE"
 }

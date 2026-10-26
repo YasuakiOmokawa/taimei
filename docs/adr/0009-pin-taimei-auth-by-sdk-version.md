@@ -30,6 +30,6 @@ ADR-0003 は「`auth-client-v*` の tag で固定する」を、server だけの
 
 - 前提条件 (ADR-0003 から引き継ぐ、未了): Dependabot の secret に `NPM_TOKEN` を登録する。SDK の bump の PR が taimei-auth を上げる唯一の経路になり、登録が無いとその PR の e2e は `bun install` と `docker login` で落ちる。
 - local で開発環境と e2e を動かす前に、root の `bun install` と GHCR への login が要る (手順は `e2e/README.md` の「前提」)。
-- 断片の DB は run のたびに空になる。開発環境の auth の DB も起動のたびに空になる (taimei-auth#306 で消えない DB が SDK に入るまで)。
+- 断片の DB は run のたびに空になる。開発環境の auth の DB も起動のたびに空になる (taimei-auth#306 で消えない DB が SDK に入るまで)。追記 (2026-10-26、#650): SDK 3.7.0 から断片の DB は volume に残り、`down` の後の `up` でも消えない。空にするのは `down -v`。
 - 開発環境は未リリースの taimei-auth の working tree では動かない。taimei-auth の変更は SDK の release を経て開発環境に届く。
 - Decision のとおり e2e の package に SDK を足さないので、e2e の spec が mount した SDK を import すると、fallow はそれを unlisted dependency とみなす。`.fallowrc.json` の `ignoreDependencies` に SDK を入れて、この検出から外す。

@@ -56,10 +56,10 @@ E2E_SERVICE_COMMAND='npx playwright test --grep "プライバシーポリシー"
 ### Cleanup
 
 ```bash
-docker compose -p taimei-e2e -f docker-compose.e2e.yml down
+docker compose -p taimei-e2e -f docker-compose.e2e.yml down --volumes
 ```
 
-`--volumes` を付けると `pg-data` も削除される (DB を完全リセットしたい時)。taimei-auth の DB は毎回空から始まる。
+`--volumes` で `pg-data` と taimei-auth の DB の volume を消す。付けないと、次の起動で taimei-auth の DB が前回の利用者と事業所を持ったまま始まる。
 
 ## ログの確認
 

@@ -12,7 +12,9 @@
 docker compose up --build --watch
 ```
 
-taimei と taimei の DB に加え、SDK の compose の断片で taimei-auth と auth の DB が起動する。ログインは `bun run dev:login` が出す file を 30 秒以内に開く。`dev:login` は呼ぶたびに新しい OWNER の利用者と事業所を作る。auth の DB は起動のたびに空になり、taimei の DB は残るので、前の起動で作った事業所のデータは見えなくなる。
+taimei と taimei の DB に加え、SDK の compose の断片で taimei-auth と auth の DB が起動する。ログインは `bun run dev:login` が出す file を 30 秒以内に開く。`dev:login` は呼ぶたびに新しい OWNER の利用者と事業所を作る。
+
+taimei の DB と auth の DB は `docker compose down` の後も残る。空にする時は `docker compose down -v` を使う。SDK を上げた後は `docker compose up --watch` を起動し直す (起動中の watch は古い compose の断片で taimei-auth を作り直し、起動しないまま残る)。
 
 taimei は SPA (`web/`) を `bun run build` で build し、Worker (`src/worker.ts`) と一緒に `bun run start` (`wrangler dev`) で配る。`wrangler dev` は `.env`・`.dev.vars` を読まず、`APP_`・`AUTH_` で始まる環境変数だけを Worker に渡す (`scripts/wrangler-dev.sh`)。画面だけを直すときは `bun run dev` (vite の dev server) で見る。
 
