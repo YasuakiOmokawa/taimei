@@ -9,6 +9,7 @@ import {
 } from "@/db/drizzle/schema";
 import { fixtureCompanyId } from "@/src/services/__tests__/db/seed";
 import {
+  asAppRole,
   functionValue,
   type TestDb,
   teamListVersion,
@@ -21,7 +22,8 @@ import {
   type TeamListStubSpy,
   teamListStubOf,
 } from "@/src/services/__tests__/request";
-import { type CheckMemberships, purgeDeparted } from "../purge-departed";
+import { type CheckMemberships, MembershipAnswer } from "../membership-answer";
+import { purgeDeparted } from "../purge-departed";
 import { sendErrorReportsTo } from "../report-error";
 
 const COMPANY_ACTIVE = fixtureCompanyId("active");
@@ -31,6 +33,11 @@ const COMPANY_NEW = fixtureCompanyId("new");
 const COMPANY_OTHER = fixtureCompanyId("other");
 const COMPANY_UNCHANGED = fixtureCompanyId("unchanged");
 const COMPANY_UNREACHABLE = fixtureCompanyId("unreachable");
+
+const purgeAsApp = (
+  tx: TestDb,
+  options: Omit<Parameters<typeof purgeDeparted>[0], "db">,
+) => asAppRole(tx, (app) => purgeDeparted({ db: app, ...options }));
 
 const seedTeam = async (
   tx: TestDb,
@@ -113,17 +120,9 @@ const readReplaceClearCountsOf = (companyId: string) => {
 };
 
 const answering =
-  (
-    answers: Record<
-      string,
-      { companyActive: boolean; memberUserIds: string[] } | Error
-    >,
-  ): CheckMemberships =>
-  async ({ companyId }) => {
-    const answer = answers[companyId];
-    if (answer instanceof Error) throw answer;
-    return answer;
-  };
+  (answers: Record<string, MembershipAnswer>): CheckMemberships =>
+  async ({ companyId }) =>
+    answers[companyId];
 
 describe("purgeDeparted", () => {
   it("ACTIVE でない事業所は、チーム・スキル・割り当て・評価がすべて消える", () =>
@@ -136,11 +135,10 @@ describe("purgeDeparted", () => {
         memberSkills: 1,
       });
 
-      await purgeDeparted({
-        db: tx,
+      await purgeAsApp(tx, {
         teamListOf,
         checkMemberships: answering({
-          [COMPANY_GONE]: { companyActive: false, memberUserIds: [] },
+          [COMPANY_GONE]: MembershipAnswer.Deleted(),
         }),
         startedAt,
       });
@@ -158,11 +156,12 @@ describe("purgeDeparted", () => {
       await seedTeam(tx, COMPANY_ACTIVE, ["u_stays", "u_left"]);
       const before = await tx.select().from(memberSkills);
 
-      const report = await purgeDeparted({
-        db: tx,
+      const report = await purgeAsApp(tx, {
         teamListOf,
         checkMemberships: answering({
-          [COMPANY_ACTIVE]: { companyActive: true, memberUserIds: ["u_stays"] },
+          [COMPANY_ACTIVE]: MembershipAnswer.Active({
+            memberUserIds: ["u_stays"],
+          }),
         }),
         startedAt,
       });
@@ -179,11 +178,10 @@ describe("purgeDeparted", () => {
       const afterStart = new Date(startedAt.getTime() + 1000);
       await seedTeam(tx, COMPANY_NEW, ["u_new"], afterStart);
 
-      await purgeDeparted({
-        db: tx,
+      await purgeAsApp(tx, {
         teamListOf,
         checkMemberships: answering({
-          [COMPANY_NEW]: { companyActive: true, memberUserIds: [] },
+          [COMPANY_NEW]: MembershipAnswer.Active({ memberUserIds: [] }),
         }),
         startedAt,
       });
@@ -196,12 +194,13 @@ describe("purgeDeparted", () => {
       await seedTeam(tx, COMPANY_UNREACHABLE, ["u_1"]);
       await seedTeam(tx, COMPANY_GONE, ["u_2"]);
 
-      const report = await purgeDeparted({
-        db: tx,
+      const report = await purgeAsApp(tx, {
         teamListOf,
         checkMemberships: answering({
-          [COMPANY_UNREACHABLE]: new Error("taimei-auth unavailable"),
-          [COMPANY_GONE]: { companyActive: false, memberUserIds: [] },
+          [COMPANY_UNREACHABLE]: MembershipAnswer.Unknown({
+            cause: new Error("taimei-auth unavailable"),
+          }),
+          [COMPANY_GONE]: MembershipAnswer.Deleted(),
         }),
         startedAt,
       });
@@ -224,11 +223,10 @@ describe("purgeDeparted", () => {
       );
       await seedTeam(tx, COMPANY_GONE, ["u_2"]);
 
-      const report = await purgeDeparted({
-        db: tx,
+      const report = await purgeAsApp(tx, {
         teamListOf,
         checkMemberships: answering({
-          [COMPANY_GONE]: { companyActive: false, memberUserIds: [] },
+          [COMPANY_GONE]: MembershipAnswer.Deleted(),
         }),
         startedAt,
       });
@@ -247,10 +245,11 @@ describe("purgeDeparted", () => {
       const cause = new Error("taimei-auth unavailable");
       await seedTeam(tx, COMPANY_UNREACHABLE, ["u_1"]);
 
-      await purgeDeparted({
-        db: tx,
+      await purgeAsApp(tx, {
         teamListOf,
-        checkMemberships: answering({ [COMPANY_UNREACHABLE]: cause }),
+        checkMemberships: answering({
+          [COMPANY_UNREACHABLE]: MembershipAnswer.Unknown({ cause }),
+        }),
         startedAt,
       });
 
@@ -268,12 +267,11 @@ describe("purgeDeparted", () => {
       await seedTeam(tx, COMPANY_OTHER, ["u_2"]);
       const before = await rowsOf(tx, COMPANY_OTHER);
 
-      await purgeDeparted({
-        db: tx,
+      await purgeAsApp(tx, {
         teamListOf,
         checkMemberships: answering({
-          [COMPANY_GONE]: { companyActive: false, memberUserIds: [] },
-          [COMPANY_OTHER]: { companyActive: true, memberUserIds: ["u_2"] },
+          [COMPANY_GONE]: MembershipAnswer.Deleted(),
+          [COMPANY_OTHER]: MembershipAnswer.Active({ memberUserIds: ["u_2"] }),
         }),
         startedAt,
       });
@@ -286,18 +284,18 @@ describe("purgeDeparted", () => {
       await seedTeam(tx, COMPANY_GONE, ["u_1"]);
       await seedTeam(tx, COMPANY_ACTIVE, ["u_stays", "u_left"]);
       const checkMemberships = answering({
-        [COMPANY_GONE]: { companyActive: false, memberUserIds: [] },
-        [COMPANY_ACTIVE]: { companyActive: true, memberUserIds: ["u_stays"] },
+        [COMPANY_GONE]: MembershipAnswer.Deleted(),
+        [COMPANY_ACTIVE]: MembershipAnswer.Active({
+          memberUserIds: ["u_stays"],
+        }),
       });
 
-      const first = await purgeDeparted({
-        db: tx,
+      const first = await purgeAsApp(tx, {
         teamListOf,
         checkMemberships,
         startedAt,
       });
-      const second = await purgeDeparted({
-        db: tx,
+      const second = await purgeAsApp(tx, {
         teamListOf,
         checkMemberships,
         startedAt,
@@ -322,11 +320,10 @@ describe("purgeDeparted が一覧を変えた事業所の DO の一覧", () => {
       await seedTeam(tx, COMPANY_GONE, ["u_1"]);
       const before = await teamListVersion(tx, COMPANY_GONE);
 
-      await purgeDeparted({
-        db: tx,
+      await purgeAsApp(tx, {
         teamListOf,
         checkMemberships: answering({
-          [COMPANY_GONE]: { companyActive: false, memberUserIds: [] },
+          [COMPANY_GONE]: MembershipAnswer.Deleted(),
         }),
         startedAt,
       });
@@ -344,15 +341,15 @@ describe("purgeDeparted が一覧を変えた事業所の DO の一覧", () => {
       const before = await teamListVersion(tx, COMPANY_ACTIVE);
       const unchangedBefore = await teamListVersion(tx, COMPANY_UNCHANGED);
 
-      await purgeDeparted({
-        db: tx,
+      await purgeAsApp(tx, {
         teamListOf,
         checkMemberships: answering({
-          [COMPANY_ACTIVE]: { companyActive: true, memberUserIds: ["u_stays"] },
-          [COMPANY_UNCHANGED]: {
-            companyActive: true,
+          [COMPANY_ACTIVE]: MembershipAnswer.Active({
             memberUserIds: ["u_stays"],
-          },
+          }),
+          [COMPANY_UNCHANGED]: MembershipAnswer.Active({
+            memberUserIds: ["u_stays"],
+          }),
         }),
         startedAt,
       });
@@ -376,12 +373,13 @@ describe("purgeDeparted が一覧を変えた事業所の DO の一覧", () => {
       await seedTeam(tx, COMPANY_GONE, ["u_2"]);
       const before = await teamListVersion(tx, COMPANY_UNREACHABLE);
 
-      const report = await purgeDeparted({
-        db: tx,
+      const report = await purgeAsApp(tx, {
         teamListOf,
         checkMemberships: answering({
-          [COMPANY_UNREACHABLE]: new Error("taimei-auth unavailable"),
-          [COMPANY_GONE]: { companyActive: false, memberUserIds: [] },
+          [COMPANY_UNREACHABLE]: MembershipAnswer.Unknown({
+            cause: new Error("taimei-auth unavailable"),
+          }),
+          [COMPANY_GONE]: MembershipAnswer.Deleted(),
         }),
         startedAt,
       });
@@ -401,12 +399,11 @@ describe("purgeDeparted が一覧を変えた事業所の DO の一覧", () => {
         new Error("DO に届かない"),
       );
 
-      const report = await purgeDeparted({
-        db: tx,
+      const report = await purgeAsApp(tx, {
         teamListOf,
         checkMemberships: answering({
-          [COMPANY_GONE]: { companyActive: false, memberUserIds: [] },
-          [COMPANY_ALSO_GONE]: { companyActive: false, memberUserIds: [] },
+          [COMPANY_GONE]: MembershipAnswer.Deleted(),
+          [COMPANY_ALSO_GONE]: MembershipAnswer.Deleted(),
         }),
         startedAt,
       });
@@ -425,11 +422,10 @@ describe("purgeDeparted が一覧を変えた事業所の DO の一覧", () => {
       await seedTeam(tx, COMPANY_NEW, ["u_new"], afterStart);
       const before = await teamListVersion(tx, COMPANY_NEW);
 
-      const report = await purgeDeparted({
-        db: tx,
+      const report = await purgeAsApp(tx, {
         teamListOf,
         checkMemberships: answering({
-          [COMPANY_NEW]: { companyActive: true, memberUserIds: [] },
+          [COMPANY_NEW]: MembershipAnswer.Active({ memberUserIds: [] }),
         }),
         startedAt,
       });
@@ -454,17 +450,17 @@ describe("purgeDeparted が一覧を変えた事業所の DO の一覧", () => {
       const send = captureReports();
       await seedTeam(tx, COMPANY_GONE, ["u_1"]);
       await seedTeam(tx, COMPANY_ALSO_GONE, ["u_2"]);
-      // 1 社目の割り当ての読み取りが 1 本目、1 社目の書き込みが 2 本目
-      failingTransactionCall(tx, 2);
-
-      const report = await purgeDeparted({
-        db: tx,
-        teamListOf,
-        checkMemberships: answering({
-          [COMPANY_GONE]: { companyActive: false, memberUserIds: [] },
-          [COMPANY_ALSO_GONE]: { companyActive: false, memberUserIds: [] },
-        }),
-        startedAt,
+      const report = await asAppRole(tx, (app) => {
+        failingTransactionCall(app, 2);
+        return purgeDeparted({
+          db: app,
+          teamListOf,
+          checkMemberships: answering({
+            [COMPANY_GONE]: MembershipAnswer.Deleted(),
+            [COMPANY_ALSO_GONE]: MembershipAnswer.Deleted(),
+          }),
+          startedAt,
+        });
       });
 
       const [failed] = report.skippedCompanyIds;
@@ -483,16 +479,17 @@ describe("purgeDeparted が一覧を変えた事業所の DO の一覧", () => {
       const send = captureReports();
       await seedTeam(tx, COMPANY_GONE, ["u_1"]);
       await seedTeam(tx, COMPANY_ALSO_GONE, ["u_2"]);
-      failingTransactionCall(tx, 1);
-
-      const report = await purgeDeparted({
-        db: tx,
-        teamListOf,
-        checkMemberships: answering({
-          [COMPANY_GONE]: { companyActive: false, memberUserIds: [] },
-          [COMPANY_ALSO_GONE]: { companyActive: false, memberUserIds: [] },
-        }),
-        startedAt,
+      const report = await asAppRole(tx, (app) => {
+        failingTransactionCall(app, 1);
+        return purgeDeparted({
+          db: app,
+          teamListOf,
+          checkMemberships: answering({
+            [COMPANY_GONE]: MembershipAnswer.Deleted(),
+            [COMPANY_ALSO_GONE]: MembershipAnswer.Deleted(),
+          }),
+          startedAt,
+        });
       });
 
       const [failed] = report.skippedCompanyIds;

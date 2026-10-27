@@ -56,6 +56,7 @@ taimei で今書ける間違いと、移した後に何が止めるか:
   - チームの atom (`teamAtom`) は保存した自分のレベルを書ける writable にする。`Atom.optimistic` は成功の後に取り直すため
   - 更新は、送る処理と、何を変えたかの宣言 (`changed`。`ChangedByMutation` の variant) を持つ定義 (`ApiMutation`) で書き、`changed` を型で省けなくする。取り直す key の付け忘れを型で止めるため。更新の atom は呼び出しごとに作る。`AtomHttpApi.mutation` の atom は endpoint ごとに 1 つで、同じ atom への次の呼び出しが前の呼び出しを中断するため。契約に無い応答と decode の失敗は、query と同じく defect にする
   - 失敗の文言 (`failureMessageOf`) は契約に宣言した失敗の型から選び、読み取りの失敗も router の `error` (`unknown`) ではなく atom から読む (`useLoadFailure`)。Context の表の 1 行目のため
+- 追記 (2026-10-27、#656): 契約の group は実行口で分ける (`teams` は読み取り、`myLevels` は自分の記入、`teamManagement` はチームの管理)。`src/spa-http-api.ts` の `handledBy` が group ごとに実行口を 1 つに決め、handler はその実行口の Service だけを受ける。`teamManagement` では group の middleware `ManagerOnly` が管理者でない人に `NotManager` (403) を返し、endpoint ごとには `NotManager` を宣言しない。SPA の画面が読む名前は `web/src/api.ts` の re-export だけにし、atom・hook・更新の内側は `web/src/api-internal.ts` に置く (画面からの import は `biome.json` の `noRestrictedImports` が止める)
 
 ## 引き換えと埋め方
 

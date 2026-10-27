@@ -4,12 +4,18 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import type { PgTransaction } from "drizzle-orm/pg-core";
 import { Pool } from "pg";
 import * as schema from "@/db/drizzle/schema";
-import { COMPANY_ID_SETTING } from "@/db/drizzle/schema";
+import {
+  COMPANY_ID_SETTING,
+  TEAM_LIST_UNBUMPED_SETTING,
+} from "@/db/drizzle/schema";
 import { TEST_DATABASE_URL } from "./global-setup";
 
-const testDb = drizzle(new Pool({ connectionString: TEST_DATABASE_URL }), {
-  schema,
-});
+export const testDb = drizzle(
+  new Pool({ connectionString: TEST_DATABASE_URL }),
+  {
+    schema,
+  },
+);
 
 type Schema = typeof schema;
 export type TestDb = PgTransaction<
@@ -48,12 +54,39 @@ const oneAtATime = <T>(run: () => PromiseLike<T>): Promise<T> => {
   return queued;
 };
 
-// db/drizzle/client の db を差し替えて使う。実行口の書き込みを test の終わりに戻し、並行の test に見せない
+export const APP_ROLE = "taimei_app";
+
+export const asAppRole = <T>(tx: TestDb, fn: (app: TestDb) => Promise<T>) =>
+  tx.transaction(async (app) => {
+    await app.execute(sql.raw(`SET LOCAL ROLE ${APP_ROLE}`));
+    const result = await fn(app);
+    await app.execute(sql`RESET ROLE`);
+    return result;
+  });
+
+const inCurrentRollbackAsApp = <T>(fn: (app: TestDb) => Promise<T>) => {
+  const tx = currentRollbackTx();
+  return oneAtATime(() => asAppRole(tx, fn));
+};
+
+export const withCommitCheck = async <T>(
+  tx: TestDb,
+  fn: (tx: TestDb) => Promise<T>,
+) => {
+  await tx.execute(
+    sql`select set_config(${TEAM_LIST_UNBUMPED_SETTING}, '', true)`,
+  );
+  const result = await fn(tx);
+  await tx.execute(sql`SET CONSTRAINTS ALL IMMEDIATE`);
+  await tx.execute(sql`SET CONSTRAINTS ALL DEFERRED`);
+  return result;
+};
+
 export const dbInRollback: Pick<TestDb, "transaction" | "execute"> = {
-  transaction: <T>(fn: (tx: TestDb) => Promise<T>) =>
-    oneAtATime(() => currentRollbackTx().transaction(fn)),
+  transaction: (fn) =>
+    inCurrentRollbackAsApp((app) => withCommitCheck(app, fn)),
   execute: ((query) =>
-    oneAtATime(() => currentRollbackTx().execute(query))) as TestDb["execute"],
+    inCurrentRollbackAsApp((app) => app.execute(query))) as TestDb["execute"],
 };
 
 export const withRollbackDb = (fn: (tx: TestDb) => Promise<void>) =>
@@ -62,6 +95,7 @@ export const withRollbackDb = (fn: (tx: TestDb) => Promise<void>) =>
     try {
       await fn(tx);
     } finally {
+      await lastQueued;
       rollbackTx = undefined;
     }
   });
@@ -88,18 +122,4 @@ export const currentCompanySetting = async (db: Pick<TestDb, "execute">) => {
     sql`select current_setting(${COMPANY_ID_SETTING}, true) as company_id`,
   );
   return rows[0]?.company_id;
-};
-
-// superuser の postgres は RLS を常に bypass するので、BYPASSRLS の無い role に切り替えて policy を観測する
-export const switchToRoleWithoutRlsBypass = async (tx: TestDb) => {
-  const role = `rls_probe_${crypto.randomUUID().slice(0, 8)}`;
-  await tx.execute(sql.raw(`CREATE ROLE "${role}" NOLOGIN`));
-  await tx.execute(sql.raw(`GRANT USAGE ON SCHEMA public TO "${role}"`));
-  await tx.execute(
-    sql.raw(
-      `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "${role}"`,
-    ),
-  );
-  await tx.execute(sql.raw(`SET LOCAL ROLE "${role}"`));
-  return role;
 };

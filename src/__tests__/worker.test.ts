@@ -131,9 +131,7 @@ it("定期処理の照合は taimei-auth の Service Binding へ送る", async (
   await handler.scheduled({}, envWithBinding(binding), collectingContext().ctx);
   const [{ checkMemberships }] = vi.mocked(purgeDeparted).mock.calls[0];
 
-  await checkMemberships({ companyId: COMPANY_A, userIds: ["u_1"] }).catch(
-    () => undefined,
-  );
+  await checkMemberships({ companyId: COMPANY_A, userIds: ["u_1"] });
 
   expect(binding).toHaveBeenCalledOnce();
 });

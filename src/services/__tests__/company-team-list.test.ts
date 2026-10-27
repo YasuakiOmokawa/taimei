@@ -4,6 +4,7 @@ import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { teams } from "@/db/drizzle/schema";
 import { TeamId } from "@/db/ids";
 import { sendErrorReportsTo } from "@/src/lib/report-error";
+import { writeInCompanyScope } from "../company-scope";
 import {
   CompanyTeamList,
   decodeTeamListSnapshot,
@@ -19,9 +20,11 @@ import {
 } from "../team-list-store";
 import { fixtureCompanyId } from "./db/seed";
 import {
+  asAppRole,
   functionValue,
   type TestDb,
   teamListVersion,
+  testDb,
   withRollback,
 } from "./db/test-db";
 import {
@@ -325,11 +328,8 @@ describe("writeTeamList", () => {
         order.push("replaced");
       });
 
-      const result = await writeTeamList(
-        tx,
-        companyId,
-        teamListOf,
-        insertTeam("書いたチーム"),
+      const result = await asAppRole(tx, (app) =>
+        writeTeamList(app, companyId, teamListOf, insertTeam("書いたチーム")),
       );
       order.push("returned");
 
@@ -347,14 +347,11 @@ describe("writeTeamList", () => {
       const { stub, teamListOf } = stubbedTeamList();
       const before = await teamListVersion(tx, companyId);
 
-      const result = await writeTeamList(
-        tx,
-        companyId,
-        teamListOf,
-        async (scoped) => {
+      const result = await asAppRole(tx, (app) =>
+        writeTeamList(app, companyId, teamListOf, async (scoped) => {
           await insertTeam("戻るチーム")(scoped);
           return Result.fail("rejected" as const);
-        },
+        }),
       );
 
       expect(result).toEqual(Result.fail("rejected"));
@@ -369,10 +366,12 @@ describe("writeTeamList", () => {
       const defect = new Error("bug");
 
       await expect(
-        writeTeamList(tx, companyId, teamListOf, async (scoped) => {
-          await insertTeam("戻るチーム")(scoped);
-          throw defect;
-        }),
+        asAppRole(tx, (app) =>
+          writeTeamList(app, companyId, teamListOf, async (scoped) => {
+            await insertTeam("戻るチーム")(scoped);
+            throw defect;
+          }),
+        ),
       ).rejects.toBe(defect);
 
       expect(await teamNames(tx)).toEqual([]);
@@ -383,14 +382,16 @@ describe("writeTeamList", () => {
     withRollback(async (tx) => {
       const { stub, teamListOf } = stubbedTeamList();
       const cause = new Error("connection terminated");
-      vi.spyOn(tx, "transaction").mockRejectedValueOnce(cause);
 
-      const result = await writeTeamList(
-        tx,
-        companyId,
-        teamListOf,
-        insertTeam("届かないチーム"),
-      );
+      const result = await asAppRole(tx, (app) => {
+        vi.spyOn(app, "transaction").mockRejectedValueOnce(cause);
+        return writeTeamList(
+          app,
+          companyId,
+          teamListOf,
+          insertTeam("届かないチーム"),
+        );
+      });
 
       expect(result).toEqual(Result.fail(new DbUnavailable({ cause })));
       expect(readReplaceClearCounts(stub)).toEqual([0, 0, 1]);
@@ -399,17 +400,12 @@ describe("writeTeamList", () => {
   it("版を増やす文を DB が拒むと、TeamServiceError を返し、本体の行を戻し、DO を触らない", () =>
     withRollback(async (tx) => {
       const { stub, teamListOf } = stubbedTeamList();
+      await tx.execute(
+        sql`alter function bump_company_team_list(varchar) rename to bump_company_team_list_gone`,
+      );
 
-      const result = await writeTeamList(
-        tx,
-        companyId,
-        teamListOf,
-        async (scoped) => {
-          await scoped.execute(
-            sql`alter function bump_company_team_list(varchar) rename to bump_company_team_list_gone`,
-          );
-          return insertTeam("戻るチーム")(scoped);
-        },
+      const result = await asAppRole(tx, (app) =>
+        writeTeamList(app, companyId, teamListOf, insertTeam("戻るチーム")),
       );
 
       expect(Result.isFailure(result) && result.failure._tag).toBe(
@@ -418,4 +414,30 @@ describe("writeTeamList", () => {
       expect(await teamNames(tx)).toEqual([]);
       expect(readReplaceClearCounts(stub)).toEqual([0, 0, 0]);
     }));
+});
+
+describe("一覧の版を上げない本物の commit", () => {
+  it("版を上げずに teams を書いた transaction の commit を DB が拒むと、書き込みの口は TeamServiceError を返し、行は残らない (drizzle は COMMIT の失敗も文の失敗と同じく pg のエラーを包んで投げる)", async () => {
+    const companyId = fixtureCompanyId("real_commit");
+
+    try {
+      const result = await writeInCompanyScope(
+        testDb,
+        companyId,
+        async (tx) => {
+          await tx.insert(teams).values({ companyId, name: "残らないチーム" });
+          return Result.succeed(undefined);
+        },
+      );
+
+      expect(Result.isFailure(result) && result.failure._tag).toBe(
+        "TeamServiceError",
+      );
+      expect(
+        await testDb.select().from(teams).where(eq(teams.companyId, companyId)),
+      ).toEqual([]);
+    } finally {
+      await testDb.delete(teams).where(eq(teams.companyId, companyId));
+    }
+  });
 });

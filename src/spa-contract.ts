@@ -134,6 +134,11 @@ export class Authenticated extends HttpApiMiddleware.Service<
   { provides: CurrentSession }
 >()("taimei/Authenticated", { error: [Unauthenticated, SessionChanged] }) {}
 
+export class ManagerOnly extends HttpApiMiddleware.Service<
+  ManagerOnly,
+  { requires: CurrentSession }
+>()("taimei/ManagerOnly", { error: NotManager }) {}
+
 const teamParams = { teamId: Schema.String };
 
 export class MeGroup extends HttpApiGroup.make("me").add(
@@ -150,48 +155,14 @@ export class TeamsGroup extends HttpApiGroup.make("teams").add(
   HttpApiEndpoint.get("list", "/api/teams", {
     success: Schema.Struct({ teams: Schema.Array(Team) }),
   }),
-  HttpApiEndpoint.post("create", "/api/teams", {
-    payload: NameRequest,
-    success: Schema.Struct({ id: Schema.String }),
-    error: [NotManager, InvalidName, DuplicateName],
-  }),
   HttpApiEndpoint.get("get", "/api/teams/:teamId", {
     params: teamParams,
     success: TeamPage,
     error: [TeamNotFound, Unauthenticated],
   }),
-  HttpApiEndpoint.patch("rename", "/api/teams/:teamId", {
-    params: teamParams,
-    payload: NameRequest,
-    success: Empty,
-    error: [NotManager, TeamNotFound, InvalidName, DuplicateName],
-  }),
-  HttpApiEndpoint.delete("delete", "/api/teams/:teamId", {
-    params: teamParams,
-    success: Empty,
-    error: [NotManager, TeamNotFound],
-  }),
-  HttpApiEndpoint.post("addSkill", "/api/teams/:teamId/skills", {
-    params: teamParams,
-    payload: NameRequest,
-    success: Empty,
-    error: [NotManager, TeamNotFound, InvalidName, DuplicateName],
-  }),
-  HttpApiEndpoint.delete("removeSkill", "/api/skills/:skillId", {
-    params: { skillId: Schema.String },
-    success: Empty,
-    error: [NotManager, SkillNotFound],
-  }),
-  HttpApiEndpoint.put("assign", "/api/teams/:teamId/assignments/:userId", {
-    params: { ...teamParams, userId: Schema.String },
-    success: Empty,
-    error: [NotManager, TeamNotFound, NotCompanyMember, Unauthenticated],
-  }),
-  HttpApiEndpoint.delete("unassign", "/api/teams/:teamId/assignments/:userId", {
-    params: { ...teamParams, userId: Schema.String },
-    success: Empty,
-    error: [NotManager, TeamNotFound],
-  }),
+) {}
+
+export class MyLevelsGroup extends HttpApiGroup.make("myLevels").add(
   HttpApiEndpoint.put("saveMyLevels", "/api/teams/:teamId/my-levels", {
     params: teamParams,
     payload: Schema.Struct({
@@ -203,6 +174,52 @@ export class TeamsGroup extends HttpApiGroup.make("teams").add(
     error: [TeamNotFound, SkillNotFound, NotAssigned, InvalidLevel],
   }),
 ) {}
+
+export class TeamManagementGroup extends HttpApiGroup.make("teamManagement")
+  .add(
+    HttpApiEndpoint.post("create", "/api/teams", {
+      payload: NameRequest,
+      success: Schema.Struct({ id: Schema.String }),
+      error: [InvalidName, DuplicateName],
+    }),
+    HttpApiEndpoint.patch("rename", "/api/teams/:teamId", {
+      params: teamParams,
+      payload: NameRequest,
+      success: Empty,
+      error: [TeamNotFound, InvalidName, DuplicateName],
+    }),
+    HttpApiEndpoint.delete("delete", "/api/teams/:teamId", {
+      params: teamParams,
+      success: Empty,
+      error: TeamNotFound,
+    }),
+    HttpApiEndpoint.post("addSkill", "/api/teams/:teamId/skills", {
+      params: teamParams,
+      payload: NameRequest,
+      success: Empty,
+      error: [TeamNotFound, InvalidName, DuplicateName],
+    }),
+    HttpApiEndpoint.delete("removeSkill", "/api/skills/:skillId", {
+      params: { skillId: Schema.String },
+      success: Empty,
+      error: SkillNotFound,
+    }),
+    HttpApiEndpoint.put("assign", "/api/teams/:teamId/assignments/:userId", {
+      params: { ...teamParams, userId: Schema.String },
+      success: Empty,
+      error: [TeamNotFound, NotCompanyMember, Unauthenticated],
+    }),
+    HttpApiEndpoint.delete(
+      "unassign",
+      "/api/teams/:teamId/assignments/:userId",
+      {
+        params: { ...teamParams, userId: Schema.String },
+        success: Empty,
+        error: TeamNotFound,
+      },
+    ),
+  )
+  .middleware(ManagerOnly) {}
 
 export class MembersGroup extends HttpApiGroup.make("members").add(
   HttpApiEndpoint.get("list", "/api/members", {
@@ -224,5 +241,7 @@ export class MembersGroup extends HttpApiGroup.make("members").add(
 export class SpaApi extends HttpApi.make("spa")
   .add(MeGroup)
   .add(TeamsGroup)
+  .add(MyLevelsGroup)
+  .add(TeamManagementGroup)
   .add(MembersGroup)
   .middleware(Authenticated) {}

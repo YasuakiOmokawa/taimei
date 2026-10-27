@@ -15,10 +15,11 @@ import {
   seedTeam,
 } from "@/src/services/__tests__/db/seed";
 import {
+  asAppRole,
   currentCompanySetting,
   functionValue,
-  switchToRoleWithoutRlsBypass,
   type TestDb,
+  withCommitCheck,
   withRollback,
 } from "@/src/services/__tests__/db/test-db";
 
@@ -49,14 +50,13 @@ describe("明示の絞り込みを外しても、RLS だけで他社が見えな
       const other = await seedTeam(tx, COMPANY_B, "B のチーム");
       await replaceWithRlsOnlyVersion(tx, "team_matrix");
       await replaceWithRlsOnlyVersion(tx, "team_visible_to");
-      await switchToRoleWithoutRlsBypass(tx);
-
-      const matrixOf = async (teamId: string) => {
-        const { rows } = await tx.execute<{ team: unknown }>(
-          sql`select team_matrix(${COMPANY_A}, ${teamId}, 'u_1', true) as team`,
-        );
-        return rows[0].team;
-      };
+      const matrixOf = (teamId: string) =>
+        asAppRole(tx, async (app) => {
+          const { rows } = await app.execute<{ team: unknown }>(
+            sql`select team_matrix(${COMPANY_A}, ${teamId}, 'u_1', true) as team`,
+          );
+          return rows[0].team;
+        });
 
       expect(await matrixOf(other)).toBeNull();
       expect(await matrixOf(own)).not.toBeNull();
@@ -67,13 +67,13 @@ describe("明示の絞り込みを外しても、RLS だけで他社が見えな
       const own = await seedTeam(tx, COMPANY_A, "A のチーム");
       const other = await seedTeam(tx, COMPANY_B, "B のチーム");
       await replaceWithRlsOnlyVersion(tx, "company_team_list");
-      await switchToRoleWithoutRlsBypass(tx);
-
       for (const call of [
         sql`company_team_list(${COMPANY_A})`,
         sql`bump_company_team_list(${COMPANY_A})`,
       ]) {
-        const ids = teamIdsOf(await functionValue(tx, call));
+        const ids = teamIdsOf(
+          await asAppRole(tx, (app) => functionValue(app, call)),
+        );
         expect(ids).toContain(own);
         expect(ids).not.toContain(other);
       }
@@ -85,10 +85,10 @@ describe("明示の絞り込みを外しても、RLS だけで他社が見えな
       const other = await seedTeam(tx, COMPANY_B, "B のチーム");
       await replaceWithRlsOnlyVersion(tx, "team_list");
       await replaceWithRlsOnlyVersion(tx, "team_visible_to");
-      await switchToRoleWithoutRlsBypass(tx);
-
-      const { rows } = await tx.execute<{ teams: { id: string }[] }>(
-        sql`select team_list(${COMPANY_A}, 'u_1', true) as teams`,
+      const { rows } = await asAppRole(tx, (app) =>
+        app.execute<{ teams: { id: string }[] }>(
+          sql`select team_list(${COMPANY_A}, 'u_1', true) as teams`,
+        ),
       );
 
       const ids = rows[0].teams.map((team) => team.id);
@@ -191,14 +191,14 @@ describe("関数の set_config は、同じ接続の次の文に漏れない", (
   });
 });
 
-it("事業所のデータを読む SQL の関数は、呼んだ文の中だけに事業所を設定し、呼んだ role の RLS で読む (例外は事業所をまたぐ定期処理の company_ids_with_teams と、呼ぶ側が設定する team_visible_to)", () =>
+it("事業所のデータを読む SQL の関数は、呼んだ文の中だけに事業所を設定し、呼んだ role の RLS で読む (例外は事業所をまたぐ定期処理の company_ids_with_teams と、呼ぶ側が設定する team_visible_to。行を読まない trigger の関数 mark_team_list_unbumped・require_team_list_bumped も除く)", () =>
   withRollback(async (tx) => {
     const { rows } = await tx.execute<{
       name: string;
       securityDefiner: boolean;
       definition: string;
     }>(
-      sql`select proname as "name", prosecdef as "securityDefiner", pg_get_functiondef(oid) as "definition" from pg_proc where pronamespace = 'public'::regnamespace and proname not in ('company_ids_with_teams', 'team_visible_to') order by proname`,
+      sql`select proname as "name", prosecdef as "securityDefiner", pg_get_functiondef(oid) as "definition" from pg_proc where pronamespace = 'public'::regnamespace and proname not in ('company_ids_with_teams', 'team_visible_to', 'mark_team_list_unbumped', 'require_team_list_bumped') order by proname`,
     );
 
     expect(rows.length).toBeGreaterThan(0);
@@ -214,3 +214,99 @@ it("事業所のデータを読む SQL の関数は、呼んだ文の中だけ�
         .map(({ name }) => name),
     ).toEqual([]);
   }));
+
+describe("一覧の元の表 (teams・team_assignments) を書いた transaction の commit", () => {
+  const commitChecked = (tx: TestDb, write: (sp: TestDb) => Promise<unknown>) =>
+    tx.transaction((sp) => withCommitCheck(sp, write).then(() => undefined));
+  const bump = (sp: TestDb) =>
+    functionValue(sp, sql`bump_company_team_list(${COMPANY_A})`);
+
+  it.each([
+    ["teams の INSERT", (sp: TestDb) => seedTeam(sp, COMPANY_A, "新")],
+    [
+      "teams の UPDATE",
+      (sp: TestDb, teamId: string) =>
+        sp.execute(sql`update teams set name = '新' where id = ${teamId}`),
+    ],
+    [
+      "teams の DELETE",
+      (sp: TestDb, teamId: string) =>
+        sp.execute(sql`delete from teams where id = ${teamId}`),
+    ],
+    [
+      "team_assignments の INSERT",
+      (sp: TestDb, teamId: string) =>
+        sp.execute(
+          sql`insert into team_assignments (company_id, team_id, user_id) values (${COMPANY_A}, ${teamId}, 'u_new')`,
+        ),
+    ],
+    [
+      "team_assignments の DELETE",
+      (sp: TestDb) =>
+        sp.execute(sql`delete from team_assignments where user_id = 'u_1'`),
+    ],
+  ])(
+    "%s の後に bump_company_team_list を呼ばない transaction は commit の検査で落ちる (deferred の制約は ROLLBACK では走らないので、IMMEDIATE にして観測する)",
+    (_, write) =>
+      withRollback(async (tx) => {
+        const teamId = await seedTeam(tx, COMPANY_A, "開発");
+        await seedAssignment(tx, COMPANY_A, teamId, "u_1");
+
+        await expect(
+          commitChecked(tx, (sp) => write(sp, teamId)),
+        ).rejects.toMatchObject({
+          cause: { message: expect.stringContaining("bump_company_team_list") },
+        });
+      }),
+  );
+
+  it("書いた後に bump_company_team_list を呼んだ transaction は commit の検査を通る", () =>
+    withRollback(async (tx) => {
+      await expect(
+        commitChecked(tx, async (sp) => {
+          await seedTeam(sp, COMPANY_A, "新");
+          await bump(sp);
+        }),
+      ).resolves.toBeUndefined();
+    }));
+
+  it("bump_company_team_list の後に書いた transaction は commit の検査で落ちる", () =>
+    withRollback(async (tx) => {
+      await expect(
+        commitChecked(tx, async (sp) => {
+          await seedTeam(sp, COMPANY_A, "先");
+          await bump(sp);
+          await seedTeam(sp, COMPANY_A, "後");
+        }),
+      ).rejects.toMatchObject({
+        cause: { message: expect.stringContaining("bump_company_team_list") },
+      });
+    }));
+
+  it("skills・member_skills だけを書いた transaction は、版を増やさずに commit の検査を通る", () =>
+    withRollback(async (tx) => {
+      const teamId = await seedTeam(tx, COMPANY_A, "開発");
+      await seedAssignment(tx, COMPANY_A, teamId, "u_1");
+
+      await expect(
+        commitChecked(tx, async (sp) => {
+          const skillId = await seedSkill(sp, COMPANY_A, teamId, "設計");
+          await seedLevel(sp, {
+            companyId: COMPANY_A,
+            teamId,
+            skillId,
+            userId: "u_1",
+          });
+        }),
+      ).resolves.toBeUndefined();
+    }));
+
+  it("該当の行の無い teams の DELETE だけの transaction は、版を増やさずに commit の検査を通る", () =>
+    withRollback(async (tx) => {
+      await expect(
+        commitChecked(tx, (sp) =>
+          sp.execute(sql`delete from teams where name = '無いチーム'`),
+        ),
+      ).resolves.toBeUndefined();
+    }));
+});

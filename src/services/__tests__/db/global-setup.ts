@@ -1,4 +1,5 @@
 import { execSync } from "child_process";
+import { readFileSync } from "fs";
 import { resolve } from "path";
 
 export const TEST_DATABASE_URL =
@@ -15,11 +16,25 @@ export async function setup() {
     cwd: projectRoot,
     env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL },
   });
+  await runSql(
+    readFileSync(resolve(projectRoot, "db/local-app-role.sql"), "utf8"),
+  );
   console.log("✅ Test database ready");
 }
 
 export async function teardown() {
   console.log("🧹 Test database teardown complete");
+}
+
+async function runSql(text: string) {
+  const { Client } = await import("pg");
+  const client = new Client({ connectionString: TEST_DATABASE_URL });
+  await client.connect();
+  try {
+    await client.query(text);
+  } finally {
+    await client.end();
+  }
 }
 
 async function waitForDb(maxRetries = 10, delayMs = 1000) {
