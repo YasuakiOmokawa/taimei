@@ -1,5 +1,5 @@
 import { and, inArray, lte, sql } from "drizzle-orm";
-import { Result } from "effect";
+import { Match, Result } from "effect";
 import { CompanyId } from "@/db/company-id";
 import { teamAssignments, teams } from "@/db/drizzle/schema";
 import { companyFilter, withCompanyScope } from "@/db/scoped";
@@ -8,12 +8,8 @@ import {
   writeTeamList,
 } from "@/src/services/company-team-list";
 import type { Db } from "@/src/services/db-service";
+import type { CheckMemberships } from "./membership-answer";
 import { reportError } from "./report-error";
-
-export type CheckMemberships = (request: {
-  companyId: string;
-  userIds: string[];
-}) => Promise<{ companyActive: boolean; memberUserIds: readonly string[] }>;
 
 export type PurgeReport = {
   deletedCompanyIds: string[];
@@ -47,49 +43,47 @@ export const purgeDeparted = async ({
           .where(companyFilter(teamAssignments, companyId))
       ).map((row) => row.userId),
     );
-    const answer = await checkMemberships({ companyId, userIds }).catch(
-      (cause: unknown) => {
+    const answer = await checkMemberships({ companyId, userIds });
+    await Match.valueTags(answer, {
+      Unknown: async ({ cause }) => {
         reportError(
           new Error(`checkMemberships failed: ${companyId}`, { cause }),
         );
-        return undefined;
+        report.skippedCompanyIds.push(companyId);
       },
-    );
-    if (!answer) {
-      report.skippedCompanyIds.push(companyId);
-      return;
-    }
-    if (!answer.companyActive) {
-      Result.getOrThrow(
-        await writeTeamList(db, companyId, teamListOf, async (tx) =>
-          Result.succeed(
-            await tx.delete(teams).where(companyFilter(teams, companyId)),
+      Deleted: async () => {
+        Result.getOrThrow(
+          await writeTeamList(db, companyId, teamListOf, async (tx) =>
+            Result.succeed(
+              await tx.delete(teams).where(companyFilter(teams, companyId)),
+            ),
           ),
-        ),
-      );
-      report.deletedCompanyIds.push(companyId);
-      return;
-    }
-    const members = new Set(answer.memberUserIds);
-    const departed = userIds.filter((userId) => !members.has(userId));
-    if (departed.length === 0) return;
-    const removed = Result.getOrThrow(
-      await writeTeamList(db, companyId, teamListOf, async (tx) =>
-        Result.succeed(
-          await tx
-            .delete(teamAssignments)
-            .where(
-              and(
-                companyFilter(teamAssignments, companyId),
-                inArray(teamAssignments.userId, departed),
-                lte(teamAssignments.createdAt, startedAt),
-              ),
-            )
-            .returning({ userId: teamAssignments.userId }),
-        ),
-      ),
-    );
-    report.removedAssignments += removed.length;
+        );
+        report.deletedCompanyIds.push(companyId);
+      },
+      Active: async ({ memberUserIds }) => {
+        const members = new Set(memberUserIds);
+        const departed = userIds.filter((userId) => !members.has(userId));
+        if (departed.length === 0) return;
+        const removed = Result.getOrThrow(
+          await writeTeamList(db, companyId, teamListOf, async (tx) =>
+            Result.succeed(
+              await tx
+                .delete(teamAssignments)
+                .where(
+                  and(
+                    companyFilter(teamAssignments, companyId),
+                    inArray(teamAssignments.userId, departed),
+                    lte(teamAssignments.createdAt, startedAt),
+                  ),
+                )
+                .returning({ userId: teamAssignments.userId }),
+            ),
+          ),
+        );
+        report.removedAssignments += removed.length;
+      },
+    });
   };
 
   const purgeCompanyOfRow = async (companyId: string) =>

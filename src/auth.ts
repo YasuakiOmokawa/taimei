@@ -19,7 +19,10 @@ import {
   type VerifyResult,
 } from "@taimei-code/auth-client";
 import { CompanyId } from "@/db/company-id";
-import type { CheckMemberships } from "@/src/lib/purge-departed";
+import {
+  type CheckMemberships,
+  MembershipAnswer,
+} from "@/src/lib/membership-answer";
 import { CompanyMembers } from "@/src/services/company-members-service";
 import type { CompanyTeamList } from "@/src/services/company-team-list";
 import type { RequestSession } from "@/src/services/request-session";
@@ -54,9 +57,25 @@ const authClientOf = (env: AuthEnv) =>
     transport: createConnectTransport(authTransportOptionsOf(env)),
   });
 
+export const membershipAnswerOf = ({
+  companyActive,
+  memberUserIds,
+}: {
+  readonly companyActive: boolean;
+  readonly memberUserIds: readonly string[];
+}) =>
+  companyActive
+    ? MembershipAnswer.Active({ memberUserIds })
+    : MembershipAnswer.Deleted();
+
 export const checkMembershipsOf = (env: AuthEnv): CheckMemberships => {
   const { companyService } = authClientOf(env);
-  return (request) => companyService.checkMemberships(request);
+  return (request) =>
+    companyService
+      .checkMemberships(request)
+      .then(membershipAnswerOf, (cause: unknown) =>
+        MembershipAnswer.Unknown({ cause }),
+      );
 };
 
 export const once = <Args extends readonly unknown[], R>(

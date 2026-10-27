@@ -4,10 +4,12 @@ import {
   createServiceKeyInterceptor,
 } from "@taimei-code/auth-client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { fixtureCompanyId } from "@/src/services/__tests__/db/seed";
 import {
   type AuthEnv,
   authGuardOf,
   authTransportOptionsOf,
+  checkMembershipsOf,
   once,
 } from "../auth";
 
@@ -141,5 +143,24 @@ describe("once", () => {
     const b = once(() => "b");
 
     expect([a(), b()]).toEqual(["a", "b"]);
+  });
+});
+
+describe("checkMembershipsOf", () => {
+  it("RPC の失敗は reject せず、原因を持つ Unknown に写す", async () => {
+    const { env } = bindingEnv();
+    env.AUTH.fetch = vi.fn<typeof fetch>(
+      async () => new Response(null, { status: 503 }),
+    );
+
+    const answer = await checkMembershipsOf(env)({
+      companyId: fixtureCompanyId("unknown"),
+      userIds: ["u_1"],
+    });
+
+    expect(answer).toMatchObject({
+      _tag: "Unknown",
+      cause: expect.any(Error),
+    });
   });
 });
