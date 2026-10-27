@@ -46,3 +46,4 @@ SELECT rolbypassrls, rolsuper FROM pg_roles WHERE rolname = current_user;
 - 新しい表を足す時は、`company_id` と policy を同じ migration に入れる。`ALTER DEFAULT PRIVILEGES` で `taimei_app` の権限は自動で付く
 - 関数の EXECUTE は PostgreSQL の既定で PUBLIC にあるので、`taimei_app` に GRANT しない。`db/__tests__/team-functions.test.ts` が、表の権限だけを持つ role で読み取りの関数を呼んで確かめる
 - test と e2e の DB は superuser なので、アプリの分離のテスト (`team-service.test.ts`、e2e) は RLS を通らない。RLS の回帰は `rls.test.ts` だけが捕まえる
+- 追記 (2026-10-27、#656): 上の箇条は改める。試験のアプリのコード (`src/services/__tests__/db/test-db.ts` の `dbInRollback` と `asAppRole`)・e2e・`qa:serve` は、`db/local-app-role.sql` の `taimei_app` (この ADR と同じ GRANT) で RLS を通る。superuser は migration・seed・期待値の読み取りだけが使う

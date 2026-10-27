@@ -9,6 +9,7 @@ import {
   teams,
 } from "@/db/drizzle/schema";
 import { TeamId } from "@/db/ids";
+import { withCompanyScope } from "@/db/scoped";
 import type { Level } from "@/src/spa-contract";
 import type { AuthorizationContext } from "../authorization-context";
 import type { CompanyContext } from "../company-context";
@@ -26,11 +27,7 @@ import {
   seedTeam,
   teamName,
 } from "./db/seed";
-import {
-  switchToRoleWithoutRlsBypass,
-  type TestDb,
-  withRollback,
-} from "./db/test-db";
+import { APP_ROLE, asAppRole, type TestDb, withRollback } from "./db/test-db";
 import {
   type Actor,
   ADMIN,
@@ -59,7 +56,12 @@ const runInRequest = <A, E>(
   tx: TestDb,
   actor: Actor,
   effect: Effect.Effect<A, E, Db | CompanyContext | AuthorizationContext>,
-) => runAsActor(actor, effect.pipe(Effect.provideService(Db, tx)));
+) =>
+  asAppRole(tx, (app) =>
+    withCompanyScope(app, actor.companyId, (scoped) =>
+      runAsActor(actor, effect.pipe(Effect.provideService(Db, scoped))),
+    ),
+  );
 
 const runAs =
   (tx: TestDb, actor: Actor) =>
@@ -758,7 +760,6 @@ describe("saveMyLevels", () => {
       await tx.execute(
         sql`select set_config(${COMPANY_ID_SETTING}, ${MEMBER.companyId}, true)`,
       );
-      await switchToRoleWithoutRlsBypass(tx);
 
       const result = await runAs(
         tx,
@@ -768,7 +769,6 @@ describe("saveMyLevels", () => {
           { skillId: otherSkill, level: 3, wantsToLearn: true },
         ]),
       );
-      await tx.execute(sql`RESET ROLE`);
 
       expect(failureTag(result)).toBe("SkillNotFound");
       expect(await memberSkillRows(tx)).toEqual(before);
@@ -783,12 +783,9 @@ describe("saveMyLevels", () => {
       await tx.execute(
         sql`select set_config(${COMPANY_ID_SETTING}, ${MEMBER.companyId}, true)`,
       );
-      const role = await switchToRoleWithoutRlsBypass(tx);
-      await tx.execute(sql`RESET ROLE`);
       await tx.execute(
-        sql.raw(`REVOKE INSERT, UPDATE ON member_skills FROM "${role}"`),
+        sql.raw(`REVOKE INSERT, UPDATE ON member_skills FROM ${APP_ROLE}`),
       );
-      await tx.execute(sql.raw(`SET LOCAL ROLE "${role}"`));
 
       const result = await runAs(
         tx,
@@ -796,7 +793,6 @@ describe("saveMyLevels", () => {
       )((s) =>
         s.saveMyLevels(teamId, [{ skillId, level: 2, wantsToLearn: false }]),
       );
-      await tx.execute(sql`RESET ROLE`);
 
       expect(failureTag(result)).toBe("TeamServiceError");
       expect(await memberSkillRows(tx)).toEqual(before);

@@ -2,9 +2,11 @@ import { count, eq, sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { COMPANY_A, COMPANY_B } from "@/src/services/__tests__/db/seed";
 import {
-  switchToRoleWithoutRlsBypass,
+  asAppRole,
+  dbInRollback,
   type TestDb,
   withRollback,
+  withRollbackDb,
 } from "@/src/services/__tests__/db/test-db";
 import { CompanyId } from "../company-id";
 import {
@@ -89,6 +91,17 @@ it("company_id を持つ表はすべて company_isolation の policy を持つ",
     );
   }));
 
+it("アプリのコードが試験で使う db は RLS を bypass しない role で、事業所を設定しない読み取りは 0 行を返す", () =>
+  withRollbackDb(async (tx) => {
+    await seedCompany(tx, COMPANY_A);
+
+    const { rows } = await dbInRollback.execute<{ value: number }>(
+      sql`select count(*)::int as value from ${teams}`,
+    );
+
+    expect(rows).toEqual([{ value: 0 }]);
+  }));
+
 describe("RLS (BYPASSRLS の無い role)", () => {
   it("app.company_id が無いと、4 つの表のどの行も見えない", () =>
     withRollback(async (tx) => {
@@ -101,23 +114,22 @@ describe("RLS (BYPASSRLS の無い role)", () => {
         memberSkills: 2,
       });
 
-      await switchToRoleWithoutRlsBypass(tx);
-
-      expect(await countRows(tx)).toEqual(noRowsPerTable);
+      expect(await asAppRole(tx, countRows)).toEqual(noRowsPerTable);
     }));
 
   it("withCompanyScope の中では、4 つの表でその事業所の行だけが見える", () =>
     withRollback(async (tx) => {
       await seedCompany(tx, COMPANY_A);
       await seedCompany(tx, COMPANY_B);
-      await switchToRoleWithoutRlsBypass(tx);
 
-      const seen = await withCompanyScope(tx, COMPANY_A, async (scoped) => ({
-        rows: await countRows(scoped),
-        companies: await scoped
-          .selectDistinct({ companyId: teams.companyId })
-          .from(teams),
-      }));
+      const seen = await asAppRole(tx, (app) =>
+        withCompanyScope(app, COMPANY_A, async (scoped) => ({
+          rows: await countRows(scoped),
+          companies: await scoped
+            .selectDistinct({ companyId: teams.companyId })
+            .from(teams),
+        })),
+      );
 
       expect(seen).toEqual({
         rows: oneRowPerTable,
@@ -127,13 +139,13 @@ describe("RLS (BYPASSRLS の無い role)", () => {
 
   it("withCompanyScope の中から、他社の行は INSERT できない", () =>
     withRollback(async (tx) => {
-      await switchToRoleWithoutRlsBypass(tx);
-
-      const insertOtherCompany = withCompanyScope(tx, COMPANY_A, (scoped) =>
-        scoped.insert(teams).values({
-          companyId: COMPANY_B,
-          name: "他社のチーム",
-        }),
+      const insertOtherCompany = asAppRole(tx, (app) =>
+        withCompanyScope(app, COMPANY_A, (scoped) =>
+          scoped.insert(teams).values({
+            companyId: COMPANY_B,
+            name: "他社のチーム",
+          }),
+        ),
       );
 
       await expect(insertOtherCompany).rejects.toMatchObject({
@@ -144,20 +156,20 @@ describe("RLS (BYPASSRLS の無い role)", () => {
   it("withCompanyScope の中から、他社の行は UPDATE も DELETE もできない", () =>
     withRollback(async (tx) => {
       const other = await seedCompany(tx, COMPANY_B);
-      await switchToRoleWithoutRlsBypass(tx);
 
-      const changed = await withCompanyScope(tx, COMPANY_A, async (scoped) => ({
-        updated: await scoped
-          .update(teams)
-          .set({ name: "書き換え" })
-          .where(eq(teams.id, other.id))
-          .returning(),
-        deleted: await scoped
-          .delete(teams)
-          .where(eq(teams.id, other.id))
-          .returning(),
-      }));
-      await tx.execute(sql`RESET ROLE`);
+      const changed = await asAppRole(tx, (app) =>
+        withCompanyScope(app, COMPANY_A, async (scoped) => ({
+          updated: await scoped
+            .update(teams)
+            .set({ name: "書き換え" })
+            .where(eq(teams.id, other.id))
+            .returning(),
+          deleted: await scoped
+            .delete(teams)
+            .where(eq(teams.id, other.id))
+            .returning(),
+        })),
+      );
 
       expect(changed).toEqual({ updated: [], deleted: [] });
       expect(await tx.select().from(teams)).toEqual([other]);
@@ -167,12 +179,12 @@ describe("RLS (BYPASSRLS の無い role)", () => {
     withRollback(async (tx) => {
       const own = await seedCompany(tx, COMPANY_A);
       expect(await countRows(tx)).toEqual(oneRowPerTable);
-      await switchToRoleWithoutRlsBypass(tx);
 
-      const deleted = await withCompanyScope(tx, COMPANY_A, (scoped) =>
-        scoped.delete(teams).where(eq(teams.id, own.id)).returning(),
+      const deleted = await asAppRole(tx, (app) =>
+        withCompanyScope(app, COMPANY_A, (scoped) =>
+          scoped.delete(teams).where(eq(teams.id, own.id)).returning(),
+        ),
       );
-      await tx.execute(sql`RESET ROLE`);
 
       expect(deleted).toHaveLength(1);
       expect(await countRows(tx)).toEqual(noRowsPerTable);
@@ -182,12 +194,12 @@ describe("RLS (BYPASSRLS の無い role)", () => {
     withRollback(async (tx) => {
       await seedCompany(tx, COMPANY_A);
       await seedCompany(tx, COMPANY_B);
-      await switchToRoleWithoutRlsBypass(tx);
-      expect(await countRows(tx)).toEqual(noRowsPerTable);
-
-      const { rows } = await tx.execute<{ company_id: string }>(
-        sql`select company_id from company_ids_with_teams() as company_id`,
-      );
+      const { rows } = await asAppRole(tx, async (app) => {
+        expect(await countRows(app)).toEqual(noRowsPerTable);
+        return app.execute<{ company_id: string }>(
+          sql`select company_id from company_ids_with_teams() as company_id`,
+        );
+      });
 
       expect(rows.map((row) => row.company_id).sort()).toEqual(
         [COMPANY_A, COMPANY_B].sort(),

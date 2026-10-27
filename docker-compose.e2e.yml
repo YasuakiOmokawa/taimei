@@ -8,16 +8,17 @@ volumes:
 services:
   e2e-postgres:
     image: postgres:16.8-alpine3.21
-    volumes:
-      - pg-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_DATABASE=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
       - POSTGRES_ROOT_PASSWORD=root
       - PGPORT=5433
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./db/local-app-role.sql:/docker-entrypoint-initdb.d/local-app-role.sql:ro
     healthcheck:
-      test: pg_isready -U postgres -d postgres
+      test: pg_isready -h 127.0.0.1 -U postgres -d postgres
       interval: 3s
       timeout: 3s
       retries: 5
@@ -29,10 +30,11 @@ services:
       args:
         NPM_TOKEN: ${NPM_TOKEN}
     command: >
-      sh -c "bunx drizzle-kit migrate && bun run start"
+      sh -c 'DATABASE_URL=$$MIGRATION_DATABASE_URL bunx drizzle-kit migrate && bun run start'
     user: vscode
     environment:
-      - DATABASE_URL=postgres://postgres:password@e2e-postgres:5433/postgres
+      - MIGRATION_DATABASE_URL=postgres://postgres:password@e2e-postgres:5433/postgres
+      - DATABASE_URL=postgres://taimei_app:taimei_app@e2e-postgres:5433/postgres
       - PORT=3001
       - LOCAL_UPSTREAM=app.taimei-code.localhost:3001
       - AUTH_URL=http://auth.taimei-code.localhost:3100

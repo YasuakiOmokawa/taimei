@@ -17,7 +17,12 @@ import {
   seedSkill,
   seedTeam,
 } from "./db/seed";
-import { functionValue, withRollback } from "./db/test-db";
+import {
+  asAppRole,
+  functionValue,
+  type TestDb,
+  withRollback,
+} from "./db/test-db";
 import {
   type Actor,
   ADMIN,
@@ -30,32 +35,37 @@ import {
   teamListStubOf,
 } from "./request";
 
-const readAs =
+type ReadUse<A, E> = (
+  reads: TeamReads["Service"],
+) => Effect.Effect<
+  A,
+  E,
+  CompanyContext | AuthorizationContext | CompanyTeamList
+>;
+
+const readWithDb =
   (
-    db: ReadDb["Service"],
+    app: ReadDb["Service"],
     actor: Actor,
     teamList: TeamListStubSpy = teamListStubOf(),
   ) =>
-  <A, E>(
-    f: (
-      reads: TeamReads["Service"],
-    ) => Effect.Effect<
-      A,
-      E,
-      CompanyContext | AuthorizationContext | CompanyTeamList
-    >,
-  ) =>
+  <A, E>(f: ReadUse<A, E>) =>
     runAsActor(
       actor,
       TeamReads.use(f).pipe(
         Effect.provide(TeamReads.layer),
-        Effect.provideService(ReadDb, db),
+        Effect.provideService(ReadDb, app),
         Effect.provideService(
           CompanyTeamList,
           companyTeamListBackedBy(teamList)(),
         ),
       ),
     );
+
+const readAs =
+  (tx: TestDb, actor: Actor, teamList?: TeamListStubSpy) =>
+  <A, E>(f: ReadUse<A, E>) =>
+    asAppRole(tx, (app) => readWithDb(app, actor, teamList)(f));
 
 const reports = vi.fn();
 beforeEach(() => {
@@ -166,15 +176,27 @@ describe("getTeam", () => {
   it("UUID でない id は文を流さずに見つからない", () =>
     withRollback(async (tx) => {
       const id = await seedTeam(tx, COMPANY_A, "開発");
-      const execute = vi.spyOn(tx, "execute");
-
-      const invalid = await readAs(tx, ADMIN)((r) => r.getTeam("not-a-uuid"));
-      const callsForInvalid = execute.mock.calls.length;
-      await readAs(tx, ADMIN)((r) => r.getTeam(id));
+      const { invalid, callsForInvalid, callsInTotal } = await asAppRole(
+        tx,
+        async (app) => {
+          const execute = vi.spyOn(app, "execute");
+          const invalid = await readWithDb(
+            app,
+            ADMIN,
+          )((r) => r.getTeam("not-a-uuid"));
+          const callsForInvalid = execute.mock.calls.length;
+          await readWithDb(app, ADMIN)((r) => r.getTeam(id));
+          return {
+            invalid,
+            callsForInvalid,
+            callsInTotal: execute.mock.calls.length,
+          };
+        },
+      );
 
       expect(failureTag(invalid)).toBe("TeamNotFound");
       expect(callsForInvalid).toBe(0);
-      expect(execute).toHaveBeenCalledOnce();
+      expect(callsInTotal).toBe(1);
     }));
 
   it("記録はそのチームの行だけで、同じ事業所のほかのチームと他社の行を含まない", () =>
@@ -265,7 +287,7 @@ describe("listTeams", () => {
 describe("関数の値を読めないとき", () => {
   const teamList = teamListStubOf();
   const readWith = (execute: () => Promise<unknown>) =>
-    readAs({ execute } as unknown as ReadDb["Service"], ADMIN, teamList);
+    readWithDb({ execute } as unknown as ReadDb["Service"], ADMIN, teamList);
 
   it("schema に合わない値は、どちらの読み取りも DB の失敗にし、一覧を DO に置かない", async () => {
     const read = readWith(async () => ({
@@ -414,14 +436,14 @@ describe("事業所の DO の一覧", () => {
     withRollback(async (tx) => {
       await seedTeam(tx, COMPANY_A, "開発");
       const teamList = teamListStubOf();
-      const execute = vi.spyOn(tx, "execute");
+      const calls = await asAppRole(tx, async (app) => {
+        const execute = vi.spyOn(app, "execute");
+        await readWithDb(app, ADMIN, teamList)((r) => r.listTeams);
+        return [...execute.mock.calls];
+      });
 
-      await readAs(tx, ADMIN, teamList)((r) => r.listTeams);
-
-      expect(execute).toHaveBeenCalledOnce();
-      expect(JSON.stringify(execute.mock.calls[0][0])).toContain(
-        "company_team_list(",
-      );
+      expect(calls).toHaveLength(1);
+      expect(JSON.stringify(calls[0][0])).toContain("company_team_list(");
       expect(teamList.replace).toHaveBeenCalledExactlyOnceWith(
         "v1",
         await functionValue(tx, sql`company_team_list(${COMPANY_A})`),

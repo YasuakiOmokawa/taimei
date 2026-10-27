@@ -48,12 +48,25 @@ const oneAtATime = <T>(run: () => PromiseLike<T>): Promise<T> => {
   return queued;
 };
 
-// db/drizzle/client の db を差し替えて使う。実行口の書き込みを test の終わりに戻し、並行の test に見せない
+export const APP_ROLE = "taimei_app";
+
+export const asAppRole = <T>(tx: TestDb, fn: (app: TestDb) => Promise<T>) =>
+  tx.transaction(async (app) => {
+    await app.execute(sql.raw(`SET LOCAL ROLE ${APP_ROLE}`));
+    const result = await fn(app);
+    await app.execute(sql`RESET ROLE`);
+    return result;
+  });
+
+const inCurrentRollbackAsApp = <T>(fn: (app: TestDb) => Promise<T>) => {
+  const tx = currentRollbackTx();
+  return oneAtATime(() => asAppRole(tx, fn));
+};
+
 export const dbInRollback: Pick<TestDb, "transaction" | "execute"> = {
-  transaction: <T>(fn: (tx: TestDb) => Promise<T>) =>
-    oneAtATime(() => currentRollbackTx().transaction(fn)),
+  transaction: (fn) => inCurrentRollbackAsApp(fn),
   execute: ((query) =>
-    oneAtATime(() => currentRollbackTx().execute(query))) as TestDb["execute"],
+    inCurrentRollbackAsApp((app) => app.execute(query))) as TestDb["execute"],
 };
 
 export const withRollbackDb = (fn: (tx: TestDb) => Promise<void>) =>
@@ -62,6 +75,7 @@ export const withRollbackDb = (fn: (tx: TestDb) => Promise<void>) =>
     try {
       await fn(tx);
     } finally {
+      await lastQueued;
       rollbackTx = undefined;
     }
   });
@@ -88,18 +102,4 @@ export const currentCompanySetting = async (db: Pick<TestDb, "execute">) => {
     sql`select current_setting(${COMPANY_ID_SETTING}, true) as company_id`,
   );
   return rows[0]?.company_id;
-};
-
-// superuser の postgres は RLS を常に bypass するので、BYPASSRLS の無い role に切り替えて policy を観測する
-export const switchToRoleWithoutRlsBypass = async (tx: TestDb) => {
-  const role = `rls_probe_${crypto.randomUUID().slice(0, 8)}`;
-  await tx.execute(sql.raw(`CREATE ROLE "${role}" NOLOGIN`));
-  await tx.execute(sql.raw(`GRANT USAGE ON SCHEMA public TO "${role}"`));
-  await tx.execute(
-    sql.raw(
-      `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "${role}"`,
-    ),
-  );
-  await tx.execute(sql.raw(`SET LOCAL ROLE "${role}"`));
-  return role;
 };

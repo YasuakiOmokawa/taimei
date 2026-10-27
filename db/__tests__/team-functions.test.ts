@@ -15,9 +15,9 @@ import {
   seedTeam,
 } from "@/src/services/__tests__/db/seed";
 import {
+  asAppRole,
   currentCompanySetting,
   functionValue,
-  switchToRoleWithoutRlsBypass,
   type TestDb,
   withRollback,
 } from "@/src/services/__tests__/db/test-db";
@@ -49,14 +49,13 @@ describe("明示の絞り込みを外しても、RLS だけで他社が見えな
       const other = await seedTeam(tx, COMPANY_B, "B のチーム");
       await replaceWithRlsOnlyVersion(tx, "team_matrix");
       await replaceWithRlsOnlyVersion(tx, "team_visible_to");
-      await switchToRoleWithoutRlsBypass(tx);
-
-      const matrixOf = async (teamId: string) => {
-        const { rows } = await tx.execute<{ team: unknown }>(
-          sql`select team_matrix(${COMPANY_A}, ${teamId}, 'u_1', true) as team`,
-        );
-        return rows[0].team;
-      };
+      const matrixOf = (teamId: string) =>
+        asAppRole(tx, async (app) => {
+          const { rows } = await app.execute<{ team: unknown }>(
+            sql`select team_matrix(${COMPANY_A}, ${teamId}, 'u_1', true) as team`,
+          );
+          return rows[0].team;
+        });
 
       expect(await matrixOf(other)).toBeNull();
       expect(await matrixOf(own)).not.toBeNull();
@@ -67,13 +66,13 @@ describe("明示の絞り込みを外しても、RLS だけで他社が見えな
       const own = await seedTeam(tx, COMPANY_A, "A のチーム");
       const other = await seedTeam(tx, COMPANY_B, "B のチーム");
       await replaceWithRlsOnlyVersion(tx, "company_team_list");
-      await switchToRoleWithoutRlsBypass(tx);
-
       for (const call of [
         sql`company_team_list(${COMPANY_A})`,
         sql`bump_company_team_list(${COMPANY_A})`,
       ]) {
-        const ids = teamIdsOf(await functionValue(tx, call));
+        const ids = teamIdsOf(
+          await asAppRole(tx, (app) => functionValue(app, call)),
+        );
         expect(ids).toContain(own);
         expect(ids).not.toContain(other);
       }
@@ -85,10 +84,10 @@ describe("明示の絞り込みを外しても、RLS だけで他社が見えな
       const other = await seedTeam(tx, COMPANY_B, "B のチーム");
       await replaceWithRlsOnlyVersion(tx, "team_list");
       await replaceWithRlsOnlyVersion(tx, "team_visible_to");
-      await switchToRoleWithoutRlsBypass(tx);
-
-      const { rows } = await tx.execute<{ teams: { id: string }[] }>(
-        sql`select team_list(${COMPANY_A}, 'u_1', true) as teams`,
+      const { rows } = await asAppRole(tx, (app) =>
+        app.execute<{ teams: { id: string }[] }>(
+          sql`select team_list(${COMPANY_A}, 'u_1', true) as teams`,
+        ),
       );
 
       const ids = rows[0].teams.map((team) => team.id);
