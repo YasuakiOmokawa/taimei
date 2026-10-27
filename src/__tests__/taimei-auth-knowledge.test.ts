@@ -8,7 +8,7 @@ const linesMatching = (path: string, terms: RegExp) =>
     .filter((line) => terms.test(line));
 
 const SDK_WIRE_TERMS =
-  /RESULT_|ROLE_|sessionToken|session_token|defaultCompanyId|currentRole|Connect-|X-Service-Key|CheckMemberships|companyActive|memberUserIds|Response\.json|TextDecoder|\/rpc\b/;
+  /RESULT_|ROLE_|sessionToken|session_token|defaultCompanyId|currentRole|Connect-|X-Service-Key|CheckMemberships|companyActive|[Cc]ompanyActivationStatus|memberUserIds|Response\.json|TextDecoder|\/rpc\b/;
 
 describe("auth を偽にする試験", () => {
   it.each([

@@ -125,7 +125,7 @@ const answering =
     answers[companyId];
 
 describe("purgeDeparted", () => {
-  it("ACTIVE でない事業所は、チーム・スキル・割り当て・評価がすべて消える", () =>
+  it("削除済みの事業所は、チーム・スキル・割り当て・評価がすべて消える", () =>
     withRollback(async (tx) => {
       await seedTeam(tx, COMPANY_GONE, ["u_1"]);
       expect(await rowsOf(tx, COMPANY_GONE)).toEqual({
@@ -315,7 +315,7 @@ describe("purgeDeparted", () => {
 });
 
 describe("purgeDeparted が一覧を変えた事業所の DO の一覧", () => {
-  it("ACTIVE でない事業所のチームを消した後に、増やした版の空の一覧で書き直す", () =>
+  it("削除済みの事業所のチームを消した後に、増やした版の空の一覧で書き直す", () =>
     withRollback(async (tx) => {
       await seedTeam(tx, COMPANY_GONE, ["u_1"]);
       const before = await teamListVersion(tx, COMPANY_GONE);
