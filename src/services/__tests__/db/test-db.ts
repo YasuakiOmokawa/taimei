@@ -4,12 +4,18 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import type { PgTransaction } from "drizzle-orm/pg-core";
 import { Pool } from "pg";
 import * as schema from "@/db/drizzle/schema";
-import { COMPANY_ID_SETTING } from "@/db/drizzle/schema";
+import {
+  COMPANY_ID_SETTING,
+  TEAM_LIST_UNBUMPED_SETTING,
+} from "@/db/drizzle/schema";
 import { TEST_DATABASE_URL } from "./global-setup";
 
-const testDb = drizzle(new Pool({ connectionString: TEST_DATABASE_URL }), {
-  schema,
-});
+export const testDb = drizzle(
+  new Pool({ connectionString: TEST_DATABASE_URL }),
+  {
+    schema,
+  },
+);
 
 type Schema = typeof schema;
 export type TestDb = PgTransaction<
@@ -63,8 +69,22 @@ const inCurrentRollbackAsApp = <T>(fn: (app: TestDb) => Promise<T>) => {
   return oneAtATime(() => asAppRole(tx, fn));
 };
 
+export const withCommitCheck = async <T>(
+  tx: TestDb,
+  fn: (tx: TestDb) => Promise<T>,
+) => {
+  await tx.execute(
+    sql`select set_config(${TEAM_LIST_UNBUMPED_SETTING}, '', true)`,
+  );
+  const result = await fn(tx);
+  await tx.execute(sql`SET CONSTRAINTS ALL IMMEDIATE`);
+  await tx.execute(sql`SET CONSTRAINTS ALL DEFERRED`);
+  return result;
+};
+
 export const dbInRollback: Pick<TestDb, "transaction" | "execute"> = {
-  transaction: (fn) => inCurrentRollbackAsApp(fn),
+  transaction: (fn) =>
+    inCurrentRollbackAsApp((app) => withCommitCheck(app, fn)),
   execute: ((query) =>
     inCurrentRollbackAsApp((app) => app.execute(query))) as TestDb["execute"],
 };

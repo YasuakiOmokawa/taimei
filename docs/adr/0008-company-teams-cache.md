@@ -27,6 +27,7 @@
 - 寿命が切れても同じ版なら、一覧の行を書き直さず寿命だけを延ばす。書き直しは「チームの数 × 2 + 2」行を書き、毎時の書き直しが Free 枠の行の書き込みを使い切りうるため
 - 手作業の SQL の後に消す HTTP の口 (#591 の AC 4) は作らない。口を作ると、認証の付いた新しい入口 (秘密・CSRF・テスト) が要る。手作業の SQL は版を増やさないので、その後は GitHub Actions の Deploy を流し直し、Worker の version を変えて全事業所の一覧を DB から読み直させる。DB を backup から戻した後 (版が過去に戻る) も流し直す
 - DO を呼べない時と 1 秒で返らない時は報告し、読み取りは Postgres の値で答え (DO に置きには行かない)、書き込みは結果を変えない。書き直しは 1 秒の中で 1 回だけ試し直し、届かなければ DO の表を消す。commit したか分からない (`DbUnavailable`) 時と、増やした版の一覧を読めない時も消す。DO の中の行が壊れて読めない時は、DO が自分で消す
+- 追記 (2026-10-27、#656): 一覧の元の表 (`teams`・`team_assignments`) を書いた transaction は、書いた後に `bump_company_team_list` を呼ばないと commit できない (`drizzle/0016_team_list_bumped_on_commit.sql` の行の trigger が設定 `app.team_list_unbumped` を立て、deferred の constraint trigger が commit の時にそれを見る。`bump_company_team_list` が消す)。`writeTeamList` を通さない書き込み (TeamService・e2e の seed・手作業の SQL) は commit で落ちる
 
 ## Consequences
 

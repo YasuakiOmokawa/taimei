@@ -22,6 +22,7 @@ import type { SkillId, TeamId } from "../ids";
 
 const companyId = () => text("company_id").notNull().$type<CompanyId>();
 export const COMPANY_ID_SETTING = "app.company_id";
+export const TEAM_LIST_UNBUMPED_SETTING = "app.team_list_unbumped";
 export const MEMBER_SKILLS_ASSIGNMENT_FK = "member_skills_assignment_fk";
 export const MEMBER_SKILLS_SKILL_FK = "member_skills_skill_fk";
 export const TEAMS_NAME_UNIQUE = "teams_company_id_name_unique";

@@ -4,6 +4,7 @@ import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { teams } from "@/db/drizzle/schema";
 import { TeamId } from "@/db/ids";
 import { sendErrorReportsTo } from "@/src/lib/report-error";
+import { writeInCompanyScope } from "../company-scope";
 import {
   CompanyTeamList,
   decodeTeamListSnapshot,
@@ -23,6 +24,7 @@ import {
   functionValue,
   type TestDb,
   teamListVersion,
+  testDb,
   withRollback,
 } from "./db/test-db";
 import {
@@ -412,4 +414,30 @@ describe("writeTeamList", () => {
       expect(await teamNames(tx)).toEqual([]);
       expect(readReplaceClearCounts(stub)).toEqual([0, 0, 0]);
     }));
+});
+
+describe("一覧の版を上げない本物の commit", () => {
+  it("版を上げずに teams を書いた transaction の commit を DB が拒むと、書き込みの口は TeamServiceError を返し、行は残らない (drizzle は COMMIT の失敗も文の失敗と同じく pg のエラーを包んで投げる)", async () => {
+    const companyId = fixtureCompanyId("real_commit");
+
+    try {
+      const result = await writeInCompanyScope(
+        testDb,
+        companyId,
+        async (tx) => {
+          await tx.insert(teams).values({ companyId, name: "残らないチーム" });
+          return Result.succeed(undefined);
+        },
+      );
+
+      expect(Result.isFailure(result) && result.failure._tag).toBe(
+        "TeamServiceError",
+      );
+      expect(
+        await testDb.select().from(teams).where(eq(teams.companyId, companyId)),
+      ).toEqual([]);
+    } finally {
+      await testDb.delete(teams).where(eq(teams.companyId, companyId));
+    }
+  });
 });

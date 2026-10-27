@@ -2,7 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { Effect, Result } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CompanyId } from "@/db/company-id";
-import { teamAssignments, teams } from "@/db/drizzle/schema";
+import { skills, teamAssignments, teams } from "@/db/drizzle/schema";
 import { NotManager, TeamNotFound } from "@/src/spa-contract";
 import {
   runServiceWithoutDb,
@@ -247,6 +247,10 @@ describe("runTeamService", () => {
             await scoped
               .insert(teamAssignments)
               .values({ companyId, teamId: team.id, userId: session.userId });
+            await functionValue(
+              scoped,
+              sql`bump_company_team_list(${companyId})`,
+            );
             return team.id;
           }),
         ).pipe(Effect.flatMap((teamId) => service.saveMyLevels(teamId, []))),
@@ -289,12 +293,22 @@ describe("runTeamService", () => {
 
   it("本体が書いて成功すると、書いた行が残る", () =>
     withRollbackDb(async (tx) => {
+      const teamId = await seedTeam(tx, companyId, "開発");
+
       const result = await runTeamService(session, () =>
-        insertTeam("成功で残るチーム"),
+        Db.use((scoped) =>
+          Effect.promise(() =>
+            scoped
+              .insert(skills)
+              .values({ companyId, teamId, name: "成功で残るスキル" }),
+          ),
+        ),
       );
 
       expect(Result.isSuccess(result)).toBe(true);
-      expect(await teamsNamed(tx, "成功で残るチーム")).toHaveLength(1);
+      expect(
+        await tx.select().from(skills).where(eq(skills.teamId, teamId)),
+      ).toHaveLength(1);
     }));
 
   it("transaction を開けない時は、reject せず DbUnavailable の失敗を返し、報告は HTTP の境界に任せる", () =>
@@ -583,7 +597,7 @@ describe("管理者の書き込みは、同じ transaction で版を増やし、
       const { teamList, session } = sessionWithTeamList();
       await tx.execute(
         sql.raw(
-          `CREATE OR REPLACE FUNCTION bump_company_team_list(p_company_id varchar) RETURNS json LANGUAGE sql AS $$ SELECT '{"version": "x"}'::json $$`,
+          `CREATE OR REPLACE FUNCTION company_team_list(p_company_id varchar) RETURNS json LANGUAGE sql AS $$ SELECT '{"version": "x"}'::json $$`,
         ),
       );
 
@@ -610,5 +624,37 @@ describe("管理者の書き込みは、同じ transaction で版を増やし、
       expect(Result.isSuccess(result)).toBe(true);
       expect(teamList.replace).toHaveBeenCalledTimes(2);
       expect(consoleError).toHaveBeenCalledOnce();
+    }));
+});
+
+describe("試験の db が本番の commit と同じ検査を走らせること", () => {
+  it("版を上げない実行口 (runTeamService) の本体が teams を書くと、一覧の版の検査で予期しない失敗になり、行は残らない", () =>
+    withRollbackDb(async (tx) => {
+      const result = await runTeamService(session, () =>
+        insertTeam("版を上げないチーム"),
+      );
+
+      expect(failureTag(result)).toBe("TeamServiceError");
+      expect(await teamsNamed(tx, "版を上げないチーム")).toEqual([]);
+    }));
+
+  it("版を上げる実行口 (runTeamManagement) の本体が teams を書くと成功する", () =>
+    withRollbackDb(async (tx) => {
+      const result = await runTeamManagement(session, () =>
+        insertTeam("版を上げるチーム"),
+      );
+
+      expect(Result.isSuccess(result)).toBe(true);
+      expect(await teamsNamed(tx, "版を上げるチーム")).toHaveLength(1);
+    }));
+
+  it("試験の seed が版を上げずにチームと割り当てを書いた後でも、一覧を変えない実行口は成功する (seed は commit 済みの状態の写し)", () =>
+    withRollbackDb(async (tx) => {
+      const teamId = await seedTeam(tx, companyId, "seed のチーム");
+      await seedAssignment(tx, companyId, teamId, "u_1");
+
+      const result = await runTeamService(session, () => Effect.succeed("ok"));
+
+      expect(result).toEqual(Result.succeed("ok"));
     }));
 });
