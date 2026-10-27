@@ -72,7 +72,7 @@
               },
               {
                 "group": ["effect/http"],
-                "message": "handler は契約が decode した値を受け、成功の値を返す。effect/http を使えるのは、契約の web handler を組む src/spa-http-api.ts と、SPA の契約の client を作る web/src/api.ts だけ (ADR-0007)"
+                "message": "handler は契約が decode した値を受け、成功の値を返す。effect/http を使えるのは、契約の web handler を組む src/spa-http-api.ts と、SPA の契約の client を作る web/src/api-internal.ts だけ (ADR-0007)"
               },
               {
                 "group": [
@@ -81,7 +81,11 @@
                   "effect/reactivity",
                   "effect/reactivity/*"
                 ],
-                "message": "画面は web/src/api.ts の atom を useLoadedValue・useLoadFailure で読み、更新を useApiMutation で流す。Atom を直に使えるのは web/src/api.ts と、registry を組む web/src/router.tsx だけ"
+                "message": "画面は web/src/api.ts の atom を useLoadedValue・useLoadFailure で読み、更新を useApiMutation で流す。Atom を直に使えるのは web/src/api-internal.ts と、registry を組む web/src/router.tsx だけ"
+              },
+              {
+                "group": ["**/api-internal"],
+                "message": "画面は web/src/api.ts の名前だけを使う。web/src/api-internal.ts を読めるのは web/src/api.ts と、その試験 web/src/__tests__/api.test.ts だけ (内側の runApiMutation は useApiMutation の二度押しの guard を通らない)"
               },
               {
                 "group": ["@sentry/*"],

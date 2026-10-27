@@ -1,7 +1,7 @@
-// biome-ignore lint/style/noRestrictedImports: api.ts の atom を registry で流して観測する
+// biome-ignore lint/style/noRestrictedImports: api-internal.ts の atom を registry で流して観測する
 import { scheduleTask } from "@effect/atom-react";
 import { Cause, Effect, Exit, Option, Schema } from "effect";
-// biome-ignore lint/style/noRestrictedImports: api.ts の atom を registry で流して観測する
+// biome-ignore lint/style/noRestrictedImports: api-internal.ts の atom を registry で流して観測する
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SkillId, TeamId } from "../../../db/ids";
@@ -12,6 +12,7 @@ import {
   type TeamPage,
   Unauthenticated,
 } from "../../../src/spa-contract";
+// biome-ignore-start lint/style/noRestrictedImports: 画面に出さない api-internal.ts の atom と更新の定義を registry で流して観測する
 import {
   type ApiMutation,
   addSkill,
@@ -39,7 +40,9 @@ import {
   waitForRefetch,
   waitForValue,
   writeSavedMyLevels,
-} from "../api";
+} from "../api-internal";
+
+// biome-ignore-end lint/style/noRestrictedImports: 画面に出さない api-internal.ts の atom と更新の定義を registry で流して観測する
 
 const isGet = (init: RequestInit | undefined) =>
   (init?.method ?? "GET") === "GET";
@@ -328,7 +331,8 @@ it("同じ teamId のチームの atom は、同じ atom", () => {
 describe("API の共通の fetch", () => {
   const importApiWithNewModuleState = async () => {
     vi.resetModules();
-    return import("../api");
+    // biome-ignore lint/style/noRestrictedImports: api-internal.ts の module の状態を試験ごとに作り直して観測する
+    return import("../api-internal");
   };
 
   const meResponse = (userId: string, session?: string) =>
@@ -337,7 +341,7 @@ describe("API の共通の fetch", () => {
       { headers: session ? { "x-taimei-session": session } : {} },
     );
 
-  const readMeTwice = async (api: typeof import("../api")) => {
+  const readMeTwice = async (api: typeof import("../api-internal")) => {
     const first = await api.waitForValue(registry, api.meAtom);
     registry.refresh(api.meAtom);
     const second = api.waitForValue(registry, api.meAtom);
