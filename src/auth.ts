@@ -9,6 +9,7 @@ import {
   buildAuthLoginUrl,
   buildCompanySignupUrl,
   buildMembersUrl,
+  CompanyActivationStatus,
   createAuthClient,
   createAuthGuard,
   createServiceKeyInterceptor,
@@ -58,15 +59,22 @@ const authClientOf = (env: AuthEnv) =>
   });
 
 export const membershipAnswerOf = ({
-  companyActive,
+  companyActivationStatus,
   memberUserIds,
 }: {
-  readonly companyActive: boolean;
+  readonly companyActivationStatus: CompanyActivationStatus;
   readonly memberUserIds: readonly string[];
-}) =>
-  companyActive
-    ? MembershipAnswer.Active({ memberUserIds })
-    : MembershipAnswer.Deleted();
+}) => {
+  if (companyActivationStatus === CompanyActivationStatus.ACTIVE)
+    return MembershipAnswer.Active({ memberUserIds });
+  if (companyActivationStatus === CompanyActivationStatus.DELETED)
+    return MembershipAnswer.Deleted();
+  return MembershipAnswer.Unknown({
+    cause: new Error(
+      `companyActivationStatus: ${CompanyActivationStatus[companyActivationStatus] ?? companyActivationStatus}`,
+    ),
+  });
+};
 
 export const checkMembershipsOf = (env: AuthEnv): CheckMemberships => {
   const { companyService } = authClientOf(env);

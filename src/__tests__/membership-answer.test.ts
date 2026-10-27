@@ -1,15 +1,50 @@
+import { CompanyActivationStatus } from "@taimei-code/auth-client";
 import { expect, it } from "vitest";
 import { MembershipAnswer } from "@/src/lib/membership-answer";
 import { membershipAnswerOf } from "../auth";
 
-it("SDK の company_active が true の答えは、所属する人を持つ Active に写す", () => {
+it("ACTIVE の答えは、所属する人を持つ Active に写す", () => {
   expect(
-    membershipAnswerOf({ companyActive: true, memberUserIds: ["u_1"] }),
+    membershipAnswerOf({
+      companyActivationStatus: CompanyActivationStatus.ACTIVE,
+      memberUserIds: ["u_1"],
+    }),
   ).toEqual(MembershipAnswer.Active({ memberUserIds: ["u_1"] }));
 });
 
-it("SDK の company_active が false の答えは Deleted に写す (SDK 5.1 は削除済みの事業所と存在しない事業所を分けないので、存在しない事業所も Deleted になる)", () => {
+it("DELETED の答えは Deleted に写す", () => {
   expect(
-    membershipAnswerOf({ companyActive: false, memberUserIds: [] }),
+    membershipAnswerOf({
+      companyActivationStatus: CompanyActivationStatus.DELETED,
+      memberUserIds: [],
+    }),
   ).toEqual(MembershipAnswer.Deleted());
 });
+
+it.each([
+  [
+    "NOT_FOUND の答えは、向き先の違う auth ホストや戻した DB でも返るので",
+    CompanyActivationStatus.NOT_FOUND,
+    "NOT_FOUND",
+  ],
+  [
+    "UNSPECIFIED の答えは、5.2.0 より前の auth ホストの答えなので",
+    CompanyActivationStatus.UNSPECIFIED,
+    "UNSPECIFIED",
+  ],
+  ["SDK の知らない状態の数値は", 99 as CompanyActivationStatus, "99"],
+])(
+  "%s、消さずに状態を cause に残した Unknown に写す",
+  (_, status, statusInMessage) => {
+    expect(
+      membershipAnswerOf({
+        companyActivationStatus: status,
+        memberUserIds: [],
+      }),
+    ).toEqual(
+      MembershipAnswer.Unknown({
+        cause: new Error(`companyActivationStatus: ${statusInMessage}`),
+      }),
+    );
+  },
+);
