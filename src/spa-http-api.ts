@@ -1,5 +1,13 @@
 import type { Member } from "@taimei-code/auth-client";
-import { Context, Effect, ErrorReporter, Layer, Match, Result } from "effect";
+import {
+  Context,
+  Effect,
+  ErrorReporter,
+  Layer,
+  Match,
+  Record,
+  Result,
+} from "effect";
 // biome-ignore lint/style/noRestrictedImports: 契約を Hono に載せる file だけが web handler を組む (ADR-0007)
 import { HttpRouter, HttpServer } from "effect/http";
 import {
@@ -16,7 +24,6 @@ import {
   runTeamService,
 } from "@/src/services";
 import { isManager } from "@/src/services/authorization-context";
-import type { CompanyContext } from "@/src/services/company-context";
 import { CompanyMembers } from "@/src/services/company-members-service";
 import {
   defectOf,
@@ -25,15 +32,18 @@ import {
   type UnexpectedFailure,
 } from "@/src/services/failures";
 import type { RequestSession } from "@/src/services/request-session";
-import type { TeamManagement } from "@/src/services/team-management";
 import {
   Authenticated,
   CurrentSession,
+  ManagerOnly,
   type MeGroup,
   type MembersGroup,
+  MyLevelsGroup,
+  NotManager,
   type SessionChanged,
   SpaApi,
-  type TeamsGroup,
+  TeamManagementGroup,
+  TeamsGroup,
   Unauthenticated,
 } from "@/src/spa-contract";
 
@@ -54,9 +64,22 @@ const AuthenticatedLive = Layer.succeed(Authenticated, (httpEffect) =>
   }),
 );
 
-export type DecodedHandlers<Group> = {
+const ManagerOnlyLive = Layer.succeed(ManagerOnly, (httpEffect) =>
+  Effect.gen(function* () {
+    const session = yield* CurrentSession;
+    if (!isManager(session.role)) return yield* new NotManager();
+    return yield* httpEffect;
+  }),
+);
+
+type EndpointInput<E> = Omit<
+  HttpApiEndpoint.Request<E>,
+  "request" | "endpoint" | "group"
+>;
+
+type DecodedHandlers<Group> = {
   readonly [E in HttpApiGroup.Endpoints<Group> as HttpApiEndpoint.Identifier<E>]: (
-    input: Omit<HttpApiEndpoint.Request<E>, "request" | "endpoint" | "group">,
+    input: EndpointInput<E>,
   ) => Effect.Effect<
     HttpApiEndpoint.Success<E>["Type"],
     HttpApiEndpoint.Error<E>["Type"] | HttpApiEndpoint.MiddlewareError<E>,
@@ -76,16 +99,69 @@ const runServiceForCurrentSession = <A, E extends TeamFailure>(
     ),
   );
 
-const runTeamManagementWrite = <E extends TeamFailure>(
-  write: (
-    management: TeamManagement["Service"],
-  ) => Effect.Effect<void, E, CompanyContext>,
+type EmptySuccess = { readonly [key: string]: never };
+
+type HandlerSuccess<E> = HttpApiEndpoint.Success<E>["Type"] extends EmptySuccess
+  ? void
+  : HttpApiEndpoint.Success<E>["Type"];
+
+type ServiceHandlers<Group, Service, R> = {
+  readonly [E in HttpApiGroup.Endpoints<Group> as HttpApiEndpoint.Identifier<E>]: (
+    service: Service,
+    input: EndpointInput<E>,
+  ) => Effect.Effect<
+    HandlerSuccess<E>,
+    HttpApiEndpoint.Error<E>["Type"] | UnexpectedFailure,
+    R
+  >;
+};
+
+type AnyRun = (session: RequestSession, use: never) => Promise<unknown>;
+
+type UseOf<Run extends AnyRun> = Parameters<Run>[1];
+
+type ServiceOf<Run extends AnyRun> = Parameters<UseOf<Run>>[0];
+
+type RequirementsOf<Run extends AnyRun> =
+  ReturnType<UseOf<Run>> extends Effect.Effect<unknown, unknown, infer R>
+    ? R
+    : never;
+
+type UntypedRun = (
+  session: RequestSession,
+  use: (service: unknown) => Effect.Effect<unknown, TeamFailure, unknown>,
+) => Promise<Result.Result<unknown, TeamFailure>>;
+
+type UntypedHandler = (
+  service: unknown,
+  input: unknown,
+) => Effect.Effect<unknown, TeamFailure, unknown>;
+
+const handledByUntyped = (
+  _group: unknown,
+  run: UntypedRun,
+  handlers: { readonly [name: string]: UntypedHandler },
 ) =>
-  runServiceForCurrentSession((session) =>
-    runTeamManagement(session, (management) =>
-      write(management).pipe(Effect.as({})),
-    ),
+  Record.map(
+    handlers,
+    (handler) => (input: unknown) =>
+      runServiceForCurrentSession((session) =>
+        run(session, (service) =>
+          handler(service, input).pipe(Effect.map((value) => value ?? {})),
+        ),
+      ),
   );
+
+export const handledBy = handledByUntyped as unknown as <
+  Group,
+  Run extends AnyRun,
+>(
+  group: Group,
+  run: Run,
+  handlers: NoInfer<
+    ServiceHandlers<Group, ServiceOf<Run>, RequirementsOf<Run>>
+  >,
+) => DecodedHandlers<Group>;
 
 const memberName = ({ name, email }: Member) => name.trim() || email;
 
@@ -106,6 +182,8 @@ const teamMembersOrNullWhenListFails = CompanyMembers.use(
 const handlers: {
   readonly me: DecodedHandlers<typeof MeGroup>;
   readonly teams: DecodedHandlers<typeof TeamsGroup>;
+  readonly myLevels: DecodedHandlers<typeof MyLevelsGroup>;
+  readonly teamManagement: DecodedHandlers<typeof TeamManagementGroup>;
   readonly members: DecodedHandlers<typeof MembersGroup>;
 } = {
   me: {
@@ -116,62 +194,35 @@ const handlers: {
         canManage: isManager(session.role),
       })),
   },
-  teams: {
-    list: () =>
-      runServiceForCurrentSession((session) =>
-        runTeamReads(session, (reads) =>
-          reads.listTeams.pipe(Effect.map((teams) => ({ teams }))),
-        ),
+  teams: handledBy(TeamsGroup, runTeamReads, {
+    list: (reads) => reads.listTeams.pipe(Effect.map((teams) => ({ teams }))),
+    get: (reads, { params }) =>
+      Effect.all(
+        {
+          team: reads.getTeam(params.teamId),
+          members: teamMembersOrNullWhenListFails,
+        },
+        { concurrency: "unbounded" },
       ),
-    create: ({ payload }) =>
-      runServiceForCurrentSession((session) =>
-        runTeamManagement(session, (management) =>
-          management.createTeam(payload.name),
-        ),
-      ),
-    get: ({ params }) =>
-      runServiceForCurrentSession((session) =>
-        runTeamReads(session, (reads) =>
-          Effect.all(
-            {
-              team: reads.getTeam(params.teamId),
-              members: teamMembersOrNullWhenListFails,
-            },
-            { concurrency: "unbounded" },
-          ),
-        ),
-      ),
-    rename: ({ params, payload }) =>
-      runTeamManagementWrite((management) =>
-        management.renameTeam(params.teamId, payload.name),
-      ),
-    delete: ({ params }) =>
-      runTeamManagementWrite((management) =>
-        management.deleteTeam(params.teamId),
-      ),
-    addSkill: ({ params, payload }) =>
-      runTeamManagementWrite((management) =>
-        management.addSkill(params.teamId, payload.name),
-      ),
-    removeSkill: ({ params }) =>
-      runTeamManagementWrite((management) =>
-        management.removeSkill(params.skillId),
-      ),
-    assign: ({ params }) =>
-      runTeamManagementWrite((management) =>
-        management.assign(params.teamId, params.userId),
-      ),
-    unassign: ({ params }) =>
-      runTeamManagementWrite((management) =>
-        management.unassign(params.teamId, params.userId),
-      ),
-    saveMyLevels: ({ params, payload }) =>
-      runServiceForCurrentSession((session) =>
-        runTeamService(session, (teams) =>
-          teams.saveMyLevels(params.teamId, payload.levels).pipe(Effect.as({})),
-        ),
-      ),
-  },
+  }),
+  myLevels: handledBy(MyLevelsGroup, runTeamService, {
+    saveMyLevels: (teams, { params, payload }) =>
+      teams.saveMyLevels(params.teamId, payload.levels),
+  }),
+  teamManagement: handledBy(TeamManagementGroup, runTeamManagement, {
+    create: (management, { payload }) => management.createTeam(payload.name),
+    rename: (management, { params, payload }) =>
+      management.renameTeam(params.teamId, payload.name),
+    delete: (management, { params }) => management.deleteTeam(params.teamId),
+    addSkill: (management, { params, payload }) =>
+      management.addSkill(params.teamId, payload.name),
+    removeSkill: (management, { params }) =>
+      management.removeSkill(params.skillId),
+    assign: (management, { params }) =>
+      management.assign(params.teamId, params.userId),
+    unassign: (management, { params }) =>
+      management.unassign(params.teamId, params.userId),
+  }),
   members: {
     list: () =>
       runServiceForCurrentSession((session) =>
@@ -212,11 +263,17 @@ export const SpaApiLive = HttpApiBuilder.layer(SpaApi).pipe(
   Layer.provide([
     HttpApiBuilder.group(SpaApi, "me", (h) => h.handleAll(handlers.me)),
     HttpApiBuilder.group(SpaApi, "teams", (h) => h.handleAll(handlers.teams)),
+    HttpApiBuilder.group(SpaApi, "myLevels", (h) =>
+      h.handleAll(handlers.myLevels),
+    ),
+    HttpApiBuilder.group(SpaApi, "teamManagement", (h) =>
+      h.handleAll(handlers.teamManagement),
+    ),
     HttpApiBuilder.group(SpaApi, "members", (h) =>
       h.handleAll(handlers.members),
     ),
   ]),
-  Layer.provide(AuthenticatedLive),
+  Layer.provide([AuthenticatedLive, ManagerOnlyLive]),
   Layer.provide(ErrorReporter.layer([unexpectedFailureReporter])),
   Layer.provide(HttpServer.layerServices),
 );

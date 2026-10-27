@@ -42,6 +42,7 @@ import type { TeamListStore } from "@/src/services/team-list-store";
 import {
   Authenticated,
   MAX_LEVEL_ENTRIES_PER_SAVE,
+  ManagerOnly,
   OperationFailure,
   SpaApi,
 } from "@/src/spa-contract";
@@ -408,14 +409,20 @@ const identifierOf = (schema: Schema.Top) =>
 describe("契約の endpoint", () => {
   const endpoints: {
     key: string;
+    group: string;
+    method: string;
+    path: string;
     middleware: ReadonlySet<unknown>;
     errorIdentifiers: (string | undefined)[];
   }[] = [];
   HttpApi.reflect(SpaApi, {
     onGroup: () => {},
-    onEndpoint: ({ endpoint, middleware, errors }) => {
+    onEndpoint: ({ group, endpoint, middleware, errors }) => {
       endpoints.push({
         key: `${endpoint.method} ${endpoint.path}`,
+        group: group.identifier,
+        method: endpoint.method,
+        path: endpoint.path,
         middleware,
         errorIdentifiers: [...errors.values()].flat().map(identifierOf),
       });
@@ -448,6 +455,60 @@ describe("契約の endpoint", () => {
         .map(({ key }) => key),
     ).toEqual([]);
   });
+
+  const managerOnly = endpoints.filter(({ middleware }) =>
+    middleware.has(ManagerOnly),
+  );
+
+  it("管理者だけの middleware が付くのは、チームの管理の group の 7 本ちょうど (group の .middleware(ManagerOnly) は最後の .add の後に置く)", () => {
+    expect(managerOnly.map(({ key }) => key).sort()).toEqual(
+      endpoints
+        .filter(({ group }) => group === "teamManagement")
+        .map(({ key }) => key)
+        .sort(),
+    );
+    expect(managerOnly).toHaveLength(7);
+  });
+
+  it("管理者だけの middleware が付いた endpoint は、どれもメンバーに 403 の NotManager を返し、transaction を開かない", () =>
+    withRollbackDb(async (tx) => {
+      const teamId = await seedTeam(tx, COMPANY_APP_A, "開発");
+      const skillId = await seedSkill(tx, COMPANY_APP_A, teamId, "設計");
+      await seedAssignment(tx, COMPANY_APP_A, teamId, "u_2");
+      const rows = async () => ({
+        teams: await tx.select().from(teams),
+        skills: await tx.select().from(skills),
+        assignments: await tx.select().from(teamAssignments),
+      });
+      const before = await rows();
+      const db = spyOnDb();
+
+      const responses = [];
+      for (const { method, path } of managerOnly) {
+        const response = await sendSameOriginRequest(
+          method as "POST" | "PUT" | "PATCH" | "DELETE",
+          path
+            .replace(":teamId", teamId)
+            .replace(":skillId", skillId)
+            .replace(":userId", "u_2"),
+          signedInAs("MEMBER"),
+          method === "POST" || method === "PATCH"
+            ? JSON.stringify({ name: "メンバーの名前" })
+            : undefined,
+        );
+        responses.push({
+          key: `${method} ${path}`,
+          status: response.status,
+          tag: (await response.json())._tag,
+        });
+      }
+
+      expect(responses).toEqual(
+        managerOnly.map(({ key }) => ({ key, status: 403, tag: "NotManager" })),
+      );
+      expect(await rows()).toEqual(before);
+      expect(db.transaction).not.toHaveBeenCalled();
+    }));
 
   const declaredFailures = [
     ...OperationFailure.members,
@@ -1135,7 +1196,6 @@ describe("POST /api/teams", () => {
   );
 
   it.each([
-    ["メンバー", 403, "NotManager", "MEMBER", { name: "営業" }],
     ["空白だけの名前", 422, "InvalidName", "ADMIN", { name: "   " }],
     ["51 文字の名前", 422, "InvalidName", "ADMIN", { name: "あ".repeat(51) }],
     ["同じ事業所にある名前", 409, "DuplicateName", "ADMIN", { name: " 開発 " }],
@@ -1198,7 +1258,6 @@ describe("PATCH /api/teams/:teamId", () => {
     }));
 
   it.each([
-    ["メンバー", 403, "NotManager", "MEMBER", COMPANY_APP_A, { name: "新" }],
     [
       "他社のチーム",
       404,
@@ -1304,7 +1363,6 @@ describe("DELETE /api/teams/:teamId", () => {
     }));
 
   it.each([
-    ["メンバー", 403, "NotManager", "MEMBER", COMPANY_APP_A],
     ["他社のチーム", 404, "TeamNotFound", "ADMIN", COMPANY_APP_B],
   ] as const)(
     "%s は %i の %s で、チームを消さない",
@@ -1355,14 +1413,6 @@ describe("POST /api/teams/:teamId/skills", () => {
     }));
 
   it.each([
-    [
-      "メンバー",
-      403,
-      "NotManager",
-      "MEMBER",
-      COMPANY_APP_A,
-      { name: "テスト" },
-    ],
     [
       "チームにある名前",
       409,
@@ -1443,7 +1493,6 @@ describe("DELETE /api/skills/:skillId", () => {
     }));
 
   it.each([
-    ["メンバー", 403, "NotManager", "MEMBER", COMPANY_APP_A],
     ["他社のスキル", 404, "SkillNotFound", "ADMIN", COMPANY_APP_B],
   ] as const)(
     "%s は %i の %s で、スキルを消さない",
@@ -1537,14 +1586,6 @@ describe("PUT /api/teams/:teamId/assignments/:userId", () => {
       "ADMIN",
       COMPANY_APP_A,
       [companyMember("u_3")],
-    ],
-    [
-      "メンバー",
-      403,
-      "NotManager",
-      "MEMBER",
-      COMPANY_APP_A,
-      [companyMember("u_2")],
     ],
     [
       "他社のチーム",
@@ -1644,7 +1685,6 @@ describe("DELETE /api/teams/:teamId/assignments/:userId", () => {
     }));
 
   it.each([
-    ["メンバー", 403, "NotManager", "MEMBER", COMPANY_APP_A],
     ["他社のチーム", 404, "TeamNotFound", "ADMIN", COMPANY_APP_B],
   ] as const)(
     "%s は %i の %s で、割り当てを外さない",

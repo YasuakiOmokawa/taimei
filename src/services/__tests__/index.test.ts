@@ -391,18 +391,6 @@ describe("runTeamManagement", () => {
       expect(consoleError).not.toHaveBeenCalled();
     }));
 
-  it("管理者でない人には、transaction を開く前に NotManager を返す", async () => {
-    const transaction = vi.spyOn(dbInRollback, "transaction");
-
-    const result = await runTeamManagement(
-      { ...session, role: "MEMBER" },
-      () => Effect.void,
-    );
-
-    expect(result).toEqual(Result.fail(new NotManager()));
-    expect(transaction).not.toHaveBeenCalled();
-  });
-
   it("管理の本体の予期しない失敗は、その失敗を返し、報告は HTTP の境界に任せる", () =>
     withRollbackDb(async () => {
       const cause = new Error("query failed");
@@ -549,14 +537,15 @@ describe("管理者の書き込みは、同じ transaction で版を増やし、
       expect(readReplaceClearCounts(teamList)).toEqual([0, 0, 1]);
     }));
 
-  it("管理者でない人の管理は NotManager で、DO を触らない", async () => {
-    const { teamList, session } = sessionWithTeamList("MEMBER");
+  it("管理者でない人の管理は NotManager で、DO を触らない", () =>
+    withRollbackDb(async () => {
+      const { teamList, session } = sessionWithTeamList("MEMBER");
 
-    const result = await runTeamManagement(session, () => Effect.void);
+      const result = await runTeamManagement(session, () => Effect.void);
 
-    expect(result).toEqual(Result.fail(new NotManager()));
-    expect(readReplaceClearCounts(teamList)).toEqual([0, 0, 0]);
-  });
+      expect(result).toEqual(Result.fail(new NotManager()));
+      expect(readReplaceClearCounts(teamList)).toEqual([0, 0, 0]);
+    }));
 
   it("メンバーのレベルの保存 (runTeamService) は、DO を触らず、版も変わらない", () =>
     withRollbackDb(async (tx) => {

@@ -269,7 +269,8 @@ const refreshAfter = (
   });
 
 export const createTeam = apiMutation({
-  send: (client, name: string) => client.teams.create({ payload: { name } }),
+  send: (client, name: string) =>
+    client.teamManagement.create({ payload: { name } }),
   changed: () => ChangedByMutation.TeamList(),
 });
 
@@ -284,39 +285,39 @@ const teamUpdate = <V, A, E>(
 
 export const renameTeam = (teamId: string) =>
   teamUpdate(teamId, (client, name: string) =>
-    client.teams.rename({ params: { teamId }, payload: { name } }),
+    client.teamManagement.rename({ params: { teamId }, payload: { name } }),
   );
 
 export const deleteTeam = (teamId: string) =>
   apiMutation({
-    send: (client) => client.teams.delete({ params: { teamId } }),
+    send: (client) => client.teamManagement.delete({ params: { teamId } }),
     changed: () => ChangedByMutation.TeamDeleted({ teamId }),
   });
 
 export const addSkill = (teamId: string) =>
   teamUpdate(teamId, (client, name: string) =>
-    client.teams.addSkill({ params: { teamId }, payload: { name } }),
+    client.teamManagement.addSkill({ params: { teamId }, payload: { name } }),
   );
 
 export const removeSkill = (teamId: string) =>
   teamUpdate(teamId, (client, skillId: string) =>
-    client.teams.removeSkill({ params: { skillId } }),
+    client.teamManagement.removeSkill({ params: { skillId } }),
   );
 
 export const assignMember = (teamId: string) =>
   teamUpdate(teamId, (client, userId: string) =>
-    client.teams.assign({ params: { teamId, userId } }),
+    client.teamManagement.assign({ params: { teamId, userId } }),
   );
 
 export const unassignMember = (teamId: string) =>
   teamUpdate(teamId, (client, userId: string) =>
-    client.teams.unassign({ params: { teamId, userId } }),
+    client.teamManagement.unassign({ params: { teamId, userId } }),
   );
 
 export const saveMyLevels = (teamId: string, myUserId: string) =>
   apiMutation({
     send: (client, levels: readonly MyLevelEntry[]) =>
-      client.teams.saveMyLevels({ params: { teamId }, payload: { levels } }),
+      client.myLevels.saveMyLevels({ params: { teamId }, payload: { levels } }),
     changed: (entries) =>
       ChangedByMutation.MyLevels({ teamId, myUserId, entries }),
   });

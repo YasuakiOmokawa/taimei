@@ -460,34 +460,12 @@ test("メンバーにはチームの管理の部品が出ず、API を直に呼�
     await expect(page.getByRole("button", { name })).toHaveCount(0);
 
   const headers = { Origin: new URL(page.url()).origin };
-  for (const response of [
-    await context.request.post("/api/teams", {
-      data: { name: "作れない" },
-      headers,
-    }),
-    await context.request.patch(`/api/teams/${teamId}`, {
-      data: { name: "変えられない" },
-      headers,
-    }),
-    await context.request.delete(`/api/teams/${teamId}`, { headers }),
-    await context.request.post(`/api/teams/${teamId}/skills`, {
-      data: { name: "足せない" },
-      headers,
-    }),
-    await context.request.delete(`/api/skills/${skillId}`, { headers }),
-    await context.request.put(`/api/teams/${teamId}/assignments/${me.userId}`, {
-      headers,
-    }),
-    await context.request.delete(
-      `/api/teams/${teamId}/assignments/${me.userId}`,
-      {
-        headers,
-      },
-    ),
-  ]) {
-    expect(response.status()).toBe(403);
-    expect((await response.json())._tag).toBe("NotManager");
-  }
+  const rejected = await context.request.post("/api/teams", {
+    data: { name: "作れない" },
+    headers,
+  });
+  expect(rejected.status()).toBe(403);
+  expect((await rejected.json())._tag).toBe("NotManager");
   const teamAfterRejectedRequests = await context.request.get(
     `/api/teams/${teamId}`,
   );

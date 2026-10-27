@@ -1,7 +1,7 @@
 import { Effect, Layer, Result } from "effect";
 import { db } from "@/db/drizzle/client";
-import { NotManager } from "@/src/spa-contract";
-import { AuthorizationContext, isManager } from "./authorization-context";
+import type { NotManager } from "@/src/spa-contract";
+import { AuthorizationContext } from "./authorization-context";
 import { CompanyContext } from "./company-context";
 import { CompanyMembers } from "./company-members-service";
 import { writeInCompanyScope } from "./company-scope";
@@ -86,14 +86,13 @@ export const runTeamService = <A, E extends TeamFailure>(
     ),
   );
 
-export const runTeamManagement = async <A, E extends TeamFailure>(
+export const runTeamManagement = <A, E extends TeamFailure>(
   session: RequestSession,
   use: (
     management: TeamManagement["Service"],
   ) => Effect.Effect<A, E, ProvidedPerRequest | Db>,
-): Promise<Result.Result<A, E | NotManager | DbFailure>> => {
-  if (!isManager(session.role)) return Result.fail(new NotManager());
-  return writeTeamList(
+): Promise<Result.Result<A, E | NotManager | DbFailure>> =>
+  writeTeamList(
     db,
     session.companyId,
     session.companyTeamListOf,
@@ -102,4 +101,3 @@ export const runTeamManagement = async <A, E extends TeamFailure>(
       TeamManagement.use(use).pipe(Effect.provide(TeamManagement.layer)),
     ),
   );
-};
