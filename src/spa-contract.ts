@@ -12,65 +12,55 @@ import type { RequestSession } from "./services/request-session";
 
 export const SESSION_HEADER = "x-taimei-session";
 
-export class Unauthenticated extends Schema.TaggedError<Unauthenticated>()(
-  "Unauthenticated",
-  {},
-  { httpApiStatus: 401 },
-) {}
+export class Unauthenticated extends Schema.TaggedError<
+  Unauthenticated,
+  { readonly brand: unique symbol }
+>()("Unauthenticated", {}, { httpApiStatus: 401 }) {}
 
-export class SessionChanged extends Schema.TaggedError<SessionChanged>()(
-  "SessionChanged",
-  {},
-  { httpApiStatus: 409 },
-) {}
+export class SessionChanged extends Schema.TaggedError<
+  SessionChanged,
+  { readonly brand: unique symbol }
+>()("SessionChanged", {}, { httpApiStatus: 409 }) {}
 
-export class NotManager extends Schema.TaggedError<NotManager>()(
-  "NotManager",
-  {},
-  { httpApiStatus: 403 },
-) {}
+export class NotManager extends Schema.TaggedError<
+  NotManager,
+  { readonly brand: unique symbol }
+>()("NotManager", {}, { httpApiStatus: 403 }) {}
 
-export class TeamNotFound extends Schema.TaggedError<TeamNotFound>()(
-  "TeamNotFound",
-  { teamId: Schema.String },
-  { httpApiStatus: 404 },
-) {}
+export class TeamNotFound extends Schema.TaggedError<
+  TeamNotFound,
+  { readonly brand: unique symbol }
+>()("TeamNotFound", { teamId: Schema.String }, { httpApiStatus: 404 }) {}
 
-export class SkillNotFound extends Schema.TaggedError<SkillNotFound>()(
-  "SkillNotFound",
-  {},
-  { httpApiStatus: 404 },
-) {}
+export class SkillNotFound extends Schema.TaggedError<
+  SkillNotFound,
+  { readonly brand: unique symbol }
+>()("SkillNotFound", {}, { httpApiStatus: 404 }) {}
 
-export class NotCompanyMember extends Schema.TaggedError<NotCompanyMember>()(
-  "NotCompanyMember",
-  { userId: Schema.String },
-  { httpApiStatus: 422 },
-) {}
+export class NotCompanyMember extends Schema.TaggedError<
+  NotCompanyMember,
+  { readonly brand: unique symbol }
+>()("NotCompanyMember", { userId: Schema.String }, { httpApiStatus: 422 }) {}
 
-export class InvalidName extends Schema.TaggedError<InvalidName>()(
-  "InvalidName",
-  {},
-  { httpApiStatus: 422 },
-) {}
+export class InvalidName extends Schema.TaggedError<
+  InvalidName,
+  { readonly brand: unique symbol }
+>()("InvalidName", {}, { httpApiStatus: 422 }) {}
 
-export class DuplicateName extends Schema.TaggedError<DuplicateName>()(
-  "DuplicateName",
-  {},
-  { httpApiStatus: 409 },
-) {}
+export class DuplicateName extends Schema.TaggedError<
+  DuplicateName,
+  { readonly brand: unique symbol }
+>()("DuplicateName", {}, { httpApiStatus: 409 }) {}
 
-export class NotAssigned extends Schema.TaggedError<NotAssigned>()(
-  "NotAssigned",
-  {},
-  { httpApiStatus: 403 },
-) {}
+export class NotAssigned extends Schema.TaggedError<
+  NotAssigned,
+  { readonly brand: unique symbol }
+>()("NotAssigned", {}, { httpApiStatus: 403 }) {}
 
-export class InvalidLevel extends Schema.TaggedError<InvalidLevel>()(
-  "InvalidLevel",
-  {},
-  { httpApiStatus: 422 },
-) {}
+export class InvalidLevel extends Schema.TaggedError<
+  InvalidLevel,
+  { readonly brand: unique symbol }
+>()("InvalidLevel", {}, { httpApiStatus: 422 }) {}
 
 export const OperationFailure = Schema.Union([
   NotManager,

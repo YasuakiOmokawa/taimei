@@ -2,26 +2,26 @@ import { Match, Schema } from "effect";
 import { DatabaseError } from "pg";
 import type { OperationFailure, Unauthenticated } from "@/src/spa-contract";
 
-export class TeamServiceError extends Schema.TaggedError<TeamServiceError>()(
-  "TeamServiceError",
-  {
-    cause: Schema.Defect(),
-  },
-) {}
+export class TeamServiceError extends Schema.TaggedError<
+  TeamServiceError,
+  { readonly brand: unique symbol }
+>()("TeamServiceError", {
+  cause: Schema.Defect(),
+}) {}
 
-export class DbUnavailable extends Schema.TaggedError<DbUnavailable>()(
-  "DbUnavailable",
-  {
-    cause: Schema.Defect(),
-  },
-) {}
+export class DbUnavailable extends Schema.TaggedError<
+  DbUnavailable,
+  { readonly brand: unique symbol }
+>()("DbUnavailable", {
+  cause: Schema.Defect(),
+}) {}
 
-export class MemberListError extends Schema.TaggedError<MemberListError>()(
-  "MemberListError",
-  {
-    cause: Schema.Defect(),
-  },
-) {}
+export class MemberListError extends Schema.TaggedError<
+  MemberListError,
+  { readonly brand: unique symbol }
+>()("MemberListError", {
+  cause: Schema.Defect(),
+}) {}
 
 const UnexpectedFailure = Schema.Union([
   MemberListError,

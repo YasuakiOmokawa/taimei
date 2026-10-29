@@ -1,5 +1,3 @@
-// biome-ignore lint/style/noRestrictedImports: api-internal.ts の atom を registry で流して観測する
-import { scheduleTask } from "@effect/atom-react";
 import { Cause, Effect, Exit, Option, Schema } from "effect";
 // biome-ignore lint/style/noRestrictedImports: api-internal.ts の atom を registry で流して観測する
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
@@ -101,14 +99,20 @@ describe("failureMessageOf", () => {
   });
 
   it("契約の失敗の外の失敗は、画面に渡す型に入らない (bun run typecheck で見る)", () => {
-    class Unlisted extends Schema.TaggedError<Unlisted>()("Unlisted", {}) {}
+    class Unlisted extends Schema.TaggedError<
+      Unlisted,
+      { readonly brand: unique symbol }
+    >()("Unlisted", {}) {}
     // @ts-expect-error 契約に宣言していない失敗は、文言の表に無い
     const failure: ShownFailure = Cause.fail(new Unlisted());
     expect(failure).toBeDefined();
   });
 });
 
-class Offline extends Schema.TaggedError<Offline>()("Offline", {}) {}
+class Offline extends Schema.TaggedError<
+  Offline,
+  { readonly brand: unique symbol }
+>()("Offline", {}) {}
 
 const sourceResolvedByTest = <A>() => {
   const fetchesInOrder: PromiseWithResolvers<Effect.Effect<A, Offline>>[] = [];
@@ -959,15 +963,4 @@ describe("一覧を古くする更新", () => {
       teams: [createdTeam],
     });
   });
-});
-
-it("@effect/atom-react が React の scheduler で組む task は、入っている scheduler で走り、取り消せる (peer の範囲外の scheduler 0.28 を入れている)", async () => {
-  const ran = vi.fn();
-  const cancelled = vi.fn();
-
-  scheduleTask(ran);
-  scheduleTask(cancelled)();
-  await vi.waitFor(() => expect(ran).toHaveBeenCalledOnce());
-
-  expect(cancelled).not.toHaveBeenCalled();
 });

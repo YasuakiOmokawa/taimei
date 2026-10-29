@@ -242,8 +242,7 @@ const handlers: {
 };
 
 const isResponseEncodeFailure = (error: unknown) =>
-  HttpApiError.HttpApiSchemaError.is(error) &&
-  (error.kind === "Body" || error.kind === "ResponseHeaders");
+  HttpApiError.HttpApiSchemaError.is(error) && !ErrorReporter.isIgnored(error);
 
 const unexpectedFailureReporter: ErrorReporter.ErrorReporter = {
   [ErrorReporter.TypeId]: ErrorReporter.TypeId,
