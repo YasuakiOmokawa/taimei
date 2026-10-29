@@ -99,14 +99,20 @@ describe("failureMessageOf", () => {
   });
 
   it("契約の失敗の外の失敗は、画面に渡す型に入らない (bun run typecheck で見る)", () => {
-    class Unlisted extends Schema.TaggedError<Unlisted>()("Unlisted", {}) {}
+    class Unlisted extends Schema.TaggedError<
+      Unlisted,
+      { readonly brand: unique symbol }
+    >()("Unlisted", {}) {}
     // @ts-expect-error 契約に宣言していない失敗は、文言の表に無い
     const failure: ShownFailure = Cause.fail(new Unlisted());
     expect(failure).toBeDefined();
   });
 });
 
-class Offline extends Schema.TaggedError<Offline>()("Offline", {}) {}
+class Offline extends Schema.TaggedError<
+  Offline,
+  { readonly brand: unique symbol }
+>()("Offline", {}) {}
 
 const sourceResolvedByTest = <A>() => {
   const fetchesInOrder: PromiseWithResolvers<Effect.Effect<A, Offline>>[] = [];

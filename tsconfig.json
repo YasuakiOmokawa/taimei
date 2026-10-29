@@ -27,6 +27,9 @@
           "@effect/atom-react",
           "effect/ErrorReporter"
         ],
+        "diagnosticSeverity": {
+          "schemaClassMissingBrand": "error"
+        },
         "overrides": [
           {
             "include": ["**/__tests__/**/*.ts"],
