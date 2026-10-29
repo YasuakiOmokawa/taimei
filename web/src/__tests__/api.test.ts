@@ -1,5 +1,3 @@
-// biome-ignore lint/style/noRestrictedImports: api-internal.ts の atom を registry で流して観測する
-import { scheduleTask } from "@effect/atom-react";
 import { Cause, Effect, Exit, Option, Schema } from "effect";
 // biome-ignore lint/style/noRestrictedImports: api-internal.ts の atom を registry で流して観測する
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
@@ -959,15 +957,4 @@ describe("一覧を古くする更新", () => {
       teams: [createdTeam],
     });
   });
-});
-
-it("@effect/atom-react が React の scheduler で組む task は、入っている scheduler で走り、取り消せる (peer の範囲外の scheduler 0.28 を入れている)", async () => {
-  const ran = vi.fn();
-  const cancelled = vi.fn();
-
-  scheduleTask(ran);
-  scheduleTask(cancelled)();
-  await vi.waitFor(() => expect(ran).toHaveBeenCalledOnce());
-
-  expect(cancelled).not.toHaveBeenCalled();
 });

@@ -1801,6 +1801,36 @@ describe("GET /api/members", () => {
     );
   });
 
+  describe("契約の success の schema で encode できない一覧", () => {
+    afterEach(() => sendErrorReportsTo(() => {}));
+
+    it("500 で本文を返さず、email の encode の失敗を console と送り先に 1 回ずつ報告する", async () => {
+      const send = vi.fn();
+      sendErrorReportsTo(send);
+
+      const response = await get(
+        "/api/members",
+        signedInWithMembers([
+          { ...companyMember("u_2"), email: 1 as unknown as string },
+        ]),
+      );
+
+      const encodeFailureOfEmail = expect.objectContaining({
+        _tag: "HttpApiSchemaError",
+        kind: "Body",
+        cause: expect.objectContaining({
+          message: expect.stringContaining("email"),
+        }),
+      });
+      expect(response.status).toBe(500);
+      expect(await response.text()).toBe("");
+      expect(consoleError).toHaveBeenCalledExactlyOnceWith(
+        encodeFailureOfEmail,
+      );
+      expect(send).toHaveBeenCalledExactlyOnceWith(encodeFailureOfEmail);
+    });
+  });
+
   it("一覧が session の失敗を返すと 401 で、報告しない", async () => {
     const response = await get(
       "/api/members",
