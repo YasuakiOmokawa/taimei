@@ -8,16 +8,65 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
-
 jobs:
+  staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: staging
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Build the staging bundle from the non-production entry
+        run: bash scripts/build-staging-bundle.sh
+      - name: Stop unless the DB has the non-production mark
+        run: bun testing/check-staging-database.ts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Apply all pending migrations to the staging database
+        run: bunx drizzle-kit migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Deploy staging with alchemy
+        run: bunx alchemy deploy infra/alchemy.run.ts --stage staging --yes --no-input
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ALCHEMY_TELEMETRY_DISABLED: "1"
+      - name: Find the version at 100%
+        id: version
+        working-directory: ${{ runner.temp }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          current=$("$GITHUB_WORKSPACE/node_modules/.bin/wrangler" deployments status --name taimei-staging | sed -n 's/.*(100%) *//p' | tr -d '[:space:]')
+          [ -n "$current" ] || { echo "the version at 100% of taimei-staging is not found" >&2; exit 1; }
+          echo "version_id=$current" >> "$GITHUB_OUTPUT"
+      - name: Smoke staging through the Access service token
+        run: bash scripts/staging-smoke.sh https://taimei-staging.taimei-staging.workers.dev https://taimei-auth-staging.taimei-staging.workers.dev "$VERSION_ID"
+        env:
+          ACCESS_CLIENT_ID: ${{ secrets.ACCESS_CLIENT_ID }}
+          ACCESS_CLIENT_SECRET: ${{ secrets.ACCESS_CLIENT_SECRET }}
+          VERSION_ID: ${{ steps.version.outputs.version_id }}
+
   Deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
       name: Production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     steps:
       - name: Checkout repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

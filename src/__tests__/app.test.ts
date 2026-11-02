@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import {
   buildAccountUrl,
   buildAuthErrorUrl,
@@ -23,6 +22,7 @@ import {
   teams,
 } from "@/db/drizzle/schema";
 import type { TeamId } from "@/db/ids";
+import { readWranglerConfig } from "@/infra/wrangler-config";
 import { sendErrorReportsTo } from "@/src/lib/report-error";
 import {
   fixtureCompanyId,
@@ -564,13 +564,8 @@ describe("契約の endpoint", () => {
 });
 
 describe("Worker に届く path", () => {
-  const wranglerConfig = JSON.parse(
-    readFileSync(new URL("../../wrangler.jsonc", import.meta.url), "utf8")
-      .split("\n")
-      .filter((line) => !line.trim().startsWith("//"))
-      .join("\n"),
-  );
-  const runWorkerFirst: string[] = wranglerConfig.assets.run_worker_first;
+  const wranglerConfig = readWranglerConfig();
+  const runWorkerFirst = wranglerConfig.assets.run_worker_first;
   const reachesWorker = (path: string) =>
     runWorkerFirst.some((pattern) =>
       pattern.endsWith("*")
@@ -591,7 +586,7 @@ describe("Worker に届く path", () => {
   });
 
   it("purge-departed は毎時 17 分の Cron Trigger で動く", () => {
-    expect(wranglerConfig.triggers?.crons).toEqual(["17 * * * *"]);
+    expect(wranglerConfig.triggers.crons).toEqual(["17 * * * *"]);
   });
 
   it("本番は app.taimei-code.com の custom domain だけで受ける", () => {
