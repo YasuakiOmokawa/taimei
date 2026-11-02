@@ -1,7 +1,18 @@
 {
   "$schema": "./node_modules/fallow/schema.json",
-  "entry": ["web/src/main.tsx", "testing/worker.ts"],
-  "ignoreDependencies": ["pg", "@effect/tsgo", "@taimei-code/auth-client"],
+  "entry": [
+    "web/src/main.tsx",
+    "testing/worker.ts",
+    "testing/staging-worker.ts",
+    "testing/check-staging-database.ts"
+  ],
+  "ignoreDependencies": [
+    "pg",
+    "@effect/tsgo",
+    "@taimei-code/auth-client",
+    "@effect/platform-bun",
+    "@effect/platform-node"
+  ],
   "boundaries": {
     "zones": [
       {
@@ -38,5 +49,12 @@
         "allowTypeOnly": []
       }
     ]
-  }
+  },
+  "framework": [
+    {
+      "name": "alchemy",
+      "enablers": ["alchemy"],
+      "configPatterns": ["infra/alchemy.run.ts"]
+    }
+  ]
 }

@@ -43,7 +43,10 @@
     "tailwindcss": "3.4.19"
   },
   "devDependencies": {
+    "@alchemy.run/cloudflare": "2.0.0-beta.84",
     "@biomejs/biome": "2.5.14",
+    "@effect/platform-bun": "4.0.6",
+    "@effect/platform-node": "4.0.6",
     "@effect/tsgo": "0.56.0",
     "@tailwindcss/forms": "^0.5.11",
     "@types/node": "^26.6.1",
@@ -52,6 +55,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.2.0",
     "@vitest/coverage-v8": "^5.0.1",
+    "alchemy": "2.0.0-beta.84",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "fallow": "^3.25.0",

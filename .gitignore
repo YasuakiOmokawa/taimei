@@ -43,3 +43,7 @@ yarn-error.log*
 playwright/.auth
 
 certs/*.pem
+
+# alchemy (staging)
+/.alchemy/
+/staging-bundle/
