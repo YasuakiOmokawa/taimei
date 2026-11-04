@@ -5,7 +5,9 @@
     "testing/worker.ts",
     "testing/staging-worker.ts",
     "testing/check-staging-database.ts",
-    "infra/stage-outputs.ts"
+    "infra/stage-outputs.ts",
+    "infra/check-worker.ts",
+    "infra/check-drift.ts"
   ],
   "ignoreDependencies": [
     "pg",
