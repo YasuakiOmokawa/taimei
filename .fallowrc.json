@@ -4,7 +4,8 @@
     "web/src/main.tsx",
     "testing/worker.ts",
     "testing/staging-worker.ts",
-    "testing/check-staging-database.ts"
+    "testing/check-staging-database.ts",
+    "infra/stage-outputs.ts"
   ],
   "ignoreDependencies": [
     "pg",
