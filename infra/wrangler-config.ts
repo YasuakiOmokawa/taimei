@@ -25,7 +25,9 @@ const WranglerConfig = Schema.Struct({
   ...WorkerRuntime.fields,
   name: Schema.String,
   main: Schema.String,
-  services: Schema.Array(Schema.Struct({ service: Schema.String })),
+  services: Schema.Array(
+    Schema.Struct({ binding: Schema.String, service: Schema.String }),
+  ),
   routes: Schema.Array(
     Schema.Struct({ pattern: Schema.String, custom_domain: Schema.Boolean }),
   ),
@@ -42,10 +44,12 @@ const withoutWholeLineComments = (jsonc: string) =>
     .filter((line) => !line.trim().startsWith("//"))
     .join("\n");
 
-const readWranglerJson = (): unknown =>
+export const readWranglerJson = (): unknown =>
   JSON.parse(
     withoutWholeLineComments(readFileSync(WRANGLER_CONFIG_PATH, "utf8")),
   );
+
+export type WranglerConfig = typeof WranglerConfig.Type;
 
 export const readWorkerRuntime = () =>
   Schema.decodeUnknownSync(WorkerRuntime)(readWranglerJson());

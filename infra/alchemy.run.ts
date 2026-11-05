@@ -1,11 +1,15 @@
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Alchemy from "alchemy";
 import { Effect } from "effect";
-import { parseAccountId, parseStage, STAGES, varsOf } from "./stages";
+import {
+  AUTH_SERVICE_BINDING,
+  bundleMainOf,
+  parseAccountId,
+  type StageConfig,
+  stageOf,
+  WORKER_OBSERVABILITY,
+} from "./stages";
 import { readWorkerRuntime } from "./wrangler-config";
-
-const STAGING_BUNDLE_ENTRY = "./staging-bundle/staging-worker.js";
-const AUTH_SERVICE_KEY = "AUTH_SERVICE_KEY";
 
 const productionWorkerRuntime = readWorkerRuntime();
 
@@ -18,13 +22,43 @@ const durableObjects = Object.fromEntries(
   ),
 );
 
+const servedAtProps = ({ workerName, servedAt }: StageConfig) =>
+  servedAt.kind === "customDomain"
+    ? {
+        domain: servedAt.domain,
+        workersDev: { enabled: false, previewsEnabled: false },
+      }
+    : {
+        workersDev: { enabled: true, previewsEnabled: false },
+        access: {
+          name: workerName,
+          previews: false,
+          policies: [
+            {
+              decision: "allow" as const,
+              include: [
+                {
+                  cloudflareAccountMember: parseAccountId(
+                    process.env.CLOUDFLARE_ACCOUNT_ID,
+                  ),
+                },
+              ],
+            },
+            {
+              decision: "non_identity" as const,
+              include: ["anyValidServiceToken" as const],
+            },
+          ],
+        },
+      };
+
 const App = Cloudflare.Worker(
   "App",
   Effect.gen(function* () {
-    const stage = STAGES[parseStage(yield* Alchemy.Stage)];
+    const stage = stageOf(yield* Alchemy.Stage);
     return {
       name: stage.workerName,
-      main: STAGING_BUNDLE_ENTRY,
+      main: bundleMainOf(stage.entry),
       bundle: false,
       assets: {
         directory: productionWorkerRuntime.assets.directory,
@@ -36,31 +70,15 @@ const App = Cloudflare.Worker(
         flags: [...productionWorkerRuntime.compatibility_flags],
       },
       crons: [...productionWorkerRuntime.triggers.crons],
-      workersDev: { enabled: true, previewsEnabled: false },
-      access: {
-        name: stage.workerName,
-        previews: false,
-        policies: [
-          {
-            decision: "allow",
-            include: [
-              {
-                cloudflareAccountMember: parseAccountId(
-                  process.env.CLOUDFLARE_ACCOUNT_ID,
-                ),
-              },
-            ],
-          },
-          { decision: "non_identity", include: ["anyValidServiceToken"] },
-        ],
-      },
+      observability: WORKER_OBSERVABILITY,
+      ...servedAtProps(stage),
       env: {
         ...durableObjects,
         CF_VERSION_METADATA: Cloudflare.Workers.VersionMetadata(),
         HYPERDRIVE: Cloudflare.Hyperdrive.lookup("Hyperdrive", {
           name: stage.hyperdriveName,
         }),
-        ...varsOf(stage),
+        ...stage.vars,
       },
     };
   }),
@@ -73,22 +91,30 @@ export default Alchemy.Stack(
     state: Cloudflare.state({ name: "taimei" }),
   },
   Effect.gen(function* () {
-    const stage = STAGES[parseStage(yield* Alchemy.Stage)];
+    const stage = stageOf(yield* Alchemy.Stage);
     const worker = yield* App;
-    const store = yield* Cloudflare.SecretsStore.Store("Secrets");
-    yield* worker.bind(AUTH_SERVICE_KEY, {
+    if (stage.secrets.type === "secrets_store_secret") {
+      const store = yield* Cloudflare.SecretsStore.Store("Secrets");
+      for (const name of stage.secrets.names) {
+        yield* worker.bind(name, {
+          bindings: [
+            {
+              type: "secrets_store_secret",
+              name,
+              secretName: name,
+              storeId: store.storeId,
+            },
+          ],
+        });
+      }
+    }
+    yield* worker.bind(AUTH_SERVICE_BINDING, {
       bindings: [
         {
-          type: "secrets_store_secret",
-          name: AUTH_SERVICE_KEY,
-          secretName: AUTH_SERVICE_KEY,
-          storeId: store.storeId,
+          type: "service",
+          name: AUTH_SERVICE_BINDING,
+          service: stage.authWorkerName,
         },
-      ],
-    });
-    yield* worker.bind("AUTH", {
-      bindings: [
-        { type: "service", name: "AUTH", service: stage.authWorkerName },
       ],
     });
     return { url: worker.url.as<string>() };

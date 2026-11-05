@@ -25,8 +25,11 @@ jobs:
         run: bun install --frozen-lockfile --ignore-scripts
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Build the staging bundle from the non-production entry
-        run: bash scripts/build-staging-bundle.sh
+      - name: Read the staging values from infra/stages.ts
+        id: stage
+        run: bun infra/stage-outputs.ts staging >> "$GITHUB_OUTPUT"
+      - name: Build the staging bundle from the staging entry
+        run: bash scripts/build-bundle.sh staging
       - name: Stop unless the DB has the non-production mark
         run: bun testing/check-staging-database.ts
         env:
@@ -47,14 +50,17 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER_NAME: ${{ steps.stage.outputs.worker_name }}
         run: |
           set -euo pipefail
-          current=$("$GITHUB_WORKSPACE/node_modules/.bin/wrangler" deployments status --name taimei-staging | sed -n 's/.*(100%) *//p' | tr -d '[:space:]')
-          [ -n "$current" ] || { echo "the version at 100% of taimei-staging is not found" >&2; exit 1; }
+          current=$("$GITHUB_WORKSPACE/node_modules/.bin/wrangler" deployments status --name "$WORKER_NAME" | sed -n 's/.*(100%) *//p' | tr -d '[:space:]')
+          [ -n "$current" ] || { echo "the version at 100% of $WORKER_NAME is not found" >&2; exit 1; }
           echo "version_id=$current" >> "$GITHUB_OUTPUT"
       - name: Smoke staging through the Access service token
-        run: bash scripts/staging-smoke.sh https://taimei-staging.taimei-staging.workers.dev https://taimei-auth-staging.taimei-staging.workers.dev "$VERSION_ID"
+        run: bash scripts/staging-smoke.sh "$BASE_URL" "$AUTH_URL" "$VERSION_ID"
         env:
+          BASE_URL: ${{ steps.stage.outputs.url }}
+          AUTH_URL: ${{ steps.stage.outputs.auth_url }}
           ACCESS_CLIENT_ID: ${{ secrets.ACCESS_CLIENT_ID }}
           ACCESS_CLIENT_SECRET: ${{ secrets.ACCESS_CLIENT_SECRET }}
           VERSION_ID: ${{ steps.version.outputs.version_id }}
@@ -77,15 +83,20 @@ jobs:
         run: bun install --frozen-lockfile --ignore-scripts
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Build SPA
-        run: bun run build
-      # Worker の読み取りは migration が作る関数を呼ぶので、deploy より先に当てる
-      - name: Apply all pending migrations to the database
+      - name: Build the production bundle from the production entry
+        run: bash scripts/build-bundle.sh production
+      - name: Apply all pending migrations before the deploy, because the Worker reads through functions the migrations create
         run: bunx drizzle-kit migrate
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      - name: Deploy Worker
-        run: bunx wrangler deploy
+      - name: Deploy production with alchemy
+        run: bunx alchemy deploy infra/alchemy.run.ts --stage production --yes --no-input
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ALCHEMY_TELEMETRY_DISABLED: "1"
+      - name: Stop when the production Worker lost a declared binding or secret
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bun infra/check-worker.ts production

@@ -44,6 +44,6 @@ playwright/.auth
 
 certs/*.pem
 
-# alchemy (staging)
+# alchemy
 /.alchemy/
-/staging-bundle/
+/bundle/

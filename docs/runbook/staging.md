@@ -55,6 +55,7 @@ bunx wrangler hyperdrive create taimei-staging \
 何もしない。
 
 - `AUTH_SERVICE_KEY` は taimei-auth が登録した secret を同じ名前で使う。定義が binding を作る
+- staging の入口は isolate (Worker の実行単位) ごとに 1 回だけ Secrets Store の値を解いて使い回す。すでに動いている isolate は、次に script が変わる deploy (main の push) まで古い値を送り続ける。同じ commit の job `staging` を re-run しても、alchemy は変化なしとして新しい version を出さない (re-run は依存する本番の job `Deploy` も流し直す)。Secrets Store の `AUTH_SERVICE_KEY` を回す時は、taimei-auth が古い値も受け付ける期間 (`AUTH_SERVICE_KEY_PREVIOUS`) を、回した後の最初の main の push で staging の deploy が通るまで残す (本番は `secret_text` なので当たらない。`docs/runbook/production.md`)
 - Access の application と policy は定義が Worker と一緒に作る。service token は taimei-auth の CI と同じ 1 本を使う。Worker の Access タブや Self-hosted の application を手で作らない (taimei-auth の runbook の Access の節)
 
 ## 5. GitHub の Environment と secret
