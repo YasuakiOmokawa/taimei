@@ -1,0 +1,194 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["./node_modules/@foldkit/oxlint-plugin/recommended.json"],
+  "plugins": ["typescript", "unicorn", "oxc", "import"],
+  "jsPlugins": [
+    {
+      "name": "taimei",
+      "specifier": "./lint/oxlint-plugin.mts"
+    },
+    {
+      "name": "foldkit",
+      "specifier": "@foldkit/oxlint-plugin"
+    }
+  ],
+  "categories": {
+    "correctness": "error"
+  },
+  "ignorePatterns": [
+    "/*",
+    "!/web",
+    "web/**/*.tsx",
+    "web/vite.config.ts",
+    "web/tailwind.config.ts",
+    "web/postcss.config.mjs",
+    "web/src/api.ts",
+    "web/src/api-internal.ts",
+    "web/src/lib/utils.ts",
+    "web/src/dashboard/level.ts",
+    "web/src/dashboard/skill-matrix.ts",
+    "web/src/privacy/facts.ts",
+    "web/src/__tests__/api.test.ts",
+    "web/src/__tests__/memory-only-cache.test.ts",
+    "web/src/__tests__/router.test.ts",
+    "web/src/__tests__/spa-bundle.test.ts",
+    "web/src/dashboard/__tests__/level.test.ts",
+    "web/src/dashboard/__tests__/skill-matrix.test.ts",
+    "web/src/privacy/__tests__/facts.test.ts",
+    "web/src/privacy/__tests__/privacy-page.test.ts"
+  ],
+  "rules": {
+    "curly": ["error", "all"],
+    "no-var": "error",
+    "prefer-const": "error",
+    "prefer-rest-params": "error",
+    "no-array-constructor": "error",
+    "import/no-commonjs": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-namespace": "error",
+    "typescript/no-unnecessary-type-constraint": "error",
+    "taimei/no-switch": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["**/repos/**", "repos/**"],
+            "message": "repos/ は agent が読む Foldkit の source の写しで、本番の build に入らない。package (foldkit など) から import する"
+          },
+          {
+            "group": ["effect/persistence", "effect/persistence/*"],
+            "message": "画面の cache は Model (メモリ) だけに持つ。effect/persistence は使わない"
+          },
+          {
+            "group": [
+              "react",
+              "react/*",
+              "react-dom",
+              "react-dom/*",
+              "@effect/atom-react",
+              "@effect/atom-react/*",
+              "effect/reactivity",
+              "effect/reactivity/*",
+              "@tanstack/react-router",
+              "lucide-react",
+              "@radix-ui/*"
+            ],
+            "message": "Foldkit で書く file は React と Atom を使わない。状態は Model、通信は Command に置く"
+          },
+          {
+            "group": ["effect/http"],
+            "message": "handler は契約が decode した値を受け、成功の値を返す。effect/http を使えるのは、契約の web handler を組む src/spa-http-api.ts と、SPA の契約の client を作る web/src/api-internal.ts だけ (ADR-0007)"
+          },
+          {
+            "group": ["@sentry/*"],
+            "message": "Sentry の SDK は Worker の入口 (src/worker.ts) だけが使う。報告は src/lib/report-error.ts の reportError"
+          },
+          {
+            "group": ["**/api-internal"],
+            "message": "画面は web/src/api.ts の名前だけを使う。web/src/api-internal.ts を読めるのは web/src/api.ts と、その試験 web/src/__tests__/api.test.ts だけ (内側の runApiMutation は useApiMutation の二度押しの guard を通らない)"
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["web/**"],
+      "excludeFiles": ["web/src/**/__tests__/**"],
+      "rules": {
+        "taimei/no-effect-run-in-web": "error",
+        "taimei/no-browser-global-outside-command": "error",
+        "taimei/no-raw-form-element": "error",
+        "taimei/no-raw-svg-element": "error",
+        "typescript/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "never"
+          }
+        ],
+        "taimei/no-timer-in-web": "error",
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "localStorage",
+            "message": "web は browser の storage を使わない。画面の cache は Model (メモリ) だけに持つ"
+          },
+          {
+            "name": "sessionStorage",
+            "message": "web は browser の storage を使わない。画面の cache は Model (メモリ) だけに持つ"
+          },
+          {
+            "name": "indexedDB",
+            "message": "web は browser の storage を使わない。画面の cache は Model (メモリ) だけに持つ"
+          },
+          {
+            "name": "caches",
+            "message": "web は browser の storage を使わない。画面の cache は Model (メモリ) だけに持つ"
+          },
+          {
+            "name": "cookieStore",
+            "message": "web は browser の storage を使わない。画面の cache は Model (メモリ) だけに持つ"
+          }
+        ],
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "document",
+            "property": "cookie",
+            "message": "web は browser の storage を使わない。画面の cache は Model (メモリ) だけに持つ"
+          },
+          {
+            "property": "localStorage",
+            "message": "web は browser の storage を使わない。画面の cache は Model (メモリ) だけに持つ"
+          },
+          {
+            "property": "sessionStorage",
+            "message": "web は browser の storage を使わない。画面の cache は Model (メモリ) だけに持つ"
+          },
+          {
+            "property": "indexedDB",
+            "message": "web は browser の storage を使わない。画面の cache は Model (メモリ) だけに持つ"
+          },
+          {
+            "property": "cookieStore",
+            "message": "web は browser の storage を使わない。画面の cache は Model (メモリ) だけに持つ"
+          },
+          {
+            "object": "window",
+            "property": "caches",
+            "message": "web は browser の storage を使わない。画面の cache は Model (メモリ) だけに持つ"
+          },
+          {
+            "object": "globalThis",
+            "property": "caches",
+            "message": "web は browser の storage を使わない。画面の cache は Model (メモリ) だけに持つ"
+          },
+          {
+            "object": "self",
+            "property": "caches",
+            "message": "web は browser の storage を使わない。画面の cache は Model (メモリ) だけに持つ"
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/__tests__/**"],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["web/src/shared/ui/**"],
+      "rules": {
+        "taimei/no-raw-form-element": "off"
+      }
+    },
+    {
+      "files": ["web/src/shared/ui/icon-view.ts"],
+      "rules": {
+        "taimei/no-raw-svg-element": "off"
+      }
+    }
+  ]
+}
