@@ -52,14 +52,37 @@ type OxlintReport = {
   }[];
 };
 
-it("Command の execute と Effect.sync の外の browser の global と、timer の行だけが指摘される", () => {
+const DIRECT_STARTS = `import { Runtime } from "foldkit";
+import { Runtime as Aliased } from "foldkit";
+import * as Foldkit from "foldkit";
+import * as FoldkitRuntime from "foldkit/runtime";
+import { hydrate } from "foldkit/runtime";
+import type { Runtime as AliasedType } from "foldkit";
+import type * as FoldkitTypes from "foldkit";
+
+export type Config = AliasedType.RoutingConfig<never> | FoldkitTypes.Html.Html;
+
+export const starts = [
+  hydrate,
+  Runtime.run,
+  Runtime.makeApplication,
+  Runtime.makeElement,
+  Runtime.embed,
+  Runtime.hydrate,
+  Aliased,
+  Foldkit,
+  FoldkitRuntime,
+];
+`;
+
+const taimeiLinesOf = (file: string, source: string) => {
   const fixtureDir = mkdtempSync(path.join(tmpdir(), "taimei-oxlint-plugin-"));
   try {
     for (const entry of [".oxlintrc.json", "lint", "node_modules"]) {
       symlinkSync(path.join(REPO_ROOT, entry), path.join(fixtureDir, entry));
     }
-    mkdirSync(path.join(fixtureDir, "web/src/probe"), { recursive: true });
-    writeFileSync(path.join(fixtureDir, "web/src/probe/Page.ts"), FOLDKIT_PAGE);
+    mkdirSync(path.dirname(path.join(fixtureDir, file)), { recursive: true });
+    writeFileSync(path.join(fixtureDir, file), source);
     const report: OxlintReport = JSON.parse(
       spawnSync(
         path.join(REPO_ROOT, "node_modules/.bin/oxlint"),
@@ -67,17 +90,25 @@ it("Command の execute と Effect.sync の外の browser の global と、timer
         { cwd: fixtureDir, encoding: "utf8" },
       ).stdout,
     );
-    const taimeiLinesOf = (file: string) =>
-      report.diagnostics
-        .filter(
-          ({ filename, code }) =>
-            filename === file && code.startsWith("taimei("),
-        )
-        .flatMap(({ labels }) => labels.map(({ span }) => span.line))
-        .sort((left, right) => left - right);
-
-    expect(taimeiLinesOf("web/src/probe/Page.ts")).toEqual([10, 12]);
+    return report.diagnostics
+      .filter(
+        ({ filename, code }) => filename === file && code.startsWith("taimei("),
+      )
+      .flatMap(({ labels }) => labels.map(({ span }) => span.line))
+      .sort((left, right) => left - right);
   } finally {
     rmSync(fixtureDir, { recursive: true, force: true });
   }
+};
+
+it("Command の execute と Effect.sync の外の browser の global と、timer の行だけが指摘される", () => {
+  expect(taimeiLinesOf("web/src/probe/Page.ts", FOLDKIT_PAGE)).toEqual([
+    10, 12,
+  ]);
+});
+
+it("web/src/app/start-application.ts の外では、Foldkit の起動の関数 (run・hydrate・embed・makeApplication・makeElement) の import と呼び出し、Runtime の別名と namespace の import の行がすべて指摘され、型だけの import は指摘されない", () => {
+  expect(taimeiLinesOf("web/src/app/public/entry.ts", DIRECT_STARTS)).toEqual([
+    2, 3, 4, 5, 13, 14, 15, 16, 17,
+  ]);
 });

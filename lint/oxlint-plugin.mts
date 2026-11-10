@@ -8,6 +8,9 @@ type AstNode = {
   readonly callee?: AstNode;
   readonly key?: AstNode;
   readonly source?: AstNode | null;
+  readonly imported?: AstNode;
+  readonly local?: AstNode;
+  readonly importKind?: string;
   readonly body?: readonly AstNode[];
   readonly parent?: AstNode;
 };
@@ -58,6 +61,12 @@ const TIMER_GLOBALS = new Set([
 const FORM_ELEMENTS = new Set(["button", "input", "textarea", "select"]);
 
 const SVG_ELEMENTS = new Set(["svg"]);
+
+const APPLICATION_STARTS = new Set(
+  ["embed", "hydrate", "makeApplication", "makeElement", "run"].map(
+    (name) => `Runtime.${name}`,
+  ),
+);
 
 const DEFERRED_EFFECT_CONSTRUCTORS = new Set(
   ["sync", "try", "tryPromise", "promise", "suspend", "callback"].map(
@@ -147,6 +156,62 @@ const noTimerInWeb = {
   }),
 };
 
+const APPLICATION_START_MESSAGE =
+  "は web/src/app/start-application.ts の startApplication だけが呼ぶ (resources の渡し忘れを型で止めるため)";
+
+const RUNTIME_ALIAS_MESSAGE =
+  "Foldkit の Runtime は別名や namespace で import しない (application を起動する関数を startApplication の外で呼ぶ code を lint が見つけられなくなる)";
+
+const RUNTIME_SOURCES: ReadonlySet<unknown> = new Set([
+  "foldkit",
+  "foldkit/runtime",
+]);
+
+const isTypeOnlyImport = (specifier: AstNode) =>
+  specifier.importKind === "type" || specifier.parent?.importKind === "type";
+
+const sourceOf = (specifier: AstNode) => specifier.parent?.source?.value;
+
+const importsApplicationStart = (specifier: AstNode) =>
+  sourceOf(specifier) === "foldkit/runtime" &&
+  APPLICATION_STARTS.has(`Runtime.${specifier.imported?.name}`);
+
+const aliasesRuntime = (specifier: AstNode) =>
+  sourceOf(specifier) === "foldkit" &&
+  specifier.imported?.name === "Runtime" &&
+  specifier.local?.name !== "Runtime" &&
+  !isTypeOnlyImport(specifier);
+
+const noDirectApplicationStart = {
+  create: (context: RuleContext): Visitors => ({
+    MemberExpression: (node) => {
+      const path = memberPathOf(node);
+      if (APPLICATION_STARTS.has(path)) {
+        context.report({
+          node,
+          message: `${path} ${APPLICATION_START_MESSAGE}`,
+        });
+      }
+    },
+    ImportSpecifier: (node) => {
+      if (importsApplicationStart(node)) {
+        context.report({
+          node,
+          message: `${node.imported?.name} ${APPLICATION_START_MESSAGE}`,
+        });
+      }
+      if (aliasesRuntime(node)) {
+        context.report({ node, message: RUNTIME_ALIAS_MESSAGE });
+      }
+    },
+    ImportNamespaceSpecifier: (node) => {
+      if (RUNTIME_SOURCES.has(sourceOf(node)) && !isTypeOnlyImport(node)) {
+        context.report({ node, message: RUNTIME_ALIAS_MESSAGE });
+      }
+    },
+  }),
+};
+
 const noSwitch = {
   create: (context: RuleContext): Visitors => ({
     SwitchStatement: (node) => {
@@ -175,6 +240,7 @@ export default {
       () =>
         "<svg> を手で書かない。icon は lucide から取り、web/src/shared/ui/icon-view.ts の部品で描く",
     ),
+    "no-direct-application-start": noDirectApplicationStart,
     "no-switch": noSwitch,
   },
 };
