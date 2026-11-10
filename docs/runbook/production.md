@@ -49,4 +49,4 @@ taimei-auth の取り込み (ADR-0022 の R1〜R7) を同じアカウントと�
 | zone `taimei-code.com` の custom domain 以外の DNS | Worker の資源ではなく、taimei-auth と共有している |
 | GitHub の Environment と Cloudflare の token | token を作る権限を CI に渡さない |
 | `wrangler.jsonc` | local の開発 (`wrangler dev`) と bundle の build に使い、定義が本番の値を読む出どころでもある |
-| alchemy の state の置き場 (`Cloudflare.state({ name: "taimei" })` が作る Worker と、Secrets Store の鍵と token) | 最初の deploy が作る。消すと state を失う |
+| alchemy の state の置き場 (Worker `alchemy-state-store-taimei` と、Secrets Store の鍵と token) | 最初の deploy が作る。消すと state を失う |
