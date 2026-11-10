@@ -10,6 +10,7 @@ LICENSE
 .vscode
 .wrangler
 web/dist
+repos
 *.swp
 
 # e2e tests

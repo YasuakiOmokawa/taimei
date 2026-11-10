@@ -63,3 +63,34 @@ describe("deploy は定義を通る", () => {
     ).toEqual([]);
   });
 });
+
+const filesOf = (lines: readonly string[]) => [
+  ...new Set(lines.map((line) => line.split(":")[0] ?? "")),
+];
+
+describe("repos/ (agent が読む Foldkit の source の写し) は本番の build に入らない", () => {
+  it("bundle を build する job の checkout は repos/ を除く", () => {
+    const workflows = filesOf(
+      gitGrepLines(
+        "build-bundle\\.sh|bun run build|vite build",
+        ".github/workflows",
+      ),
+    ).map((workflow) => ({
+      workflow,
+      checkouts: gitGrepLines("uses: actions/checkout@", workflow).length,
+      wholeRoot: gitGrepLines("^ +/\\*$", workflow).length,
+      withoutRepos: gitGrepLines("^ +!/repos/$", workflow).length,
+      nonCone: gitGrepLines("sparse-checkout-cone-mode: false", workflow)
+        .length,
+    }));
+
+    expect(workflows.map(({ workflow }) => workflow)).toContain(
+      ".github/workflows/deploy.yml",
+    );
+    expect(
+      workflows.filter(({ checkouts, wholeRoot, withoutRepos, nonCone }) =>
+        [wholeRoot, withoutRepos, nonCone].some((count) => count !== checkouts),
+      ),
+    ).toEqual([]);
+  });
+});
