@@ -101,6 +101,7 @@
         "taimei/no-browser-global-outside-command": "error",
         "taimei/no-raw-form-element": "error",
         "taimei/no-raw-svg-element": "error",
+        "taimei/no-direct-application-start": "error",
         "typescript/consistent-type-assertions": [
           "error",
           {
@@ -182,6 +183,12 @@
       "files": ["web/src/shared/ui/**"],
       "rules": {
         "taimei/no-raw-form-element": "off"
+      }
+    },
+    {
+      "files": ["web/src/app/start-application.ts"],
+      "rules": {
+        "taimei/no-direct-application-start": "off"
       }
     },
     {
