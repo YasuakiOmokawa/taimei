@@ -75,6 +75,8 @@ export const STAGES: Readonly<Record<StageName, StageConfig>> = {
   production: productionStageOf(productionWranglerConfig),
 };
 
+export const STATE_STORE_WORKER_NAME = "alchemy-state-store-taimei";
+
 export const WORKER_OBSERVABILITY = {
   enabled: true,
   logs: { enabled: true, invocationLogs: true },

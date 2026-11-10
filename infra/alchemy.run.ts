@@ -5,6 +5,7 @@ import {
   AUTH_SERVICE_BINDING,
   bundleMainOf,
   parseAccountId,
+  STATE_STORE_WORKER_NAME,
   type StageConfig,
   stageOf,
   WORKER_OBSERVABILITY,
@@ -88,7 +89,7 @@ export default Alchemy.Stack(
   "Taimei",
   {
     providers: Cloudflare.providers(),
-    state: Cloudflare.state({ name: "taimei" }),
+    state: Cloudflare.state({ workerName: STATE_STORE_WORKER_NAME }),
   },
   Effect.gen(function* () {
     const stage = stageOf(yield* Alchemy.Stage);

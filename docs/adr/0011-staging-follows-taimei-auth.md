@@ -12,7 +12,7 @@ taimei-auth と違うところがある。taimei の本番の deploy は `wrangl
 
 ## Decision
 
-- 道具・版・アカウント・Access・Neon の分け方・Hyperdrive を人が作ること・secret の値を IaC に通さないことは、taimei-auth の ADR-0022 に従う。state の置き場は `Cloudflare.state({ name: "taimei" })`
+- 道具・版・アカウント・Access・Neon の分け方・Hyperdrive を人が作ること・secret の値を IaC に通さないことは、taimei-auth の ADR-0022 に従う。state の置き場は Worker `alchemy-state-store-taimei` (`Cloudflare.state` の `workerName`)
 - staging の job は alchemy で 100% に出し、smoke が通った時だけ本番の job に進む (`deploy.yml` の `needs: staging`)。0% の gate と、DO の変更のための手動の 100% の workflow は作らない
 - smoke は、staging の入口だけが付ける response header の version を、wrangler の 100% の version と比べてから確かめる。本番の code に version の口を足さない
 - staging の入口 `testing/staging-worker.ts` は `testing/worker.ts` を包み (ADR-0010)、最初の要求と定期処理の前に、Secrets Store の `AUTH_SERVICE_KEY` を文字列に解いて渡し、DB に本番以外の DB の印の表 (`non_production_database`) があるかを確かめる。印が無ければ応答も定期処理もしない。staging の job も migrate の前に同じ印を確かめる
