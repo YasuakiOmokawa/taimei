@@ -44,6 +44,28 @@
   },
   "linter": {
     "enabled": true,
+    "includes": [
+      "**",
+      "!web/**",
+      "web/**/*.tsx",
+      "web/vite.config.ts",
+      "web/tailwind.config.ts",
+      "web/postcss.config.mjs",
+      "web/src/api.ts",
+      "web/src/api-internal.ts",
+      "web/src/lib/utils.ts",
+      "web/src/dashboard/level.ts",
+      "web/src/dashboard/skill-matrix.ts",
+      "web/src/privacy/facts.ts",
+      "web/src/__tests__/api.test.ts",
+      "web/src/__tests__/memory-only-cache.test.ts",
+      "web/src/__tests__/router.test.ts",
+      "web/src/__tests__/spa-bundle.test.ts",
+      "web/src/dashboard/__tests__/level.test.ts",
+      "web/src/dashboard/__tests__/skill-matrix.test.ts",
+      "web/src/privacy/__tests__/facts.test.ts",
+      "web/src/privacy/__tests__/privacy-page.test.ts"
+    ],
     "rules": {
       "preset": "none",
       "complexity": {

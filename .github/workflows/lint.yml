@@ -30,7 +30,7 @@ jobs:
       - name: Security audit
         run: bun run audit:high
 
-      - name: Biome + fallow audit
+      - name: Biome + oxlint + fallow audit
         run: bun run lint
 
       - name: Type check
