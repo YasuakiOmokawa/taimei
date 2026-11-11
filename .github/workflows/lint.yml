@@ -35,6 +35,9 @@ jobs:
       - name: Security audit
         run: bun run audit:high
 
+      - name: Fetch the blobs of origin/main in one request, so fallow audit does not fetch the base's repos/ one blob at a time until the job times out
+        run: git ls-tree -r origin/main | awk '{print $3}' | git -c fetch.negotiationAlgorithm=noop fetch --quiet --no-tags --no-write-fetch-head --recurse-submodules=no --filter=blob:none --stdin origin
+
       - name: Biome + oxlint + fallow audit
         run: bun run lint
 
