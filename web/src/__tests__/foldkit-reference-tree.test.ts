@@ -33,7 +33,7 @@ const treeWithoutLockingTheIndex = (dir: string) => {
   }
 };
 
-it("repos/foldkit の中身は、scripts/update-foldkit-reference.sh が取り直した tag の tree と同じである (.gitleaks.toml と .gitguardian.yaml がこの dir を secret の検査から外すので、手で足したり書き換えたりした file があれば落とす)", () => {
+it("repos/foldkit の中身は、scripts/update-foldkit-reference.sh が取り直した tag の tree と同じである (.gitleaks.toml がこの dir を secret の検査から外すので、手で足したり書き換えたりした file があれば落とす)", () => {
   const lock: ReferenceLock = JSON.parse(
     readFileSync(
       path.join(REPO_ROOT, ".claude/skills/foldkit-skills.lock.json"),
