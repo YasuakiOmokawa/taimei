@@ -10,7 +10,7 @@ const dependencies = new Set(
 const git = (...args: string[]) =>
   execFileSync("git", args, { encoding: "utf8" }).trim().split("\n");
 
-const trackedPaths = git("ls-files");
+const trackedPaths = git("ls-files", "--", ":!repos");
 
 const claudeMdFiles = trackedPaths.filter((path) => path.endsWith("CLAUDE.md"));
 
@@ -53,7 +53,16 @@ const isCodeIdentifier = (token: string) =>
 const appearsInCode = (token: string) => {
   const name = token.split(".").at(-1) ?? token;
   try {
-    execFileSync("git", ["grep", "-q", "-w", "-F", name, "--", ":!*.md"]);
+    execFileSync("git", [
+      "grep",
+      "-q",
+      "-w",
+      "-F",
+      name,
+      "--",
+      ":!*.md",
+      ":!repos",
+    ]);
     return true;
   } catch {
     return false;
