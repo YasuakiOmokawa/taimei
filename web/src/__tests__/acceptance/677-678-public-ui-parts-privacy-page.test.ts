@@ -33,7 +33,8 @@ const BUTTON_BASE_CLASS =
 const MENU_BUTTON_CLASS_OF_REACT_LANDING = `${BUTTON_BASE_CLASS} hover:bg-accent hover:text-accent-foreground h-10 w-10 md:hidden`;
 const TRY_LINK_CLASS_OF_REACT_LANDING =
   "inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 h-11 rounded-md text-base px-8 py-6";
-const DETAIL_LINK_CLASS_OF_REACT_LANDING = `${BUTTON_BASE_CLASS} text-primary underline-offset-4 hover:underline h-11 rounded-md px-8 mt-2`;
+const DETAIL_LINK_CLASS_OF_REACT_LANDING =
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 text-primary underline-offset-4 hover:underline h-11 rounded-md px-8 mt-2";
 
 const ICON_ATTRIBUTES_OF_REACT_LANDING = {
   xmlns: "http://www.w3.org/2000/svg",
