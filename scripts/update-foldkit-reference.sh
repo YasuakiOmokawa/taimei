@@ -19,9 +19,12 @@ for skill in "${SKILLS[@]}"; do
   [[ "$upstream_skill" != *$'\nmetadata:'* ]] || { echo "error: foldkit@$version の skills/$skill/SKILL.md は metadata を既に持つ。foldkit-version を足す所を、既にある metadata に足す形へ直す" >&2; exit 1; }
 done
 
-git rm -r --force --quiet --ignore-unmatch "$SUBTREE_DIR"
-rm -rf "$SUBTREE_DIR"
-git read-tree --prefix="$SUBTREE_DIR/" -u FETCH_HEAD
+subtree_version="$(node -p "require('./$SUBTREE_DIR/packages/foldkit/package.json').version")"
+if [[ "$subtree_version" != "$version" ]]; then
+  git diff-index --quiet HEAD -- || { echo "error: git subtree pull は未 commit の変更があると動かない。package.json の版の変更を commit してから走らせる" >&2; exit 1; }
+  git subtree pull --prefix="$SUBTREE_DIR" https://github.com/foldkit/foldkit.git "foldkit@$version" --squash \
+    -m "$SUBTREE_DIR を foldkit@$version に上げる"
+fi
 
 for skill in "${SKILLS[@]}"; do
   rm -rf "${SKILLS_DIR:?}/$skill"
@@ -31,7 +34,6 @@ for skill in "${SKILLS[@]}"; do
     $0 == "---" && fences == 2 { print "metadata:"; print "  foldkit-version: " version }
     { print }
   ' "$SUBTREE_DIR/skills/$skill/SKILL.md" > "$SKILLS_DIR/$skill/SKILL.md"
-  git add --all --force -- "$SKILLS_DIR/$skill"
 done
 
 skills_sha256="$(
@@ -43,6 +45,5 @@ skills_sha256="$(
 )"
 
 printf '{\n  "version": "%s",\n  "sha256": "%s",\n  "tree": "%s"\n}\n' "$version" "$skills_sha256" "$subtree_tree" > "$LOCK_FILE"
-git add -- "$LOCK_FILE"
 
 echo "$SUBTREE_DIR と ${SKILLS[*]} を foldkit@$version にした (tree $subtree_tree、skill の sha256 $skills_sha256)"
