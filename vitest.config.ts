@@ -13,6 +13,7 @@ export default defineConfig({
       "**/.{git,cache,output,temp,wrangler}/**",
       "**/e2e/**",
       "repos/**",
+      ".claude/**",
     ],
     projects: [
       {
