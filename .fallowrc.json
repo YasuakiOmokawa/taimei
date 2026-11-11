@@ -20,6 +20,10 @@
   "ignoreExports": [
     {
       "file": "web/src/app/*/main.ts",
+      "exports": ["Model", "Message", "init", "update", "view"]
+    },
+    {
+      "file": "web/src/*/pages/*.ts",
       "exports": ["view"]
     }
   ],

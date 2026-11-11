@@ -3,6 +3,7 @@ import { UrlRequest } from "foldkit/navigation";
 import { Command, given, message, model, story } from "foldkit/story";
 import { fromString } from "foldkit/url";
 import { describe, expect, it } from "vitest";
+import * as Landing from "../../landing/pages/Landing";
 import {
   init,
   LoadDocument,
@@ -31,6 +32,7 @@ const clickedInternalLink = (pathname: string) =>
 
 describe("application public は URL を route に読む", () => {
   it.each([
+    ["/", PublicRoute.Landing()],
     ["/privacy", PublicRoute.Privacy()],
     ["/privacy/", PublicRoute.Privacy()],
     ["/no-such-page", PublicRoute.NotFound({ path: "/no-such-page" })],
@@ -45,6 +47,27 @@ describe("application public は URL を route に読む", () => {
       message(Message.ChangedUrl({ url: urlOf(`${ORIGIN}/privacy`) })),
       model((next) => {
         expect(next.route).toEqual(PublicRoute.Privacy());
+      }),
+    );
+  });
+});
+
+describe("application public の LP の page", () => {
+  it("LP の page の Message を page に渡し、URL が替わると開いていたメニューを閉じる", () => {
+    story(
+      update,
+      given(opened("/")),
+      message(
+        Message.GotLandingMessage({
+          message: Landing.Message.ClickedMenuButton(),
+        }),
+      ),
+      model((next) => {
+        expect(next.landing.isMenuOpen).toBe(true);
+      }),
+      message(Message.ChangedUrl({ url: urlOf(`${ORIGIN}/privacy`) })),
+      model((next) => {
+        expect(next.landing.isMenuOpen).toBe(false);
       }),
     );
   });
