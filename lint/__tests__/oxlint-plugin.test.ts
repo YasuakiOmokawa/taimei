@@ -112,3 +112,22 @@ it("web/src/app/start-application.ts の外では、Foldkit の起動の関数 (
     2, 3, 4, 5, 13, 14, 15, 16, 17,
   ]);
 });
+
+const COMMENTED = `import type { Html } from "foldkit/html";
+
+// なぜそうするかの説明
+export type Page = Html;
+
+/* 区切り */
+// @ts-expect-error
+export const page: Page = 1;
+
+// biome-ignore lint/suspicious/noExplicitAny: Biome が lint しない file では効かない
+export const loose: any = 1;
+`;
+
+it("web の Foldkit の file では、この file に効く directive でないコメントの行 (Biome が lint しない file の biome-ignore を含む) だけが指摘される", () => {
+  expect(taimeiLinesOf("web/src/probe/commented.ts", COMMENTED)).toEqual([
+    3, 6, 10,
+  ]);
+});

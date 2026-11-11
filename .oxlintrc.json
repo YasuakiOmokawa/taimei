@@ -48,6 +48,7 @@
     "typescript/no-namespace": "error",
     "typescript/no-unnecessary-type-constraint": "error",
     "taimei/no-switch": "error",
+    "taimei/no-code-comment": "error",
     "no-restricted-imports": [
       "error",
       {
