@@ -1,0 +1,6 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "repos/foldkit is the upstream Foldkit source. web/src/__tests__/foldkit-reference-tree.test.ts fails when its tree differs from the tree scripts/update-foldkit-reference.sh recorded from the pinned tag"
+paths = ['''^repos/foldkit/''']
