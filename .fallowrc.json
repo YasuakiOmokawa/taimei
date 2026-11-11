@@ -17,6 +17,12 @@
     "@effect/platform-bun",
     "@effect/platform-node"
   ],
+  "ignoreExports": [
+    {
+      "file": "web/src/app/*/main.ts",
+      "exports": ["view"]
+    }
+  ],
   "boundaries": {
     "zones": [
       {

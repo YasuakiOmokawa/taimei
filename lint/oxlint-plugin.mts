@@ -20,14 +20,20 @@ type Scope = {
   readonly upper: Scope | null;
 };
 
+type Comment = {
+  readonly type: "Line" | "Block" | "Shebang";
+  readonly value: string;
+};
+
 type RuleContext = {
   readonly report: (descriptor: {
-    readonly node: AstNode;
+    readonly node: AstNode | Comment;
     readonly message: string;
   }) => void;
   readonly sourceCode: {
     readonly getAncestors: (node: AstNode) => readonly AstNode[];
     readonly getScope: (node: AstNode) => Scope;
+    readonly getAllComments: () => readonly Comment[];
   };
 };
 
@@ -224,6 +230,36 @@ const noSwitch = {
   }),
 };
 
+const LINE_DIRECTIVES = [
+  /^\/\s*<reference/,
+  /^\s*@ts-expect-error/,
+  /^\s*oxlint-disable-next-line\s/,
+];
+
+const BLOCK_DIRECTIVES = [/^\s*oxlint-disable-next-line\s/, /^\s*@vite-ignore/];
+
+const isDirective = (comment: Comment) =>
+  comment.type === "Shebang" ||
+  (comment.type === "Line" ? LINE_DIRECTIVES : BLOCK_DIRECTIVES).some(
+    (directive) => directive.test(comment.value),
+  );
+
+const noCodeComment = {
+  create: (context: RuleContext): Visitors => ({
+    Program: () => {
+      for (const comment of context.sourceCode.getAllComments()) {
+        if (!isDirective(comment)) {
+          context.report({
+            node: comment,
+            message:
+              "コードにコメントを書かない (Foldkit の skill が挙げる // MODEL などの見出しと // NOTE も)。理由は名前・型・共有定数・test 名へ移す。書けるのは、この file に効く directive (@ts-expect-error・oxlint-disable-next-line <rule>・/// <reference・@vite-ignore) だけ。biome-ignore は、Biome が lint しないこの file では効かない",
+          });
+        }
+      }
+    },
+  }),
+};
+
 export default {
   meta: { name: "taimei" },
   rules: {
@@ -242,5 +278,6 @@ export default {
     ),
     "no-direct-application-start": noDirectApplicationStart,
     "no-switch": noSwitch,
+    "no-code-comment": noCodeComment,
   },
 };
