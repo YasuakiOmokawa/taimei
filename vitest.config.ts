@@ -5,7 +5,6 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
-    // root所有のディレクトリや、テストに不要なディレクトリをスキャン対象から除外
     exclude: [
       "**/node_modules/**",
       "**/dist/**",
@@ -13,6 +12,7 @@ export default defineConfig({
       "**/dump/**",
       "**/.{git,cache,output,temp,wrangler}/**",
       "**/e2e/**",
+      "repos/**",
     ],
     projects: [
       {

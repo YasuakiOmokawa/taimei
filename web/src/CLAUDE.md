@@ -1,3 +1,3 @@
 # web/src
 
-React のコンポーネント (`.tsx`) の表示・スナップショット・DOM のテストは書かない。テストしたいロジックは `web/src/api-internal.ts` の atom・hook か、描画から切り離した module (`web/src/dashboard/level.ts` など) に移し、そちらを Vitest で検証する。例外は、公開する文面を検査する `web/src/privacy/__tests__/privacy-page.test.ts` だけ。
+Foldkit のコードを書く前に、`.claude/skills/` の `foldkit` と `generate-program` の skill を読み込み、その手順に従う。書いたコードの review には `audit-program` の skill を使う。Foldkit の書き方や API を調べるときは、サブエージェントを起動せず、自分で skill を読み込み、`repos/foldkit/` を読む。

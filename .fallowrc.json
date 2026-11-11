@@ -9,6 +9,7 @@
     "infra/check-worker.ts",
     "infra/check-drift.ts"
   ],
+  "ignorePatterns": ["repos/**"],
   "ignoreDependencies": [
     "pg",
     "@effect/tsgo",
