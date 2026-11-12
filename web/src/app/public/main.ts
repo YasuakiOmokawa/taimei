@@ -2,7 +2,7 @@ import { Effect, Option, Schema } from "effect";
 import { Command, type Runtime, Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
-import { pushUrl, UrlRequest } from "foldkit/navigation";
+import { pushUrl, replaceUrl, UrlRequest } from "foldkit/navigation";
 import { modifyFields } from "foldkit/struct";
 import { Url, toString as urlToString } from "foldkit/url";
 import * as Landing from "../../landing/pages/Landing";
@@ -49,7 +49,14 @@ export const PushUrl = Command.define("PushUrl", {
   args: { href: Schema.String },
   messages: [Message.CompletedPushUrl],
   execute: ({ href }) =>
-    pushUrl(href).pipe(Effect.as(Message.CompletedPushUrl())),
+    Effect.suspend(() =>
+      href === window.location.href ? replaceUrl(href) : pushUrl(href),
+    ).pipe(
+      Effect.andThen(
+        Effect.sync(() => window.scrollTo({ top: 0, behavior: "instant" })),
+      ),
+      Effect.as(Message.CompletedPushUrl()),
+    ),
 });
 
 export const LoadDocument = Command.define("LoadDocument", {
