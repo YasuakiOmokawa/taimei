@@ -188,3 +188,29 @@ it("web/src/shared/failure-message.ts の外では、Cause と Exit から失敗
     taimeiLinesOf("web/src/probe/lookup.ts", FAILURE_LOOKUPS_IN_PAGE),
   ).toEqual([3, 5]);
 });
+
+const KEYED_ELEMENTS = `import type { Html, HtmlBuilder } from "foldkit/html";
+
+export const rowViews = <Message>(
+  h: HtmlBuilder<Message>,
+): ReadonlyArray<Html> => [
+  h.keyed("button")("a", []),
+  h.keyed("input")("b", []),
+  h.keyed("select")("c", []),
+  h.keyed("textarea")("d", []),
+  h.keyed("svg")("e", []),
+  h.keyed("li")("f", []),
+];
+`;
+
+it("h.keyed で書いた form の要素と svg は、h.<要素> と同じ場所でだけ指摘されず、ほかの要素の h.keyed は指摘されない", () => {
+  expect(
+    taimeiLinesOf("web/src/dashboard/pages/Probe.ts", KEYED_ELEMENTS),
+  ).toEqual([6, 7, 8, 9, 10]);
+  expect(
+    taimeiLinesOf("web/src/shared/ui/probe-view.ts", KEYED_ELEMENTS),
+  ).toEqual([10]);
+  expect(
+    taimeiLinesOf("web/src/shared/ui/icon-view.ts", KEYED_ELEMENTS),
+  ).toEqual([]);
+});

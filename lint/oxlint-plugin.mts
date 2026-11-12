@@ -6,6 +6,7 @@ type AstNode = {
   readonly object?: AstNode;
   readonly property?: AstNode;
   readonly callee?: AstNode;
+  readonly arguments?: readonly AstNode[];
   readonly left?: AstNode;
   readonly operator?: string;
   readonly key?: AstNode;
@@ -111,6 +112,16 @@ const noElementOfH = (
       if (
         node.computed !== true &&
         node.object?.name === "h" &&
+        elements.has(element)
+      ) {
+        context.report({ node, message: messageOf(element) });
+      }
+    },
+    CallExpression: (node) => {
+      const element = node.arguments?.[0]?.value;
+      if (
+        memberPathOf(node.callee) === "h.keyed" &&
+        typeof element === "string" &&
         elements.has(element)
       ) {
         context.report({ node, message: messageOf(element) });
