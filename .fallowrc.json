@@ -24,7 +24,7 @@
     },
     {
       "file": "web/src/*/pages/*.ts",
-      "exports": ["view"]
+      "exports": ["Message", "view"]
     }
   ],
   "boundaries": {

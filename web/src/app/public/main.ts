@@ -1,14 +1,14 @@
-import { Effect, Option, Schema } from "effect";
+import { Option, Schema } from "effect";
 import { Command, type Runtime, Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
-import { pushUrl, replaceUrl, UrlRequest } from "foldkit/navigation";
+import { UrlRequest } from "foldkit/navigation";
 import { modifyFields } from "foldkit/struct";
-import { Url, toString as urlToString } from "foldkit/url";
+import { Url } from "foldkit/url";
 import * as Landing from "../../landing/pages/Landing";
 import * as Privacy from "../../privacy/pages/Privacy";
-import { loadDocument } from "../../shared/leave-spa";
 import { SERVICE_NAME } from "../../shared/ui/brand-view";
+import * as DocumentNavigation from "../document-navigation";
 import {
   landingRouter,
   PublicRoute,
@@ -23,10 +23,9 @@ export const Model = Schema.Struct({
 export type Model = typeof Model.Type;
 
 export const Message = defineMessageUnion({
+  GotDocumentNavigationMessage: { message: DocumentNavigation.Message },
   ClickedLink: { request: UrlRequest },
   ChangedUrl: { url: Url },
-  CompletedPushUrl: {},
-  CompletedLoadDocument: {},
   GotLandingMessage: { message: Landing.Message },
 });
 export type Message = typeof Message.Type;
@@ -45,28 +44,10 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (url) =>
     toParentMessage: toLandingMessage,
   });
 
-export const PushUrl = Command.define("PushUrl", {
-  args: { href: Schema.String },
-  messages: [Message.CompletedPushUrl],
-  execute: ({ href }) =>
-    Effect.suspend(() =>
-      href === window.location.href ? replaceUrl(href) : pushUrl(href),
-    ).pipe(
-      Effect.andThen(
-        Effect.sync(() => window.scrollTo({ top: 0, behavior: "instant" })),
-      ),
-      Effect.as(Message.CompletedPushUrl()),
-    ),
-});
-
-export const LoadDocument = Command.define("LoadDocument", {
-  args: { href: Schema.String },
-  messages: [Message.CompletedLoadDocument],
-  execute: ({ href }) =>
-    Effect.sync(() => loadDocument(href)).pipe(
-      Effect.as(Message.CompletedLoadDocument()),
-    ),
-});
+const navigate = (command: Command.Command<DocumentNavigation.Message>) =>
+  Command.mapMessage(command, (message) =>
+    Message.GotDocumentNavigationMessage({ message }),
+  );
 
 const isOwnRoute = (url: Url) =>
   !PublicRoute.guards.NotFound(urlToPublicRoute(url));
@@ -90,24 +71,17 @@ const foldLandingCloseMenu = Update.foldChildStep({
 
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
+    GotDocumentNavigationMessage: () => ({ model }),
     ClickedLink: ({ request }) => ({
       model,
       commands: [
-        UrlRequest.match(request, {
-          Internal: ({ url }) =>
-            isOwnRoute(url)
-              ? PushUrl({ href: urlToString(url) })
-              : LoadDocument({ href: urlToString(url) }),
-          External: ({ href }) => LoadDocument({ href }),
-        }),
+        navigate(DocumentNavigation.commandForLink(request, isOwnRoute)),
       ],
     }),
     ChangedUrl: ({ url }) =>
       foldLandingCloseMenu(
         modifyFields(model, { route: () => urlToPublicRoute(url) }),
       ),
-    CompletedPushUrl: () => ({ model }),
-    CompletedLoadDocument: () => ({ model }),
     GotLandingMessage: ({ message }) => foldLanding(model, message),
   });
 

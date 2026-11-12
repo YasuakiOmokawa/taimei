@@ -5,13 +5,11 @@ import { fromString } from "foldkit/url";
 import { describe, expect, it } from "vitest";
 import * as Landing from "../../landing/pages/Landing";
 import {
-  init,
+  Message as DocumentNavigationMessage,
   LoadDocument,
-  Message,
-  type Model,
-  PushUrl,
-  update,
-} from "../public/main";
+  NavigateInternal,
+} from "../document-navigation";
+import { init, Message, type Model, update } from "../public/main";
 import { PublicRoute } from "../public/route";
 
 const ORIGIN = "https://app.example.com";
@@ -79,8 +77,11 @@ describe("application public の link", () => {
       update,
       given(opened("/no-such-page")),
       message(clickedInternalLink("/privacy")),
-      Command.expectExact(PushUrl({ href: `${ORIGIN}/privacy` })),
-      Command.resolve(PushUrl, Message.CompletedPushUrl()),
+      Command.expectExact(NavigateInternal({ href: `${ORIGIN}/privacy` })),
+      Command.resolve(
+        NavigateInternal,
+        DocumentNavigationMessage.CompletedNavigateInternal(),
+      ),
     );
   });
 
@@ -92,7 +93,10 @@ describe("application public の link", () => {
         given(opened("/privacy")),
         message(clickedInternalLink(pathname)),
         Command.expectExact(LoadDocument({ href: `${ORIGIN}${pathname}` })),
-        Command.resolve(LoadDocument, Message.CompletedLoadDocument()),
+        Command.resolve(
+          LoadDocument,
+          DocumentNavigationMessage.CompletedLoadDocument(),
+        ),
       );
     },
   );
@@ -107,7 +111,10 @@ describe("application public の link", () => {
         }),
       ),
       Command.expectExact(LoadDocument({ href: "https://example.com/" })),
-      Command.resolve(LoadDocument, Message.CompletedLoadDocument()),
+      Command.resolve(
+        LoadDocument,
+        DocumentNavigationMessage.CompletedLoadDocument(),
+      ),
     );
   });
 });

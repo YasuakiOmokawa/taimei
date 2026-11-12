@@ -3,7 +3,6 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { Effect, Option } from "effect";
 import { TestClock } from "effect/testing";
-import { UrlRequest } from "foldkit/navigation";
 import {
   all,
   altText,
@@ -18,13 +17,6 @@ import {
   scene,
   text,
 } from "foldkit/scene";
-import {
-  Command,
-  given as givenInStory,
-  message,
-  model,
-  story,
-} from "foldkit/story";
 import { fromString } from "foldkit/url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -87,14 +79,6 @@ const titleOf = (application: PublicApplication, current: PublicModel) => {
   );
   return titles.at(-1);
 };
-
-const clickedInternalLink = (
-  application: PublicApplication,
-  pathname: string,
-) =>
-  application.Message.ClickedLink({
-    request: UrlRequest.Internal({ url: urlOf(pathname) }),
-  });
 
 const gitGrepLines = (pattern: string, ...pathspecs: readonly string[]) => {
   const result = spawnSync(
@@ -229,63 +213,6 @@ describe("#679 LP の page と application public の /", () => {
       expectInScene(role("heading", { level: 1 })).toContainText("心安らかな"),
     );
     expect(titleOf(application, opened)).toBe("Taimei");
-  });
-
-  it("AC-006 / の画面のプライバシーポリシーの link を押すと、document を読み直さずに /privacy へ移り、title がプライバシーポリシーになる", async () => {
-    const application = await import("../../app/public/main");
-    const opened = await startedAt(application, "/");
-    const afterUrlChange: PublicModel[] = [];
-
-    scene(
-      { update: application.update, view: application.view },
-      given(opened),
-      expectInScene(role("link", { name: "プライバシーポリシー" })).toHaveAttr(
-        "href",
-        "/privacy",
-      ),
-    );
-    story(
-      application.update,
-      givenInStory(opened),
-      message(clickedInternalLink(application, "/privacy")),
-      Command.expectExact(application.PushUrl({ href: `${ORIGIN}/privacy` })),
-      Command.resolve(
-        application.PushUrl,
-        application.Message.CompletedPushUrl(),
-      ),
-      message(application.Message.ChangedUrl({ url: urlOf("/privacy") })),
-      model((next) => {
-        afterUrlChange.push(next);
-      }),
-    );
-
-    expect(afterUrlChange.map((next) => titleOf(application, next))).toEqual([
-      "プライバシーポリシー",
-    ]);
-  });
-
-  it("AC-007 / の画面のログインの link を押すと、document を読み直して /auth へ移る", async () => {
-    const application = await import("../../app/public/main");
-    const opened = await startedAt(application, "/");
-
-    scene(
-      { update: application.update, view: application.view },
-      given(opened),
-      expectInScene(role("link", { name: "ログイン" })).toHaveAttr(
-        "href",
-        "/auth",
-      ),
-    );
-    story(
-      application.update,
-      givenInStory(opened),
-      message(clickedInternalLink(application, "/auth")),
-      Command.expectExact(application.LoadDocument({ href: `${ORIGIN}/auth` })),
-      Command.resolve(
-        application.LoadDocument,
-        application.Message.CompletedLoadDocument(),
-      ),
-    );
   });
 
   it("AC-008 application public を / で開いて起動の処理を流しても、通信しない", async () => {
