@@ -33,3 +33,5 @@ export const buttonVariants = cva(
     },
   },
 );
+
+export const fieldClassName = "w-full max-w-xs rounded-md border-input text-sm";
