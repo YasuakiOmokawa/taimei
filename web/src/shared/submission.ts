@@ -6,3 +6,4 @@ export const Submission = defineTaggedUnion({
   Submitting: {},
   Rejected: { message: Schema.String },
 });
+export type Submission = typeof Submission.Type;
