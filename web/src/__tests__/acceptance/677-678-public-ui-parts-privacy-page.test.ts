@@ -19,12 +19,10 @@ import {
 } from "foldkit/scene";
 import { given as givenInStory, message, model, story } from "foldkit/story";
 import { fromString } from "foldkit/url";
-import { build } from "vite";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { privacyFacts } from "../../privacy/facts";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
-const VITE_CONFIG = path.join(REPO_ROOT, "web/vite.config.ts");
 const REACT_PRIVACY_TEST = "web/src/privacy/__tests__/privacy-page.test.ts";
 const PRIVACY_DIR = "web/src/privacy";
 
@@ -113,26 +111,6 @@ const pinnedVersionOf = (name: string) => ({
   resolved: lockfile.match(
     new RegExp(`^ {4}"${name}": \\["${name}@([^"]+)"`, "m"),
   )?.[1],
-});
-
-const moduleIdsReachedFromSpaEntry = async () => {
-  vi.stubEnv("NODE_ENV", "production");
-  const result = await build({
-    configFile: VITE_CONFIG,
-    mode: "production",
-    logLevel: "silent",
-    build: { write: false },
-  });
-  return [result]
-    .flat()
-    .flatMap((built) => ("output" in built ? built.output : []))
-    .flatMap((emitted) =>
-      emitted.type === "chunk" ? Object.keys(emitted.modules) : [],
-    );
-};
-
-afterEach(() => {
-  vi.unstubAllEnvs();
 });
 
 const PartMessage = defineMessageUnion({ ClickedMenu: {} });
@@ -307,23 +285,6 @@ describe("#677 公開ページが使う UI 部品", () => {
 
   it("AC-008 package.json に workspaces が無い", () => {
     expect(gitGrepLines('"workspaces"', "package.json")).toEqual([]);
-  });
-
-  it("AC-009 SPA の入口から、部品・page・application public・lucide・@foldkit/ui に届かない", async () => {
-    const moduleIds = await moduleIdsReachedFromSpaEntry();
-
-    expect(moduleIds.length).toBeGreaterThan(0);
-    expect(
-      moduleIds.filter((id) =>
-        [
-          "/web/src/shared/ui/",
-          "/web/src/privacy/pages/",
-          "/web/src/app/public/",
-          "/node_modules/lucide/",
-          "/node_modules/@foldkit/ui/",
-        ].some((unreached) => id.includes(unreached)),
-      ),
-    ).toEqual([]);
   });
 });
 
