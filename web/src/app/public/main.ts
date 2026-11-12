@@ -2,11 +2,12 @@ import { Effect, Option, Schema } from "effect";
 import { Command, type Runtime, Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
-import { load, pushUrl, UrlRequest } from "foldkit/navigation";
+import { pushUrl, UrlRequest } from "foldkit/navigation";
 import { modifyFields } from "foldkit/struct";
 import { Url, toString as urlToString } from "foldkit/url";
 import * as Landing from "../../landing/pages/Landing";
 import * as Privacy from "../../privacy/pages/Privacy";
+import { loadDocument } from "../../shared/leave-spa";
 import { SERVICE_NAME } from "../../shared/ui/brand-view";
 import {
   landingRouter,
@@ -55,7 +56,9 @@ export const LoadDocument = Command.define("LoadDocument", {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadDocument],
   execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadDocument())),
+    Effect.sync(() => loadDocument(href)).pipe(
+      Effect.as(Message.CompletedLoadDocument()),
+    ),
 });
 
 const isOwnRoute = (url: Url) =>

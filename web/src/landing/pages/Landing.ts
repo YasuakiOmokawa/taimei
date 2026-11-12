@@ -4,10 +4,9 @@ import type { Html, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
 import { modifyFields } from "foldkit/struct";
 import { ArrowRight, Menu, X } from "lucide";
+import { SIGN_IN_PATH } from "../../shared/sign-in-path";
 import { SERVICE_NAME, serviceLogoView } from "../../shared/ui/brand-view";
 import { buttonLinkView, buttonView } from "../../shared/ui/button-view";
-
-const SIGN_IN_PATH = "/auth";
 
 const SERVICES: ReadonlyArray<{ title: string; description: string }> = [
   { title: "癒し", description: "忙しい現代人にやすらぎを。" },

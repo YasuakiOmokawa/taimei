@@ -131,3 +131,60 @@ it("web の Foldkit の file では、この file に効く directive でない�
     3, 6, 10,
   ]);
 });
+
+const LEAVING_DOCUMENT = `import { Effect } from "effect";
+import { Navigation } from "foldkit";
+import { load } from "foldkit/navigation";
+import * as FoldkitNavigation from "foldkit/navigation";
+import { type leaveSpaToSignIn } from "../../shared/leave-spa";
+
+export type Leave = typeof leaveSpaToSignIn;
+export const loadByFoldkit = load;
+export const loadByNamespace = Navigation.load;
+export const loadByModule = FoldkitNavigation.load;
+export const replace = Effect.sync(() => window.location.replace("/auth"));
+export const assignHref = Effect.sync(() => {
+  window.location.href = "/auth";
+});
+export const assignLocation = Effect.sync(() => {
+  window.location = "/auth";
+});
+export const appendToPathname = Effect.sync(() => {
+  location.pathname += "/auth";
+});
+export const readHref = Effect.sync(() => window.location.href);
+`;
+
+it("web/src/shared/leave-spa.ts の外では、foldkit の load (import・Navigation.load・namespace の import)・location.replace・location とその property への代入の行が指摘され、口の型だけの import と location.href の読み取りは指摘されない", () => {
+  expect(taimeiLinesOf("web/src/probe/leaving.ts", LEAVING_DOCUMENT)).toEqual([
+    3, 4, 9, 11, 13, 16, 19,
+  ]);
+});
+
+const API_CLIENT_BESIDE_FOLDKIT_TYPES = `import type { Html } from "foldkit/html";
+import { type HtmlBuilder } from "foldkit/html";
+import { SpaHttpClient } from "../shared/spa-http-client";
+
+export type Page = Html | HtmlBuilder<never>;
+export const client = SpaHttpClient;
+`;
+
+it("Foldkit の型だけを import する file は Foldkit の file に数えず、API の client の import の行が指摘される", () => {
+  expect(
+    taimeiLinesOf("web/src/probe/client.ts", API_CLIENT_BESIDE_FOLDKIT_TYPES),
+  ).toEqual([3]);
+});
+
+const FAILURE_LOOKUPS_IN_PAGE = `import { Cause, Exit } from "effect";
+
+export const fromCause = (cause: Cause.Cause<unknown>) => Cause.findError(cause);
+export const fromExit = (exit: Exit.Exit<unknown, unknown>) =>
+  Exit.findErrorOption(exit);
+export const isFailure = Exit.isFailure;
+`;
+
+it("web/src/shared/failure-message.ts の外では、Cause と Exit から失敗を取り出す行が指摘され、失敗かどうかを見るだけの行は指摘されない", () => {
+  expect(
+    taimeiLinesOf("web/src/probe/lookup.ts", FAILURE_LOOKUPS_IN_PAGE),
+  ).toEqual([3, 5]);
+});
