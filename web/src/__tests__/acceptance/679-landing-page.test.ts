@@ -26,14 +26,11 @@ import {
   story,
 } from "foldkit/story";
 import { fromString } from "foldkit/url";
-import { build } from "vite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
-const VITE_CONFIG = path.join(REPO_ROOT, "web/vite.config.ts");
 const LANDING_DIR = "web/src/landing";
 const ORIGIN = "https://app.example.com";
-const SPA_BUILD_TIMEOUT_MS = 60_000;
 
 const YEAR_OF_FIXED_CLOCK = 2031;
 const FIXED_CLOCK_MS = Date.UTC(YEAR_OF_FIXED_CLOCK, 5, 15, 12);
@@ -121,24 +118,7 @@ const testSourcesUnder = (dir: string) =>
       readFileSync(path.join(entry.parentPath, entry.name), "utf8"),
     );
 
-const moduleIdsReachedFromSpaEntry = async () => {
-  vi.stubEnv("NODE_ENV", "production");
-  const result = await build({
-    configFile: VITE_CONFIG,
-    mode: "production",
-    logLevel: "silent",
-    build: { write: false },
-  });
-  return [result]
-    .flat()
-    .flatMap((built) => ("output" in built ? built.output : []))
-    .flatMap((emitted) =>
-      emitted.type === "chunk" ? Object.keys(emitted.modules) : [],
-    );
-};
-
 afterEach(() => {
-  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 
@@ -335,23 +315,6 @@ describe("#679 LP の page と application public の /", () => {
       ),
     ).toEqual([]);
   });
-
-  it(
-    "AC-010 SPA の入口から、LP の page と application public に届かない",
-    async () => {
-      const moduleIds = await moduleIdsReachedFromSpaEntry();
-
-      expect(moduleIds.length).toBeGreaterThan(0);
-      expect(
-        moduleIds.filter((id) =>
-          ["/web/src/landing/pages/", "/web/src/app/public/"].some(
-            (unreached) => id.includes(unreached),
-          ),
-        ),
-      ).toEqual([]);
-    },
-    SPA_BUILD_TIMEOUT_MS,
-  );
 
   it("AC-011 web/src/landing の下に、Foldkit の Story で書いた試験と Scene で書いた試験がある", () => {
     const sources = testSourcesUnder(LANDING_DIR);

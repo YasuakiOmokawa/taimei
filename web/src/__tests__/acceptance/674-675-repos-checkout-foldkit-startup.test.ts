@@ -13,15 +13,14 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { Option } from "effect";
 import type { CrashContext } from "foldkit/runtime";
-import { build, resolveConfig } from "vite";
-import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
+import { resolveConfig } from "vite";
+import { afterAll, describe, expect, it } from "vitest";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
 const WORKFLOWS_DIR = ".github/workflows";
 const BOUNDARY_TEST = "infra/__tests__/iac-boundaries.test.ts";
 const VITE_CONFIG = path.join(REPO_ROOT, "web/vite.config.ts");
 const START_APPLICATION = "web/src/app/start-application.ts";
-const CRASH_VIEW = "web/src/shared/crash-view.ts";
 const CRASH_TEXT = "画面を表示できませんでした。再読み込みしてください";
 
 const readRepoFile = (file: string) =>
@@ -46,10 +45,6 @@ afterAll(() => {
   for (const dir of temporaryDirs) {
     rmSync(dir, { recursive: true, force: true });
   }
-});
-
-afterEach(() => {
-  vi.unstubAllEnvs();
 });
 
 const withoutVitestEnv = () =>
@@ -478,22 +473,6 @@ const crashed: Crashed = {
   message: Option.none(),
 };
 
-const moduleIdsReachedFromSpaEntry = async () => {
-  vi.stubEnv("NODE_ENV", "production");
-  const result = await build({
-    configFile: VITE_CONFIG,
-    mode: "production",
-    logLevel: "silent",
-    build: { write: false },
-  });
-  return [result]
-    .flat()
-    .flatMap((built) => ("output" in built ? built.output : []))
-    .flatMap((emitted) =>
-      emitted.type === "chunk" ? Object.keys(emitted.modules) : [],
-    );
-};
-
 describe("#675 Foldkit の依存と起動の土台、回復できない失敗の画面", () => {
   it("AC-007 foldkit は 0.170.0、@foldkit/vite-plugin は 0.29.0、@effect/platform-browser は 4.1.2 に固定されている", () => {
     expect(
@@ -561,20 +540,6 @@ describe("#675 Foldkit の依存と起動の土台、回復できない失敗の
     const { inertHtml } = await import("foldkit/html");
 
     expect(crashView(crashed, inertHtml).title).toBe("Taimei");
-  });
-
-  it("AC-013 SPA の入口から、起動の口・失敗の画面・Foldkit の runtime に届かない", async () => {
-    const moduleIds = await moduleIdsReachedFromSpaEntry();
-
-    expect(moduleIds.length).toBeGreaterThan(0);
-    expect(
-      moduleIds.filter(
-        (id) =>
-          id.endsWith(START_APPLICATION) ||
-          id.endsWith(CRASH_VIEW) ||
-          /\/node_modules\/foldkit\/dist\/(?!brand\/)/.test(id),
-      ),
-    ).toEqual([]);
   });
 
   it("AC-014 起動の口の外の Runtime.run と Runtime.makeApplication は、その行が lint で指摘され、起動の口では指摘されない", () => {

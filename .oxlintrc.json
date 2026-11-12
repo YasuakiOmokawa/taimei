@@ -79,7 +79,7 @@
           },
           {
             "group": ["effect/http"],
-            "message": "handler は契約が decode した値を受け、成功の値を返す。effect/http を使えるのは、契約の web handler を組む src/spa-http-api.ts と、SPA の契約の client を作る web/src/api-internal.ts だけ (ADR-0007)"
+            "message": "handler は契約が decode した値を受け、成功の値を返す。effect/http を使えるのは、契約の web handler を組む src/spa-http-api.ts と、SPA の契約の client を作る web/src/api-internal.ts・web/src/shared/spa-http-client.ts だけ (ADR-0007)"
           },
           {
             "group": ["@sentry/*"],
@@ -103,6 +103,10 @@
         "taimei/no-raw-form-element": "error",
         "taimei/no-raw-svg-element": "error",
         "taimei/no-direct-application-start": "error",
+        "taimei/leave-spa-only-in-leave-spa": "error",
+        "taimei/leave-spa-import-only-in-app": "error",
+        "taimei/spa-http-client-only-in-foldkit-files": "error",
+        "taimei/cause-lookup-only-in-failure-message": "error",
         "typescript/consistent-type-assertions": [
           "error",
           {
@@ -190,6 +194,38 @@
       "files": ["web/src/app/start-application.ts"],
       "rules": {
         "taimei/no-direct-application-start": "off"
+      }
+    },
+    {
+      "files": ["web/src/main.ts"],
+      "rules": {
+        "taimei/no-browser-global-outside-command": "off"
+      }
+    },
+    {
+      "files": ["web/src/app/*/entry.ts"],
+      "rules": {
+        "taimei/no-browser-global-outside-command": "off",
+        "taimei/spa-http-client-only-in-foldkit-files": "off"
+      }
+    },
+    {
+      "files": ["web/src/app/**"],
+      "rules": {
+        "taimei/leave-spa-import-only-in-app": "off"
+      }
+    },
+    {
+      "files": ["web/src/shared/leave-spa.ts"],
+      "rules": {
+        "taimei/no-browser-global-outside-command": "off",
+        "taimei/leave-spa-only-in-leave-spa": "off"
+      }
+    },
+    {
+      "files": ["web/src/shared/failure-message.ts"],
+      "rules": {
+        "taimei/cause-lookup-only-in-failure-message": "off"
       }
     },
     {

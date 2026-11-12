@@ -96,7 +96,7 @@
               },
               {
                 "group": ["effect/http"],
-                "message": "handler は契約が decode した値を受け、成功の値を返す。effect/http を使えるのは、契約の web handler を組む src/spa-http-api.ts と、SPA の契約の client を作る web/src/api-internal.ts だけ (ADR-0007)"
+                "message": "handler は契約が decode した値を受け、成功の値を返す。effect/http を使えるのは、契約の web handler を組む src/spa-http-api.ts と、SPA の契約の client を作る web/src/api-internal.ts・web/src/shared/spa-http-client.ts だけ (ADR-0007)"
               },
               {
                 "group": [

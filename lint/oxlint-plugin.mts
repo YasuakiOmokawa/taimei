@@ -6,12 +6,15 @@ type AstNode = {
   readonly object?: AstNode;
   readonly property?: AstNode;
   readonly callee?: AstNode;
+  readonly left?: AstNode;
+  readonly operator?: string;
   readonly key?: AstNode;
   readonly source?: AstNode | null;
   readonly imported?: AstNode;
   readonly local?: AstNode;
   readonly importKind?: string;
   readonly body?: readonly AstNode[];
+  readonly specifiers?: readonly AstNode[];
   readonly parent?: AstNode;
 };
 
@@ -218,6 +221,132 @@ const noDirectApplicationStart = {
   }),
 };
 
+const LEAVING_DOCUMENT_MESSAGE =
+  "document を離れる書き方 (location.assign・replace・reload、location とその property への代入、foldkit/navigation の load) は web/src/shared/leave-spa.ts だけが書く。application はその口を Command の中で呼ぶ";
+
+const LEAVING_DOCUMENT_CALLS = [
+  ...["assign", "replace", "reload"].map((method) => `location.${method}`),
+  "Navigation.load",
+];
+
+const LOCATION_OR_ITS_PROPERTY = /(^|\.)location(\.[A-Za-z]+)?$/;
+
+const endsWithMemberPath = (path: string, suffix: string) =>
+  path === suffix || path.endsWith(`.${suffix}`);
+
+const leaveSpaOnlyInLeaveSpa = {
+  create: (context: RuleContext): Visitors => {
+    const report = (node: AstNode) =>
+      context.report({ node, message: LEAVING_DOCUMENT_MESSAGE });
+    return {
+      MemberExpression: (node) => {
+        const path = memberPathOf(node);
+        if (
+          LEAVING_DOCUMENT_CALLS.some((call) => endsWithMemberPath(path, call))
+        ) {
+          report(node);
+        }
+      },
+      AssignmentExpression: (node) => {
+        if (LOCATION_OR_ITS_PROPERTY.test(memberPathOf(node.left))) {
+          report(node);
+        }
+      },
+      ImportSpecifier: (node) => {
+        if (
+          sourceOf(node) === "foldkit/navigation" &&
+          node.imported?.name === "load" &&
+          !isTypeOnlyImport(node)
+        ) {
+          report(node);
+        }
+      },
+      ImportNamespaceSpecifier: (node) => {
+        if (
+          sourceOf(node) === "foldkit/navigation" &&
+          !isTypeOnlyImport(node)
+        ) {
+          report(node);
+        }
+      },
+    };
+  },
+};
+
+const isValueImportDeclaration = (statement: AstNode) =>
+  statement.type === "ImportDeclaration" &&
+  statement.importKind !== "type" &&
+  !(
+    (statement.specifiers ?? []).length > 0 &&
+    (statement.specifiers ?? []).every(
+      (specifier) => specifier.importKind === "type",
+    )
+  );
+
+const isValueImportOf = (statement: AstNode, module: string) =>
+  isValueImportDeclaration(statement) &&
+  `/${statement.source?.value}`.endsWith(`/${module}`);
+
+const leaveSpaImportOnlyInApp = {
+  create: (context: RuleContext): Visitors => ({
+    ImportDeclaration: (node) => {
+      if (isValueImportOf(node, "leave-spa")) {
+        context.report({
+          node,
+          message:
+            "document を離れるのは application (web/src/app/**) だけ。page は結果を OutMessage で返し、application の update が web/src/shared/leave-spa.ts の口を Command の中で呼ぶ",
+        });
+      }
+    },
+  }),
+};
+
+const importsFoldkit = (program: AstNode) =>
+  (program.body ?? []).some(
+    (statement) =>
+      isValueImportDeclaration(statement) &&
+      /^(foldkit|@foldkit\/)/.test(String(statement.source?.value)),
+  );
+
+const spaHttpClientOnlyInFoldkitFiles = {
+  create: (context: RuleContext): Visitors => ({
+    Program: (program) => {
+      if (importsFoldkit(program)) {
+        return;
+      }
+      for (const statement of program.body ?? []) {
+        if (isValueImportOf(statement, "spa-http-client")) {
+          context.report({
+            node: statement,
+            message:
+              "SpaHttpClient を使うのは Foldkit の file (Command の中) と application の起動 (web/src/app/*/entry.ts) だけ",
+          });
+        }
+      }
+    },
+  }),
+};
+
+const FAILURE_LOOKUPS = new Set(
+  ["Cause", "Exit"].flatMap((module) =>
+    ["findErrorOption", "findError"].map((lookup) => `${module}.${lookup}`),
+  ),
+);
+
+const causeLookupOnlyInFailureMessage = {
+  create: (context: RuleContext): Visitors => ({
+    MemberExpression: (node) => {
+      if (FAILURE_LOOKUPS.has(memberPathOf(node))) {
+        context.report({
+          node,
+          message:
+            "Cause・Exit から失敗を取り出す (findErrorOption・findError) のは web/src/shared/failure-message.ts だけ。画面は failureMessageOf で文言に替える",
+        });
+      }
+    },
+  }),
+};
+
 const noSwitch = {
   create: (context: RuleContext): Visitors => ({
     SwitchStatement: (node) => {
@@ -277,6 +406,10 @@ export default {
         "<svg> を手で書かない。icon は lucide から取り、web/src/shared/ui/icon-view.ts の部品で描く",
     ),
     "no-direct-application-start": noDirectApplicationStart,
+    "leave-spa-only-in-leave-spa": leaveSpaOnlyInLeaveSpa,
+    "leave-spa-import-only-in-app": leaveSpaImportOnlyInApp,
+    "spa-http-client-only-in-foldkit-files": spaHttpClientOnlyInFoldkitFiles,
+    "cause-lookup-only-in-failure-message": causeLookupOnlyInFailureMessage,
     "no-switch": noSwitch,
     "no-code-comment": noCodeComment,
   },
