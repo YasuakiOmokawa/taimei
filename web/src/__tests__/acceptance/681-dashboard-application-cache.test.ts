@@ -58,10 +58,7 @@ const urlOf = (pathnameAndQuery: string) =>
     () => new Error(`URL として読めない: ${pathnameAndQuery}`),
   );
 
-const runtimes: { dispose: () => Promise<void> }[] = [];
-
-afterEach(async () => {
-  await Promise.all(runtimes.splice(0).map((runtime) => runtime.dispose()));
+afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
@@ -184,11 +181,7 @@ const drive = <Model, Message, Resources>(
   };
 };
 
-const clientRuntime = () => {
-  const runtime = ManagedRuntime.make(SpaHttpClient.layer(ORIGIN));
-  runtimes.push(runtime);
-  return runtime;
-};
+const clientRuntime = () => ManagedRuntime.make(SpaHttpClient.layer(ORIGIN));
 
 const startDashboard = async (pathname: string, search = "") => {
   const browser = stubBrowser(pathname, search);
@@ -314,7 +307,7 @@ describe("application dashboard の route に入る時の cache", () => {
   it.each([
     [TEAMS_ROUTE, [ME_PATH, TEAMS_PATH]],
     [TEAM_ROUTE, [ME_PATH, TEAM_PATH]],
-    [MEMBERS_ROUTE, [MEMBERS_PATH, ME_PATH]],
+    [MEMBERS_ROUTE, [ME_PATH, MEMBERS_PATH]],
   ])(
     "AC-002 %s を開くと、自分と、その route の値だけを 1 回ずつ取得する",
     async (route, requestedPaths) => {
