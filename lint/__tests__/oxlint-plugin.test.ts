@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, it } from "vitest";
+import { SpaApi } from "../../src/spa-contract";
 import taimeiPlugin from "../oxlint-plugin.mjs";
 
 const REPO_ROOT = path.join(import.meta.dirname, "../..");
@@ -187,6 +188,60 @@ it("web/src/shared/failure-message.ts の外では、Cause と Exit から失敗
   expect(
     taimeiLinesOf("web/src/probe/lookup.ts", FAILURE_LOOKUPS_IN_PAGE),
   ).toEqual([3, 5]);
+});
+
+const MUTATION_ENDPOINTS = `declare const client: {
+  teams: { list: () => object };
+  teamManagement: { create: (input: object) => object };
+  myLevels: { saveMyLevels: (input: object) => object };
+};
+export const listed = client.teams.list();
+export const created = client.teamManagement.create({});
+export const saved = client.myLevels.saveMyLevels({});
+export const { teams } = client;
+export const { teamManagement } = client;
+export const { myLevels: renamed } = client;
+export const byLiteralKey = client["teamManagement"];
+declare const SpaHttpClient: {
+  use: (send: (taken: typeof client) => object) => object;
+};
+export const inCallback = SpaHttpClient.use(({ myLevels }) => myLevels);
+declare const model: { myLevels: object; teamManagement: object };
+export const ownField = model.myLevels;
+export const { teamManagement: ownFieldTaken } = model;
+`;
+
+it("web/src/dashboard/mutation.ts の外では、契約の client から更新の endpoint の group (teamManagement・myLevels) を読む行・分割代入で取り出す行が指摘され、取得の group を読む行と、client でない値の同じ名前の field は指摘されない", () => {
+  expect(
+    taimeiLinesOf("web/src/dashboard/pages/Probe.ts", MUTATION_ENDPOINTS),
+  ).toEqual([7, 8, 10, 11, 12, 16]);
+  expect(
+    taimeiLinesOf("web/src/dashboard/mutation.ts", MUTATION_ENDPOINTS),
+  ).toEqual([]);
+});
+
+const contractGroups = Object.entries(SpaApi.groups).map(([name, group]) => ({
+  name,
+  isMutating: Object.values(group.endpoints).some(
+    ({ method }) => method !== "GET",
+  ),
+}));
+
+it("契約の group のうち、GET でない endpoint を持つものは、すべて更新の endpoint の rule が指摘する", () => {
+  const eachGroupRead = contractGroups
+    .map(({ name }, index) => `export const read${index} = client.${name};`)
+    .join("\n");
+
+  expect(
+    taimeiLinesOf(
+      "web/src/dashboard/pages/Probe.ts",
+      `declare const client: Record<string, object>;\n${eachGroupRead}\n`,
+    ),
+  ).toEqual(
+    contractGroups.flatMap(({ isMutating }, index) =>
+      isMutating ? [index + 2] : [],
+    ),
+  );
 });
 
 const KEYED_ELEMENTS = `import type { Html, HtmlBuilder } from "foldkit/html";

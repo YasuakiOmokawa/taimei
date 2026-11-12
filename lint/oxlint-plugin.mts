@@ -8,6 +8,7 @@ type AstNode = {
   readonly callee?: AstNode;
   readonly arguments?: readonly AstNode[];
   readonly left?: AstNode;
+  readonly init?: AstNode;
   readonly operator?: string;
   readonly key?: AstNode;
   readonly source?: AstNode | null;
@@ -72,6 +73,12 @@ const FORM_ELEMENTS = new Set(["button", "input", "textarea", "select"]);
 
 const SVG_ELEMENTS = new Set(["svg"]);
 
+const MUTATION_ENDPOINT_GROUPS = new Set(["teamManagement", "myLevels"]);
+
+const SPA_CLIENT_NAME = "client";
+
+const SPA_CLIENT_ACCESSOR = "SpaHttpClient.use";
+
 const APPLICATION_STARTS = new Set(
   ["embed", "hydrate", "makeApplication", "makeElement", "run"].map(
     (name) => `Runtime.${name}`,
@@ -129,6 +136,47 @@ const noElementOfH = (
     },
   }),
 });
+
+const isSpaClient = (node: AstNode | undefined) =>
+  node?.type === "Identifier" && node.name === SPA_CLIENT_NAME;
+
+const isTakenFromSpaClient = (pattern: AstNode | undefined) => {
+  const holder = pattern?.parent;
+  return (
+    (holder?.type === "VariableDeclarator" && isSpaClient(holder.init)) ||
+    memberPathOf(holder?.parent?.callee) === SPA_CLIENT_ACCESSOR
+  );
+};
+
+const mutationEndpointOnlyInMutationModule = {
+  create: (context: RuleContext): Visitors => {
+    const reportGroup = (node: AstNode) => {
+      const named = namedNode(node);
+      const group = node.computed === true ? named?.value : named?.name;
+      if (typeof group === "string" && MUTATION_ENDPOINT_GROUPS.has(group)) {
+        context.report({
+          node,
+          message: `更新の endpoint (client.${group}) を呼ぶのは web/src/dashboard/mutation.ts の Command だけ。page は Mutation の submit* を fold し、成功の OutMessage を application に渡す`,
+        });
+      }
+    };
+    return {
+      MemberExpression: (node) => {
+        if (isSpaClient(node.object)) {
+          reportGroup(node);
+        }
+      },
+      Property: (node) => {
+        if (
+          node.parent?.type === "ObjectPattern" &&
+          isTakenFromSpaClient(node.parent)
+        ) {
+          reportGroup(node);
+        }
+      },
+    };
+  },
+};
 
 const noEffectRunInWeb = {
   create: (context: RuleContext): Visitors => ({
@@ -421,6 +469,8 @@ export default {
     "leave-spa-import-only-in-app": leaveSpaImportOnlyInApp,
     "spa-http-client-only-in-foldkit-files": spaHttpClientOnlyInFoldkitFiles,
     "cause-lookup-only-in-failure-message": causeLookupOnlyInFailureMessage,
+    "mutation-endpoint-only-in-mutation-module":
+      mutationEndpointOnlyInMutationModule,
     "no-switch": noSwitch,
     "no-code-comment": noCodeComment,
   },
