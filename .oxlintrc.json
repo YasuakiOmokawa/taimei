@@ -107,6 +107,7 @@
         "taimei/leave-spa-import-only-in-app": "error",
         "taimei/spa-http-client-only-in-foldkit-files": "error",
         "taimei/cause-lookup-only-in-failure-message": "error",
+        "taimei/mutation-endpoint-only-in-mutation-module": "error",
         "typescript/consistent-type-assertions": [
           "error",
           {
@@ -226,6 +227,12 @@
       "files": ["web/src/shared/failure-message.ts"],
       "rules": {
         "taimei/cause-lookup-only-in-failure-message": "off"
+      }
+    },
+    {
+      "files": ["web/src/dashboard/mutation.ts"],
+      "rules": {
+        "taimei/mutation-endpoint-only-in-mutation-module": "off"
       }
     },
     {

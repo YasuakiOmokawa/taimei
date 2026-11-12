@@ -1,16 +1,37 @@
-import { Effect, HashMap, Match, Option, Result, Schema } from "effect";
+import {
+  Array,
+  Effect,
+  Equal,
+  HashMap,
+  Match,
+  Option,
+  Result,
+  Schema,
+} from "effect";
 import { AsyncData, Command, Update } from "foldkit";
+import type { Document, Html, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
 import { UrlRequest } from "foldkit/navigation";
 import { modifyFields } from "foldkit/struct";
 import { Url } from "foldkit/url";
 import { Team, TeamDetail } from "../../../../src/spa-contract";
 import { ChangedByMutation } from "../../dashboard/changed-by-mutation";
+import * as Mutation from "../../dashboard/mutation";
+import * as Teams from "../../dashboard/pages/Teams";
 import { withMyLevels } from "../../dashboard/skill-matrix";
 import { failureMessageOf } from "../../shared/failure-message";
 import { SpaHttpClient } from "../../shared/spa-http-client";
+import { SERVICE_NAME } from "../../shared/ui/brand-view";
+import { cn } from "../../shared/ui/class-names";
 import * as DocumentNavigation from "../document-navigation";
-import { DashboardRoute, teamsRouter, urlToDashboardRoute } from "./route";
+import { privacyRouter } from "../public/route";
+import {
+  DashboardRoute,
+  membersRouter,
+  teamRouter,
+  teamsRouter,
+  urlToDashboardRoute,
+} from "./route";
 
 const Me = Schema.Struct({
   userId: Schema.String,
@@ -71,6 +92,7 @@ export const Model = Schema.Struct({
   teams: cachedOf(TeamList),
   teamById: Schema.HashMap(Schema.String, cachedOf(TeamPage)),
   members: cachedOf(MemberList),
+  teamsPage: Teams.Model,
 });
 export type Model = typeof Model.Type;
 
@@ -84,6 +106,7 @@ export const Message = defineMessageUnion({
   ClickedLink: { request: UrlRequest },
   ChangedUrl: { url: Url },
   HoveredLink: { route: DashboardRoute },
+  GotTeamsPageMessage: { message: Teams.Message },
   SettledLoadMe: settledWith(Me),
   SettledLoadTeams: settledWith(TeamList),
   SettledLoadTeam: { teamId: Schema.String, ...settledWith(TeamPage) },
@@ -360,6 +383,72 @@ export const reflectChange = (changed: ChangedByMutation): Step =>
       ),
   });
 
+const leaveToSignIn: Step = (model) => ({
+  model,
+  commands: [navigate(DocumentNavigation.LeaveToSignIn())],
+});
+
+const reloadDocument: Step = (model) => ({
+  model,
+  commands: [navigate(DocumentNavigation.ReloadDocument())],
+});
+
+const teamHref = (teamId: string) => teamRouter({ teamId });
+
+const openCreatedTeam =
+  (maybeCreatedTeamId: Option.Option<string>): Step =>
+  (model) => ({
+    model,
+    commands: Array.map(Array.fromOption(maybeCreatedTeamId), (teamId) =>
+      navigate(DocumentNavigation.NavigateInternal({ href: teamHref(teamId) })),
+    ),
+  });
+
+const reflectMutationOutcome = Mutation.OutMessage.match<Step>({
+  SucceededMutation: ({ changed, maybeCreatedTeamId }) =>
+    Update.combine([
+      reflectChange(changed),
+      openCreatedTeam(maybeCreatedTeamId),
+    ]),
+  RequiredSignIn: () => leaveToSignIn,
+  ChangedSession: () => reloadDocument,
+});
+
+const toTeamsPageMessage = (message: Teams.Message) =>
+  Message.GotTeamsPageMessage({ message });
+
+const teamsPageChild = {
+  read: (model: Model) => Option.some(model.teamsPage),
+  write: (model: Model, nextTeamsPage: Teams.Model): Model =>
+    modifyFields(model, { teamsPage: () => nextTeamsPage }),
+  toParentMessage: toTeamsPageMessage,
+};
+
+const foldTeamsPageOutMessage = Teams.OutMessage.match<Step>({
+  FinishedMutation: ({ outcome }) => reflectMutationOutcome(outcome),
+  HoveredTeamLink: ({ teamId }) =>
+    prefetchRoute(DashboardRoute.Team({ teamId })),
+});
+
+const foldTeamsPage = Update.foldChild({
+  ...teamsPageChild,
+  update: Teams.update,
+  foldOutMessage: foldTeamsPageOutMessage,
+});
+
+const foldTeamsPageReset = Update.foldChildStep({
+  ...teamsPageChild,
+  update: Teams.resetUnlessSubmitting,
+});
+
+const changeRoute =
+  (route: DashboardRoute): Step =>
+  (model) =>
+    Update.combine(modifyFields(model, { route: () => route }), [
+      Equal.equals(route, model.route) ? unchanged : foldTeamsPageReset,
+      enterRoute,
+    ]);
+
 const isOwnRoute = (url: Url) =>
   !DashboardRoute.guards.NotFound(urlToDashboardRoute(url));
 
@@ -370,6 +459,7 @@ export const init = (url: Url): UpdateReturn =>
     teams: neverLoaded(),
     teamById: HashMap.empty(),
     members: neverLoaded(),
+    teamsPage: Teams.init(),
   });
 
 export const update = (model: Model, message: Message) =>
@@ -381,11 +471,10 @@ export const update = (model: Model, message: Message) =>
         navigate(DocumentNavigation.commandForLink(request, isOwnRoute)),
       ],
     }),
-    ChangedUrl: ({ url }) =>
-      enterRoute(
-        modifyFields(model, { route: () => urlToDashboardRoute(url) }),
-      ),
+    ChangedUrl: ({ url }) => changeRoute(urlToDashboardRoute(url))(model),
     HoveredLink: ({ route }) => prefetchRoute(route)(model),
+    GotTeamsPageMessage: ({ message: pageMessage }) =>
+      foldTeamsPage(model, pageMessage),
     SettledLoadMe: ({ request, result }) =>
       settleSlot(meSlot, request, result)(model),
     SettledLoadTeams: ({ request, result }) =>
@@ -394,12 +483,161 @@ export const update = (model: Model, message: Message) =>
       settleSlot(teamSlot(teamId), request, result)(model),
     SettledLoadMembers: ({ request, result }) =>
       settleSlot(membersSlot, request, result)(model),
-    RequiredSignIn: () => ({
-      model,
-      commands: [navigate(DocumentNavigation.LeaveToSignIn())],
-    }),
-    ChangedSession: () => ({
-      model,
-      commands: [navigate(DocumentNavigation.ReloadDocument())],
-    }),
+    RequiredSignIn: () => leaveToSignIn(model),
+    ChangedSession: () => reloadDocument(model),
   });
+
+const ACCOUNT_SETTINGS_PATH = "/auth/account";
+
+const navLinkView = (
+  config: Readonly<{
+    label: string;
+    href: string;
+    route: DashboardRoute;
+    isCurrent: boolean;
+  }>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.a(
+    [
+      h.Href(config.href),
+      h.Class(
+        cn("hover:text-foreground", {
+          "text-foreground": config.isCurrent,
+          "text-muted-foreground": !config.isCurrent,
+        }),
+      ),
+      ...(config.isCurrent ? [h.AriaCurrent("page")] : []),
+      h.OnMouseEnter(Message.HoveredLink({ route: config.route })),
+    ],
+    [config.label],
+  );
+
+const navView = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.nav(
+    [h.Class("flex gap-4 text-sm font-medium")],
+    [
+      navLinkView(
+        {
+          label: "チーム",
+          href: teamsRouter(),
+          route: DashboardRoute.Teams(),
+          isCurrent: DashboardRoute.isAnyOf(["Teams", "Team"])(model.route),
+        },
+        h,
+      ),
+      navLinkView(
+        {
+          label: "メンバー",
+          href: membersRouter(),
+          route: DashboardRoute.Members(),
+          isCurrent: DashboardRoute.guards.Members(model.route),
+        },
+        h,
+      ),
+    ],
+  );
+
+const accountView = (me: Me, h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class("ml-auto flex items-center gap-4 text-sm")],
+    [
+      h.span([h.Class("truncate")], [me.name]),
+      h.a(
+        [
+          h.Href(ACCOUNT_SETTINGS_PATH),
+          h.Target("_blank"),
+          h.Rel("noopener noreferrer"),
+          h.Class("text-muted-foreground underline-offset-4 hover:underline"),
+        ],
+        ["設定"],
+      ),
+    ],
+  );
+
+const headerView = (model: Model, me: Me, h: HtmlBuilder<Message>): Html =>
+  h.header(
+    [h.Class("sticky top-0 z-40 border-b bg-background")],
+    [
+      h.div(
+        [h.Class("mx-auto flex h-14 max-w-5xl items-center gap-6 px-4")],
+        [
+          h.a(
+            [
+              h.Href(teamsRouter()),
+              h.Class("text-lg font-bold text-brand"),
+              h.OnMouseEnter(
+                Message.HoveredLink({ route: DashboardRoute.Teams() }),
+              ),
+            ],
+            [SERVICE_NAME],
+          ),
+          navView(model, h),
+          accountView(me, h),
+        ],
+      ),
+    ],
+  );
+
+const pageView = (model: Model, me: Me, h: HtmlBuilder<Message>): Html =>
+  DashboardRoute.match(model.route, {
+    Home: () => h.empty,
+    Teams: () =>
+      h.submodel({
+        slotId: "teams-page",
+        view: Teams.view,
+        model: model.teamsPage,
+        viewInputs: {
+          canManage: me.canManage,
+          teams: model.teams.data,
+          teamHref,
+        },
+        toParentMessage: toTeamsPageMessage,
+      }),
+    Team: () => h.empty,
+    Members: () => h.empty,
+    NotFound: () => h.p([], ["Not Found"]),
+  });
+
+const frameView = (model: Model, me: Me, h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class("flex min-h-screen flex-col")],
+    [
+      headerView(model, me, h),
+      h.main(
+        [h.Class("mx-auto w-full max-w-5xl flex-1 p-6 md:p-12")],
+        [pageView(model, me, h)],
+      ),
+      h.footer(
+        [h.Class("mx-auto w-full max-w-5xl px-6 py-4")],
+        [
+          h.a(
+            [
+              h.Href(privacyRouter()),
+              h.Class(
+                "text-xs text-muted-foreground underline underline-offset-4",
+              ),
+            ],
+            ["プライバシーポリシー"],
+          ),
+        ],
+      ),
+    ],
+  );
+
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+  title: SERVICE_NAME,
+  body: AsyncData.matchData(model.me.data, {
+    onEmpty: () => h.empty,
+    onFailure: (failureMessage) =>
+      h.main(
+        [
+          h.Class(
+            "mx-auto max-w-5xl p-6 text-sm text-muted-foreground md:p-12",
+          ),
+        ],
+        [failureMessage],
+      ),
+    onData: (me) => frameView(model, me, h),
+  }),
+});
