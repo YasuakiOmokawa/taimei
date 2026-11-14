@@ -280,6 +280,59 @@ const noDirectApplicationStart = {
   }),
 };
 
+const MUTATION_MODULE = /(^|\/)mutation$/;
+
+const STARTS_WITH_UPPERCASE = /^[A-Z]/;
+
+const MUTATION_START_MESSAGE =
+  "更新の Command を作るのは web/src/dashboard/mutation.ts の submit* だけ。page は Mutation の submit* を fold する (送信中の二度目を submit* が捨てる)";
+
+const MUTATION_NAMESPACE_MESSAGE =
+  "更新の module は import * as Mutation で読み、別名・分割代入・名前の import で取り出さない (取り出した Command の呼び出しを lint が見つけられなくなる)";
+
+const importsMutationModule = (specifier: AstNode) => {
+  const source = sourceOf(specifier);
+  return typeof source === "string" && MUTATION_MODULE.test(source);
+};
+
+const mutationStartOnlyThroughSubmit = {
+  create: (context: RuleContext): Visitors => {
+    const namespaces = new Set<string>();
+    return {
+      ImportNamespaceSpecifier: (node) => {
+        if (importsMutationModule(node)) {
+          namespaces.add(node.local?.name ?? "");
+        }
+      },
+      ImportSpecifier: (node) => {
+        if (importsMutationModule(node) && !isTypeOnlyImport(node)) {
+          context.report({ node, message: MUTATION_NAMESPACE_MESSAGE });
+        }
+      },
+      VariableDeclarator: (node) => {
+        if (
+          node.init?.type === "Identifier" &&
+          namespaces.has(node.init.name ?? "")
+        ) {
+          context.report({ node, message: MUTATION_NAMESPACE_MESSAGE });
+        }
+      },
+      CallExpression: (node) => {
+        const [namespace, member, ...rest] = memberPathOf(node.callee).split(
+          ".",
+        );
+        if (
+          rest.length === 0 &&
+          namespaces.has(namespace ?? "") &&
+          STARTS_WITH_UPPERCASE.test(member ?? "")
+        ) {
+          context.report({ node, message: MUTATION_START_MESSAGE });
+        }
+      },
+    };
+  },
+};
+
 const LEAVING_DOCUMENT_MESSAGE =
   "document を離れる書き方 (location.assign・replace・reload、location とその property への代入、foldkit/navigation の load) は web/src/shared/leave-spa.ts だけが書く。application はその口を Command の中で呼ぶ";
 
@@ -468,6 +521,7 @@ export default {
     "leave-spa-only-in-leave-spa": leaveSpaOnlyInLeaveSpa,
     "leave-spa-import-only-in-app": leaveSpaImportOnlyInApp,
     "spa-http-client-only-in-foldkit-files": spaHttpClientOnlyInFoldkitFiles,
+    "mutation-start-only-through-submit": mutationStartOnlyThroughSubmit,
     "cause-lookup-only-in-failure-message": causeLookupOnlyInFailureMessage,
     "mutation-endpoint-only-in-mutation-module":
       mutationEndpointOnlyInMutationModule,

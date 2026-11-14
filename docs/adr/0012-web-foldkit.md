@@ -44,7 +44,8 @@
 ### domain の境界
 
 - web の domain の境界は taimei-auth の ADR-0025 と同じ形で型にする。`web/domain-projects/` の project references を `bun run typecheck` が `tsc -b` で build し、参照していない project の file の import は TS6307 で落ちる
-- 今の層は core・`shared`・domain (`landing`・`privacy`・`dashboard`)。`shared` は core だけ、domain は `shared` と core だけを参照する。page と試験と `app` の層は #688 で足す
+- 層は core・`shared`・domain (`landing`・`privacy`・`dashboard`)・domain の page と試験 (`<domain>.pages.json`)・`shared` の試験 (`shared.tests.json`)・`app` (`main.ts` を含む)。`shared` は core だけ、domain は `shared` と core だけ、page と試験は同じ domain と `shared` と core だけ、`shared` の試験は `shared` と core だけを参照する。page を参照するのは `app` だけである。`web/src/__tests__/` (受け入れテストと repo を見る試験) はどの層にも入れず、`-p web` が型を見る
+- taimei-auth の構造の規則と、`web/src` の直下の dir が `web/domain-projects/` に定義を持つことは、`web/src/__tests__/web-structure.test.ts` が見る。規則と直し方は違反の文言にある
 - taimei の core は、契約 (`src/spa-contract.ts`) が型で辿る server の file をすべて `files` に並べる。契約が `RequestSession` の型を `src/services/` から import するので、`src/services/` と `db/` の file も入る。契約の module は変えない
 
 ## JS の大きさ
@@ -68,5 +69,5 @@
 - 境界の TS6307 は参照していない project の file を import したことを示す。意図しない依存 (別の domain や、`shared` から domain) なら import を直し、file を project の `include` や `files` に足して通さない。domain の新しい依存を意図するなら `references` を足す。契約が新しい server の file を import した時は、core の `files` に足す
 - 参照される project は declaration を出す。export する推論の型が declaration に書けない時 (TS2742 など)、`-p web` は通り `tsc -b` だけが落ちる。export の型を書いて直す
 - `landing` の project は今 page と試験しか持たず、include が何にも当たらない。include が何にも当たらない project は TS18003 で落ちるが、`references` を持つ project は落ちない (tsgo 7.0.2 で確かめた)。`landing` の `references` を外すか、TypeScript の版を上げて `landing` の project が TS18003 で落ちたら、原因はここである
-- `bun run typecheck` は `tsc -b` の分だけ遅くなる (手元で全体 1.1 秒)
-- 移行の後に残った点 (保存の Command の timeout、契約の外の失敗の記録、bfcache の復元、招待の行き先の 2 か所、font の差し替えで `/privacy` の見出しが動くこと、core が列挙する server の file を減らすこと) は #708 で扱う
+- `bun run typecheck` は `tsc -b` の分だけ遅くなる (手元で全体 2 秒)
+- 移行の後に残った点 (保存の Command の timeout、契約の外の失敗の記録、bfcache の復元、招待の行き先の 2 か所、font の差し替えで `/privacy` の見出しが動くこと、core が列挙する server の file を減らすこと、`app` が import しない page を見つけること) は #708 で扱う
