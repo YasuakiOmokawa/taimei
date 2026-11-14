@@ -4,7 +4,7 @@ import { defineMessageUnion } from "foldkit/message";
 import { failureMessageOf } from "../shared/failure-message";
 import { SpaHttpClient } from "../shared/spa-http-client";
 import { Submission } from "../shared/submission";
-import { ChangedByMutation } from "./changed-by-mutation";
+import { ChangedByMutation, MyLevelEntry } from "./changed-by-mutation";
 
 export const Model = Submission;
 export type Model = typeof Model.Type;
@@ -30,6 +30,7 @@ export const OutMessage = defineMessageUnion({
 export type OutMessage = typeof OutMessage.Type;
 
 const CREATE_TEAM_FAILED = "チームを作れませんでした";
+const SAVE_MY_LEVELS_FAILED = "保存できませんでした";
 
 type SpaClient = SpaHttpClient["Service"];
 
@@ -84,6 +85,37 @@ export const CreateTeam = Command.define("CreateTeam", {
     ),
 });
 
+export const SaveMyLevelsArgs = {
+  teamId: Schema.String,
+  myUserId: Schema.String,
+  entries: Schema.Array(MyLevelEntry),
+};
+
+export const SaveMyLevels = Command.define("SaveMyLevels", {
+  args: SaveMyLevelsArgs,
+  messages: [
+    Message.SucceededMutation,
+    Message.FailedMutation,
+    Message.RequiredSignIn,
+    Message.ChangedSession,
+  ],
+  execute: ({ teamId, myUserId, entries }) =>
+    settledBy(
+      SpaHttpClient.use((client) =>
+        client.myLevels.saveMyLevels({
+          params: { teamId },
+          payload: { levels: entries },
+        }),
+      ),
+      SAVE_MY_LEVELS_FAILED,
+      () =>
+        Message.SucceededMutation({
+          changed: ChangedByMutation.MyLevels({ teamId, myUserId, entries }),
+          maybeCreatedTeamId: Option.none(),
+        }),
+    ),
+});
+
 export const init = (): Model => Submission.Idle();
 
 export const update = (model: Model, message: Message) =>
@@ -111,3 +143,8 @@ const submitWith = (
 
 export const submitCreateTeam = (model: Model, name: string) =>
   submitWith(model, CreateTeam({ name }));
+
+export const submitSaveMyLevels = (
+  model: Model,
+  save: Schema.Struct.Type<typeof SaveMyLevelsArgs>,
+) => submitWith(model, SaveMyLevels(save));

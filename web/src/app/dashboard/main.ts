@@ -14,9 +14,10 @@ import { defineMessageUnion } from "foldkit/message";
 import { UrlRequest } from "foldkit/navigation";
 import { modifyFields } from "foldkit/struct";
 import { Url } from "foldkit/url";
-import { Team, TeamDetail } from "../../../../src/spa-contract";
+import { Team as ListedTeam, TeamDetail } from "../../../../src/spa-contract";
 import { ChangedByMutation } from "../../dashboard/changed-by-mutation";
 import * as Mutation from "../../dashboard/mutation";
+import * as Team from "../../dashboard/pages/Team";
 import * as Teams from "../../dashboard/pages/Teams";
 import { withMyLevels } from "../../dashboard/skill-matrix";
 import { failureMessageOf } from "../../shared/failure-message";
@@ -40,7 +41,7 @@ const Me = Schema.Struct({
 });
 type Me = typeof Me.Type;
 
-const TeamList = Schema.Struct({ teams: Schema.Array(Team) });
+const TeamList = Schema.Struct({ teams: Schema.Array(ListedTeam) });
 type TeamList = typeof TeamList.Type;
 
 const TeamPage = Schema.Struct({
@@ -93,6 +94,7 @@ export const Model = Schema.Struct({
   teamById: Schema.HashMap(Schema.String, cachedOf(TeamPage)),
   members: cachedOf(MemberList),
   teamsPage: Teams.Model,
+  teamPages: Schema.HashMap(Schema.String, Team.Model),
 });
 export type Model = typeof Model.Type;
 
@@ -107,6 +109,10 @@ export const Message = defineMessageUnion({
   ChangedUrl: { url: Url },
   HoveredLink: { route: DashboardRoute },
   GotTeamsPageMessage: { message: Teams.Message },
+  GotTeamPageMessage: {
+    teamId: Schema.String,
+    message: Team.Message,
+  },
   SettledLoadMe: settledWith(Me),
   SettledLoadTeams: settledWith(TeamList),
   SettledLoadTeam: { teamId: Schema.String, ...settledWith(TeamPage) },
@@ -441,11 +447,45 @@ const foldTeamsPageReset = Update.foldChildStep({
   update: Teams.resetUnlessSubmitting,
 });
 
+const UNVISITED_TEAM_PAGE = Team.init();
+
+const teamPageOf = (model: Model, teamId: string) =>
+  Option.getOrElse(
+    HashMap.get(model.teamPages, teamId),
+    () => UNVISITED_TEAM_PAGE,
+  );
+
+const toTeamPageMessage = (teamId: string) => (message: Team.Message) =>
+  Message.GotTeamPageMessage({ teamId, message });
+
+const foldTeamPage = (teamId: string) =>
+  Update.foldChild({
+    read: (model: Model) => Option.some(teamPageOf(model, teamId)),
+    write: (model: Model, nextTeamPage: Team.Model): Model =>
+      modifyFields(model, { teamPages: HashMap.set(teamId, nextTeamPage) }),
+    toParentMessage: toTeamPageMessage(teamId),
+    update: Team.update,
+    foldOutMessage: Team.OutMessage.match<Step>({
+      FinishedMutation: ({ outcome }) => reflectMutationOutcome(outcome),
+    }),
+  });
+
+const keepOnlySavingTeamPages: Step = (model) => ({
+  model: modifyFields(model, {
+    teamPages: HashMap.filter(Team.isSaving),
+  }),
+});
+
+const resetPages = Update.combine([
+  foldTeamsPageReset,
+  keepOnlySavingTeamPages,
+]);
+
 const changeRoute =
   (route: DashboardRoute): Step =>
   (model) =>
     Update.combine(modifyFields(model, { route: () => route }), [
-      Equal.equals(route, model.route) ? unchanged : foldTeamsPageReset,
+      Equal.equals(route, model.route) ? unchanged : resetPages,
       enterRoute,
     ]);
 
@@ -460,6 +500,7 @@ export const init = (url: Url): UpdateReturn =>
     teamById: HashMap.empty(),
     members: neverLoaded(),
     teamsPage: Teams.init(),
+    teamPages: HashMap.empty(),
   });
 
 export const update = (model: Model, message: Message) =>
@@ -475,6 +516,8 @@ export const update = (model: Model, message: Message) =>
     HoveredLink: ({ route }) => prefetchRoute(route)(model),
     GotTeamsPageMessage: ({ message: pageMessage }) =>
       foldTeamsPage(model, pageMessage),
+    GotTeamPageMessage: ({ teamId, message: pageMessage }) =>
+      foldTeamPage(teamId)(model, pageMessage),
     SettledLoadMe: ({ request, result }) =>
       settleSlot(meSlot, request, result)(model),
     SettledLoadTeams: ({ request, result }) =>
@@ -594,7 +637,19 @@ const pageView = (model: Model, me: Me, h: HtmlBuilder<Message>): Html =>
         },
         toParentMessage: toTeamsPageMessage,
       }),
-    Team: () => h.empty,
+    Team: ({ teamId }) =>
+      h.submodel({
+        slotId: `team-page-${teamId}`,
+        view: Team.view,
+        model: teamPageOf(model, teamId),
+        viewInputs: {
+          teamId,
+          myUserId: me.userId,
+          team: teamSlot(teamId).read(model).data,
+          teamsHref: teamsRouter(),
+        },
+        toParentMessage: toTeamPageMessage(teamId),
+      }),
     Members: () => h.empty,
     NotFound: () => h.p([], ["Not Found"]),
   });
