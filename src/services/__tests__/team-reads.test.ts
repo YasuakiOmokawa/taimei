@@ -6,7 +6,6 @@ import { sendErrorReportsTo } from "@/src/lib/report-error";
 import { type AuthorizationContext, isManager } from "../authorization-context";
 import type { CompanyContext } from "../company-context";
 import { CompanyTeamList } from "../company-team-list";
-import { ReadDb } from "../db-service";
 import { TeamReads } from "../team-reads";
 import {
   COMPANY_A,
@@ -18,8 +17,10 @@ import {
   seedTeam,
 } from "./db/seed";
 import {
+  type AppRoleDb,
   asAppRole,
   functionValue,
+  provideAppReadDb,
   type TestDb,
   withRollback,
 } from "./db/test-db";
@@ -45,7 +46,7 @@ type ReadUse<A, E> = (
 
 const readWithDb =
   (
-    app: ReadDb["Service"],
+    app: AppRoleDb,
     actor: Actor,
     teamList: TeamListStubSpy = teamListStubOf(),
   ) =>
@@ -54,7 +55,7 @@ const readWithDb =
       actor,
       TeamReads.use(f).pipe(
         Effect.provide(TeamReads.layer),
-        Effect.provideService(ReadDb, app),
+        provideAppReadDb(app),
         Effect.provideService(
           CompanyTeamList,
           companyTeamListBackedBy(teamList)(),
@@ -287,7 +288,7 @@ describe("listTeams", () => {
 describe("関数の値を読めないとき", () => {
   const teamList = teamListStubOf();
   const readWith = (execute: () => Promise<unknown>) =>
-    readWithDb({ execute } as unknown as ReadDb["Service"], ADMIN, teamList);
+    readWithDb({ execute } as unknown as AppRoleDb, ADMIN, teamList);
 
   it("schema に合わない値は、どちらの読み取りも DB の失敗にし、一覧を DO に置かない", async () => {
     const read = readWith(async () => ({

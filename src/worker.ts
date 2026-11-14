@@ -2,6 +2,7 @@
 import * as Sentry from "@sentry/cloudflare";
 import { Effect } from "effect";
 import type { ExecutionContext } from "hono";
+// biome-ignore lint/style/noRestrictedImports: 定期処理に接続を渡すのは Worker の入口だけ
 import { db } from "@/db/drizzle/client";
 // biome-ignore lint/style/noRestrictedImports: 要求ごとの Pool を開くのは Worker の入口だけ
 import { runWithRequestPool } from "@/db/drizzle/pool";

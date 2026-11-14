@@ -9,7 +9,6 @@ import {
   teams,
 } from "@/db/drizzle/schema";
 import { TeamId } from "@/db/ids";
-import { withCompanyScope } from "@/db/scoped";
 import type { Level } from "@/src/spa-contract";
 import type { AuthorizationContext } from "../authorization-context";
 import type { CompanyContext } from "../company-context";
@@ -27,7 +26,13 @@ import {
   seedTeam,
   teamName,
 } from "./db/seed";
-import { APP_ROLE, asAppRole, type TestDb, withRollback } from "./db/test-db";
+import {
+  APP_ROLE,
+  asAppRoleInCompany,
+  provideAppDb,
+  type TestDb,
+  withRollback,
+} from "./db/test-db";
 import {
   type Actor,
   ADMIN,
@@ -57,10 +62,8 @@ const runInRequest = <A, E>(
   actor: Actor,
   effect: Effect.Effect<A, E, Db | CompanyContext | AuthorizationContext>,
 ) =>
-  asAppRole(tx, (app) =>
-    withCompanyScope(app, actor.companyId, (scoped) =>
-      runAsActor(actor, effect.pipe(Effect.provideService(Db, scoped))),
-    ),
+  asAppRoleInCompany(tx, actor.companyId, (scoped) =>
+    runAsActor(actor, effect.pipe(provideAppDb(scoped))),
   );
 
 const runAs =

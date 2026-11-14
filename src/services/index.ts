@@ -1,4 +1,5 @@
 import { Effect, Layer, Result } from "effect";
+// biome-ignore lint/style/noRestrictedImports: Service に接続を渡すのは実行口だけ
 import { db } from "@/db/drizzle/client";
 import type { NotManager } from "@/src/spa-contract";
 import { AuthorizationContext } from "./authorization-context";

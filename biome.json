@@ -69,7 +69,11 @@
             "patterns": [
               {
                 "group": ["**/drizzle/pool", "./pool"],
-                "message": "要求ごとの Pool を開く db/drizzle/pool は Worker の入口 (src/worker.ts) と db/drizzle/client.ts だけが使う。query は db/drizzle/client.ts の db で書く"
+                "message": "要求ごとの Pool を開く db/drizzle/pool は Worker の入口 (src/worker.ts) と db/drizzle/client.ts だけが使う。query は Service の中で Db・ReadDb から書く"
+              },
+              {
+                "group": ["**/drizzle/client"],
+                "message": "接続を持つ db/drizzle/client の db は、Service の実行口 (src/services/index.ts)・Worker の入口 (src/worker.ts)・本番以外の入口 (testing/non-production-database.ts) だけが使う。query は Service の中で Db・ReadDb から書く"
               },
               {
                 "group": ["effect/http"],
@@ -154,6 +158,20 @@
   },
   "plugins": [
     "./biome-plugins/no-switch.grit",
+    "./biome-plugins/no-brand-cast.grit",
+    {
+      "path": "./biome-plugins/company-filter-only.grit",
+      "includes": [
+        "**/src/**",
+        "**/db/**",
+        "!**/__tests__/**",
+        "!**/db/scoped.ts"
+      ]
+    },
+    {
+      "path": "./biome-plugins/test-db-through-app-role.grit",
+      "includes": ["**/__tests__/**", "!**/__tests__/db/test-db.ts"]
+    },
     {
       "path": "./biome-plugins/report-through-report-error.grit",
       "includes": [
