@@ -42,6 +42,14 @@
         "patterns": ["src/**", "db/**"]
       },
       {
+        "name": "spa-page",
+        "patterns": ["web/src/*/pages/**"]
+      },
+      {
+        "name": "spa-application",
+        "patterns": ["web/src/app/**"]
+      },
+      {
         "name": "spa",
         "patterns": ["web/src/**"]
       },
@@ -52,8 +60,18 @@
     ],
     "rules": [
       {
+        "from": "spa-page",
+        "allow": ["spa", "contract"],
+        "allowTypeOnly": []
+      },
+      {
+        "from": "spa-application",
+        "allow": ["spa", "spa-page", "contract"],
+        "allowTypeOnly": []
+      },
+      {
         "from": "spa",
-        "allow": ["contract"],
+        "allow": ["spa-application", "spa-page", "contract"],
         "allowTypeOnly": []
       },
       {
