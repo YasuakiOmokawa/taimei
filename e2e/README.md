@@ -72,9 +72,10 @@ docker compose -p taimei-e2e -f docker-compose.e2e.yml down --volumes
 
 | spec | 内容 |
 |------|------|
-| `public.spec.ts` | 公開ページ (`/`・`/privacy`) の表示と遷移。hydrate の食い違いを含め、console の error が 0 件 |
+| `public.spec.ts` | 公開ページ (`/`・`/privacy`) の表示と遷移。JS の前後で見た目が変わらないことを含め、console の error が 0 件 |
 | `auth.spec.ts` | 未ログインの誘導、ランディングページのログイン、事業所の登録を経てチーム一覧に戻ること |
 | `teams.spec.ts` | チーム一覧、他の事業所のチームが出ないこと (画面と API)、事業所の切り替え、空と失敗の表示、JS が描く前にランディングページを見せないこと |
+| `members.spec.ts` | メンバー一覧、別の事業所の人が出ないこと (画面と API)、header からメンバー画面に移ること、招待は taimei-auth を新しいタブで開くこと |
 
 ## ローカル開発時の動作確認 (e2e と別)
 
