@@ -1,9 +1,10 @@
-import { ManagedRuntime, Option } from "effect";
+import { type Effect, ManagedRuntime, Option } from "effect";
 import type { CommandDefinition } from "foldkit/command";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SkillId } from "../../../../db/ids";
 import { SESSION_HEADER } from "../../../../src/spa-contract";
 import { SpaHttpClient } from "../../shared/spa-http-client";
+import { Submission } from "../../shared/submission";
 import { ChangedByMutation } from "../changed-by-mutation";
 import * as Mutation from "../mutation";
 
@@ -43,6 +44,51 @@ const rejected = (rejection: string) =>
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+const answerConfirmation = (isConfirmed: boolean) => {
+  const confirm = vi.fn((_message: string) => isConfirmed);
+  vi.stubGlobal("window", { confirm });
+  return confirm;
+};
+
+const CONFIRMATION = "消します。";
+
+const run = <Settled>(
+  command: Readonly<{ effect: Effect.Effect<Settled, never, SpaHttpClient> }>,
+  runtime = startClient(),
+) => runtime.runPromise(command.effect);
+
+const rename = (teamId = TEAM_ID) =>
+  Mutation.RenameTeam({ teamId, name: "営業" });
+const addSkill = (teamId = TEAM_ID) =>
+  Mutation.AddSkill({ teamId, name: "テスト" });
+const assign = (teamId = TEAM_ID, userId = "u_4") =>
+  Mutation.AssignMember({ teamId, userId });
+const removeSkill = (skillId: string = SKILL_ID) =>
+  Mutation.RemoveSkill({
+    teamId: TEAM_ID,
+    skillId,
+    confirmation: CONFIRMATION,
+    restoredOnCancel: Submission.Idle(),
+  });
+const unassign = (teamId = TEAM_ID, userId = "u_3") =>
+  Mutation.UnassignMember({
+    teamId,
+    userId,
+    confirmation: CONFIRMATION,
+    restoredOnCancel: Submission.Idle(),
+  });
+const deleteTeam = (teamId = TEAM_ID) =>
+  Mutation.DeleteTeam({
+    teamId,
+    confirmation: CONFIRMATION,
+    restoredOnCancel: Submission.Idle(),
+  });
+
+const teamChanged = Mutation.Message.SucceededMutation({
+  changed: ChangedByMutation.Team({ teamId: TEAM_ID }),
+  maybeCreatedTeamId: Option.none(),
 });
 
 describe("チームの作成の Command", () => {
@@ -91,6 +137,7 @@ describe("チームの作成の Command", () => {
           SucceededMutation: ({ maybeCreatedTeamId }) =>
             Option.getOrUndefined(maybeCreatedTeamId),
           FailedMutation: () => undefined,
+          CanceledMutation: () => undefined,
           RequiredSignIn: () => undefined,
           ChangedSession: () => undefined,
         }),
@@ -151,6 +198,166 @@ describe("自分のレベルの保存の Command", () => {
   });
 });
 
+describe("チームの管理の Command", () => {
+  it.each([
+    [
+      "名前の変更",
+      () => rename(),
+      "PATCH",
+      `/api/teams/${TEAM_ID}`,
+      { name: "営業" },
+    ],
+    [
+      "スキルの追加",
+      () => addSkill(),
+      "POST",
+      `/api/teams/${TEAM_ID}/skills`,
+      { name: "テスト" },
+    ],
+    [
+      "割り当て",
+      () => assign(),
+      "PUT",
+      `/api/teams/${TEAM_ID}/assignments/u_4`,
+      undefined,
+    ],
+    [
+      "スキルの削除",
+      () => removeSkill(),
+      "DELETE",
+      `/api/skills/${SKILL_ID}`,
+      undefined,
+    ],
+    [
+      "外すこと",
+      () => unassign(),
+      "DELETE",
+      `/api/teams/${TEAM_ID}/assignments/u_3`,
+      undefined,
+    ],
+  ] as const)(
+    "%s は、その endpoint に送り、成功するとそのチームを変えたことを返す",
+    async (_, command, method, path, body) => {
+      answerConfirmation(true);
+      const fetch = replyWith({});
+
+      await expect(run(command())).resolves.toEqual(teamChanged);
+
+      const [input, init_] = fetch.mock.calls[0] ?? [];
+      expect(init_?.method).toBe(method);
+      expect(new URL(String(input)).pathname).toBe(path);
+      if (body !== undefined) {
+        expect(jsonOf(init_?.body)).toEqual(body);
+      }
+    },
+  );
+
+  it("チームの削除は DELETE を送り、成功するとそのチームを消したことを返す", async () => {
+    const confirm = answerConfirmation(true);
+    const fetch = replyWith({});
+
+    await expect(run(deleteTeam())).resolves.toEqual(
+      Mutation.Message.SucceededMutation({
+        changed: ChangedByMutation.TeamDeleted({ teamId: TEAM_ID }),
+        maybeCreatedTeamId: Option.none(),
+      }),
+    );
+    expect(confirm).toHaveBeenCalledWith(CONFIRMATION);
+    expect(fetch.mock.calls[0]?.[1]?.method).toBe("DELETE");
+  });
+
+  it.each([
+    ["スキルの削除", () => removeSkill()],
+    ["外すこと", () => unassign()],
+    ["チームの削除", () => deleteTeam()],
+  ])(
+    "%s は確認を取り消すと、要求を送らず、送信の前の状態に戻すことを返す",
+    async (_, command) => {
+      answerConfirmation(false);
+      const fetch = replyWith({});
+
+      await expect(run(command())).resolves.toEqual(
+        Mutation.Message.CanceledMutation({ restored: Submission.Idle() }),
+      );
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    [
+      "名前の変更",
+      () => rename(),
+      { _tag: "DuplicateName" },
+      409,
+      "同じ名前がすでにあります",
+    ],
+    ["名前の変更", () => rename(), {}, 500, "名前を変えられませんでした"],
+    ["スキルの追加", () => addSkill(), {}, 500, "スキルを足せませんでした"],
+    [
+      "割り当て",
+      () => assign(),
+      { _tag: "NotCompanyMember", userId: "u_4" },
+      422,
+      "事業所のメンバーではありません",
+    ],
+    ["割り当て", () => assign(), {}, 500, "割り当てられませんでした"],
+    [
+      "スキルの削除",
+      () => removeSkill(),
+      {},
+      500,
+      "スキルを削除できませんでした",
+    ],
+    ["外すこと", () => unassign(), {}, 500, "外せませんでした"],
+    [
+      "チームの削除",
+      () => deleteTeam(),
+      {},
+      500,
+      "チームを削除できませんでした",
+    ],
+  ])(
+    "%s の失敗 (%j) は、その文言の失敗を返す",
+    async (_, command, body, status, rejection) => {
+      answerConfirmation(true);
+      replyWith(body, { status });
+
+      await expect(run(command())).resolves.toEqual(rejected(rejection));
+    },
+  );
+
+  it.each([
+    ["名前の変更", () => rename("../members"), "/api/teams/..%2Fmembers"],
+    ["削除", () => deleteTeam("../members"), "/api/teams/..%2Fmembers"],
+    [
+      "スキルの追加",
+      () => addSkill("../members"),
+      "/api/teams/..%2Fmembers/skills",
+    ],
+    ["スキルの削除", () => removeSkill("../me"), "/api/skills/..%2Fme"],
+    [
+      "割り当て",
+      () => assign("../members", "a/b"),
+      "/api/teams/..%2Fmembers/assignments/a%2Fb",
+    ],
+    [
+      "外す",
+      () => unassign("../members", "a/b"),
+      "/api/teams/..%2Fmembers/assignments/a%2Fb",
+    ],
+  ])(
+    "%s は path の param を escape して path に入れる",
+    async (_, command, path) => {
+      answerConfirmation(true);
+      const fetch = replyWith({});
+
+      await run(command());
+
+      expect(new URL(String(fetch.mock.calls[0]?.[0])).pathname).toBe(path);
+    },
+  );
+});
+
 type MutationCommandName = {
   [Name in keyof typeof Mutation]: (typeof Mutation)[Name] extends CommandDefinition
     ? Name
@@ -163,11 +370,21 @@ const SEND_BY_COMMAND: Record<
 > = {
   CreateTeam: (runtime) => create("開発", runtime),
   SaveMyLevels: (runtime) => save(TEAM_ID, runtime),
+  RenameTeam: (runtime) => run(rename(), runtime),
+  AddSkill: (runtime) => run(addSkill(), runtime),
+  AssignMember: (runtime) => run(assign(), runtime),
+  RemoveSkill: (runtime) => run(removeSkill(), runtime),
+  UnassignMember: (runtime) => run(unassign(), runtime),
+  DeleteTeam: (runtime) => run(deleteTeam(), runtime),
 };
 
 describe.each(Object.entries(SEND_BY_COMMAND))(
   "どの更新の Command も (%s)",
   (_, send) => {
+    beforeEach(() => {
+      answerConfirmation(true);
+    });
+
     it("401 は、ログインが要ることを返す", async () => {
       replyWith({ _tag: "Unauthenticated" }, { status: 401 });
 
