@@ -34,6 +34,10 @@ YAML
 }
 
 serve() {
+  if [ ! -f "$ROOT/node_modules/@taimei-code/auth-client/testing/compose.yml" ]; then
+    echo "taimei-auth の compose の断片が無い。root で bun install する (e2e/README.md の前提)" >&2
+    exit 1
+  fi
   for port in "${PORTS[@]}"; do
     if lsof -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
       echo "port $port は使用中" >&2
@@ -51,12 +55,25 @@ serve() {
   docker exec -i "$PG" psql -qU postgres -d taimei -v ON_ERROR_STOP=1 <"$ROOT/db/local-app-role.sql"
 
   bun run build >"$STATE/app.log" 2>&1
-  wait "$auth_pid" || { echo "auth が起動しない ($STATE/auth-compose.log を見る)" >&2; exit 1; }
+  wait "$auth_pid" || { echo "auth が起動しない ($STATE/auth-compose.log を見る。ghcr.io に docker login していない時は e2e/README.md の前提)" >&2; exit 1; }
   PORT=3000 AUTH_URL=$AUTH_ORIGIN AUTH_SERVICE_URL=$AUTH_ORIGIN AUTH_SERVICE_KEY=$SERVICE_KEY DATABASE_URL=postgres://taimei_app:taimei_app@localhost:5446/taimei \
     nohup bun run start >>"$STATE/app.log" 2>&1 &
   wait_for "$APP_URL/"
 
-  echo "$APP_URL/dev-home を開いてログインする"
+  cat <<NEXT
+ログイン: $APP_URL/dev-home を開き、開発用アカウントを押してから「アプリケーションに戻る」を押す (role は README.md の「開発環境」)
+定期処理: bun run qa:cron
+log: $STATE/app.log
+止める: bun run qa:down (taimei と taimei-auth の DB も消す)
+NEXT
+}
+
+cron() {
+  curl -sf -o /dev/null "$APP_URL/cdn-cgi/handler/scheduled?cron=17+*+*+*+*" || {
+    echo "$APP_URL の定期処理を起こせない (bun run qa:serve で起動してから流す。失敗の中身は $STATE/app.log)" >&2
+    exit 1
+  }
+  grep purge-departed "$STATE/app.log" | tail -n 5 | grep . || echo "purge-departed の行がまだ無い ($STATE/app.log を見る)" >&2
 }
 
 down() {
@@ -70,9 +87,10 @@ down() {
 
 case ${1:-} in
 serve) serve ;;
+cron) cron ;;
 down) down ;;
 *)
-  echo "usage: $0 serve | down" >&2
+  echo "usage: $0 serve | cron | down" >&2
   exit 1
   ;;
 esac

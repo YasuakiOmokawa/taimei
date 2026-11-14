@@ -2,12 +2,16 @@ import { type ExtractTablesWithRelations, type SQL, sql } from "drizzle-orm";
 import type { NodePgQueryResultHKT } from "drizzle-orm/node-postgres";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { PgTransaction } from "drizzle-orm/pg-core";
+import { Effect } from "effect";
 import { Pool } from "pg";
+import type { CompanyId } from "@/db/company-id";
 import * as schema from "@/db/drizzle/schema";
 import {
   COMPANY_ID_SETTING,
   TEAM_LIST_UNBUMPED_SETTING,
 } from "@/db/drizzle/schema";
+import { withCompanyScope } from "@/db/scoped";
+import { Db, ReadDb } from "../../db-service";
 import { TEST_DATABASE_URL } from "./global-setup";
 
 export const testDb = drizzle(
@@ -56,13 +60,34 @@ const oneAtATime = <T>(run: () => PromiseLike<T>): Promise<T> => {
 
 export const APP_ROLE = "taimei_app";
 
-export const asAppRole = <T>(tx: TestDb, fn: (app: TestDb) => Promise<T>) =>
+declare const appRole: unique symbol;
+type AsAppRole = { readonly [appRole]: true };
+export type AppRoleDb = Db["Service"] & AsAppRole;
+
+export const asAppRole = <T>(
+  tx: TestDb,
+  fn: (app: TestDb & AsAppRole) => Promise<T>,
+) =>
   tx.transaction(async (app) => {
     await app.execute(sql.raw(`SET LOCAL ROLE ${APP_ROLE}`));
-    const result = await fn(app);
+    const result = await fn(app as TestDb & AsAppRole);
     await app.execute(sql`RESET ROLE`);
     return result;
   });
+
+export const asAppRoleInCompany = <T>(
+  tx: TestDb,
+  companyId: CompanyId,
+  fn: (scoped: AppRoleDb) => Promise<T>,
+) =>
+  asAppRole(tx, (app) =>
+    withCompanyScope(app, companyId, (scoped) => fn(scoped as AppRoleDb)),
+  );
+
+export const provideAppDb = (app: AppRoleDb) => Effect.provideService(Db, app);
+
+export const provideAppReadDb = (app: AppRoleDb) =>
+  Effect.provideService(ReadDb, app);
 
 const inCurrentRollbackAsApp = <T>(fn: (app: TestDb) => Promise<T>) => {
   const tx = currentRollbackTx();

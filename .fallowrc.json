@@ -77,7 +77,7 @@
       {
         "from": "contract",
         "allow": ["contract"],
-        "allowTypeOnly": ["server"]
+        "allowTypeOnly": []
       },
       {
         "from": "server",

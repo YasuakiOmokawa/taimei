@@ -28,6 +28,7 @@
 - 手作業の SQL の後に消す HTTP の口 (#591 の AC 4) は作らない。口を作ると、認証の付いた新しい入口 (秘密・CSRF・テスト) が要る。手作業の SQL は版を増やさないので、その後は GitHub Actions の Deploy を流し直し、Worker の version を変えて全事業所の一覧を DB から読み直させる。DB を backup から戻した後 (版が過去に戻る) も流し直す
 - DO を呼べない時と 1 秒で返らない時は報告し、読み取りは Postgres の値で答え (DO に置きには行かない)、書き込みは結果を変えない。書き直しは 1 秒の中で 1 回だけ試し直し、届かなければ DO の表を消す。commit したか分からない (`DbUnavailable`) 時と、増やした版の一覧を読めない時も消す。DO の中の行が壊れて読めない時は、DO が自分で消す
 - 追記 (2026-10-27、#656): 一覧の元の表 (`teams`・`team_assignments`) を書いた transaction は、書いた後に `bump_company_team_list` を呼ばないと commit できない (`drizzle/0016_team_list_bumped_on_commit.sql` の行の trigger が設定 `app.team_list_unbumped` を立て、deferred の constraint trigger が commit の時にそれを見る。`bump_company_team_list` が消す)。`writeTeamList` を通さない書き込み (TeamService・e2e の seed・手作業の SQL) は commit で落ちる
+- 追記 (2026-11-15、#711): commit の検査は書いた事業所ごとの bump を求める (`drizzle/0017_team_list_bumped_per_company.sql`)。行の trigger は書いた行の事業所を設定 `app.team_list_unbumped_companies` に集め、`bump_company_team_list` は自分の事業所だけを外し、残った事業所があれば commit がその id を挙げて落ちる。#656 の設定は transaction に 1 つで、別の事業所を bump しても通った。設定の名前を変えたのは、適用の瞬間に走っている transaction が、古い関数の書いた値を新しい関数で読まないようにするためである
 
 ## Consequences
 

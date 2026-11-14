@@ -1,0 +1,16 @@
+language js
+
+or {
+  `Effect.provideService($service, $db)`,
+  `Effect.provideService($service)`,
+  `Layer.succeed($service, $db)`,
+  `Layer.sync($service, $db)`,
+  `Layer.effect($service, $db)`,
+  `Context.make($service, $db)`
+} as $provided where {
+  $service <: or {
+    `Db`,
+    `ReadDb`
+  },
+  register_diagnostic(span=$provided, message="試験で Service に渡す db は、本番と同じ taimei_app の role の db にする。src/services/__tests__/db/test-db.ts の asAppRole か asAppRoleInCompany が渡す db を、provideAppDb・provideAppReadDb で渡す (superuser の tx は RLS を通らない)")
+}

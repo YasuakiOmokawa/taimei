@@ -4,6 +4,7 @@ import { Effect } from "effect";
 import type { ExecutionContext } from "hono";
 import type { Pool } from "pg";
 import { afterEach, expect, it, vi } from "vitest";
+// biome-ignore lint/style/noRestrictedImports: 定期処理が要求ごとの Pool の中で db を使うことを確かめる
 import { db } from "@/db/drizzle/client";
 // biome-ignore lint/style/noRestrictedImports: 定期処理が要求ごとの Pool の中で動くことを確かめる
 import { currentPool } from "@/db/drizzle/pool";

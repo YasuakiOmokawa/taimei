@@ -1,0 +1,11 @@
+language js
+
+or {
+  `eq($column, $value)`,
+  `ne($column, $value)`,
+  `inArray($column, $value)`,
+  `notInArray($column, $value)`
+} where {
+  $column <: `$table.companyId`,
+  register_diagnostic(span=$column, message="事業所の絞り込みは db/scoped.ts の companyFilter を通す (docs/adr/0002-company-data-scoping.md の D4)")
+}

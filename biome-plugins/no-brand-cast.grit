@@ -1,0 +1,6 @@
+language js
+
+TsAsExpression() as $cast where {
+  $cast <: r"(?s).*\bas\b.*\b(?:CompanyId|TeamId|SkillId)\b.*",
+  register_diagnostic(span=$cast, message="id の brand (CompanyId・TeamId・SkillId) の値は as で作らず、db/company-id.ts・db/ids.ts の Schema で作る (decode か make)")
+}

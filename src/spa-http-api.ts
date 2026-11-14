@@ -90,7 +90,10 @@ type DecodedHandlers<Group> = {
 const runServiceForCurrentSession = <A, E extends TeamFailure>(
   run: (session: RequestSession) => Promise<Result.Result<A, E>>,
 ) =>
-  CurrentSession.use((session) => Effect.promise(() => run(session))).pipe(
+  CurrentSession.use(() => SessionCheckRef).pipe(
+    Effect.flatMap(Effect.fromResult),
+    Effect.orDie,
+    Effect.flatMap((session) => Effect.promise(() => run(session))),
     Effect.flatMap(Effect.fromResult),
     Effect.catchIf(
       (failure): failure is Extract<E, UnexpectedFailure> =>

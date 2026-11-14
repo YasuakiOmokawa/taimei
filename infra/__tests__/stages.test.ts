@@ -7,6 +7,7 @@ import {
   productionStageOf,
   STAGES,
   STATE_STORE_WORKER_NAME,
+  type StageConfig,
   stageOutputs,
 } from "../stages";
 import { readWranglerConfig, readWranglerJson } from "../wrangler-config";
@@ -179,6 +180,23 @@ describe("drift の検出が期待する Worker の設定", () => {
       AUTH_SERVICE_KEY: "secrets_store_secret",
     });
     expect(bindingTypeByName("staging")).not.toHaveProperty("SENTRY_DSN");
+  });
+
+  it("secret を渡すかは、全ての secret について stage ごとに決める (Env に secret を足すと、決めるまで型エラーになる)", () => {
+    const undecided: StageConfig["secrets"] = {
+      type: "secret_text",
+      // @ts-expect-error SENTRY_DSN を渡すかを決めていない
+      bound: { AUTH_SERVICE_KEY: true },
+    };
+    expect(undecided.type).toBe("secret_text");
+  });
+
+  it("Durable Object の binding は wrangler.jsonc のものと同じ (Env と ENV_BINDINGS に足した Durable Object を wrangler.jsonc に足し忘れると、deploy が作らない)", () => {
+    expect(
+      expectedWorkerSettings(STAGES.production)
+        .bindings.filter(({ type }) => type === "durable_object_namespace")
+        .map(({ name }) => name),
+    ).toEqual(production.durable_objects.bindings.map(({ name }) => name));
   });
 });
 

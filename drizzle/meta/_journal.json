@@ -120,6 +120,13 @@
       "when": 1793057999463,
       "tag": "0016_team_list_bumped_on_commit",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794682688534,
+      "tag": "0017_team_list_bumped_per_company",
+      "breakpoints": true
     }
   ]
 }

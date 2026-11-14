@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+// biome-ignore lint/style/noRestrictedImports: 本番以外の入口は、Service を通さずに DB の印だけを確かめる
 import { db } from "@/db/drizzle/client";
 
 export const requireMarkedDatabase = async () => {

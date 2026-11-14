@@ -1,3 +1,4 @@
+import type { Role } from "@taimei-code/auth-client";
 import { Context, Schema } from "effect";
 import {
   HttpApi,
@@ -7,7 +8,6 @@ import {
 } from "effect/http-api";
 import { LEVELS } from "../db/column-values";
 import { SkillId, TeamId } from "../db/ids";
-import type { RequestSession } from "./services/request-session";
 
 export const SESSION_HEADER = "x-taimei-session";
 
@@ -115,7 +115,11 @@ const Empty = Schema.Struct({});
 
 export class CurrentSession extends Context.Service<
   CurrentSession,
-  RequestSession
+  {
+    readonly userId: string;
+    readonly userName: string;
+    readonly role: Role | undefined;
+  }
 >()("taimei/CurrentSession") {}
 
 export class Authenticated extends HttpApiMiddleware.Service<

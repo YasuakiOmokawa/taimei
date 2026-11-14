@@ -3,6 +3,7 @@ import * as Alchemy from "alchemy";
 import { Effect } from "effect";
 import {
   AUTH_SERVICE_BINDING,
+  boundSecretsOf,
   bundleMainOf,
   parseAccountId,
   STATE_STORE_WORKER_NAME,
@@ -96,7 +97,7 @@ export default Alchemy.Stack(
     const worker = yield* App;
     if (stage.secrets.type === "secrets_store_secret") {
       const store = yield* Cloudflare.SecretsStore.Store("Secrets");
-      for (const name of stage.secrets.names) {
+      for (const name of boundSecretsOf(stage)) {
         yield* worker.bind(name, {
           bindings: [
             {

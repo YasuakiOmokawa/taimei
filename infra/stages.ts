@@ -1,5 +1,39 @@
 import { basename } from "node:path";
+import type { Env } from "../src/app";
 import { readWranglerConfig, type WranglerConfig } from "./wrangler-config";
+
+type BindingKind =
+  | "hyperdrive"
+  | "durable_object_namespace"
+  | "version_metadata"
+  | "service"
+  | "plain_text"
+  | "secret"
+  | "local_only";
+
+export const AUTH_SERVICE_BINDING = "AUTH";
+
+const ENV_BINDINGS = {
+  HYPERDRIVE: "hyperdrive",
+  COMPANY_TEAM_LIST: "durable_object_namespace",
+  CF_VERSION_METADATA: "version_metadata",
+  [AUTH_SERVICE_BINDING]: "service",
+  AUTH_URL: "plain_text",
+  AUTH_SERVICE_KEY: "secret",
+  SENTRY_DSN: "secret",
+  AUTH_SERVICE_URL: "local_only",
+} as const satisfies Record<keyof Env, BindingKind>;
+
+type EnvBindingOf<Kind extends BindingKind> = {
+  [Name in keyof typeof ENV_BINDINGS]: (typeof ENV_BINDINGS)[Name] extends Kind
+    ? Name
+    : never;
+}[keyof typeof ENV_BINDINGS];
+
+const envBindingsOf = <Kind extends BindingKind>(kind: Kind) =>
+  Object.entries(ENV_BINDINGS)
+    .filter(([, declared]) => declared === kind)
+    .map(([name]) => name) as EnvBindingOf<Kind>[];
 
 type ServedAt =
   | { readonly kind: "customDomain"; readonly domain: string }
@@ -7,8 +41,10 @@ type ServedAt =
 
 type StageSecrets = {
   readonly type: "secrets_store_secret" | "secret_text";
-  readonly names: readonly string[];
+  readonly bound: Readonly<Record<EnvBindingOf<"secret">, boolean>>;
 };
+
+type StageVars = Readonly<Record<EnvBindingOf<"plain_text">, string>>;
 
 export type StageConfig = {
   readonly workerName: string;
@@ -17,15 +53,13 @@ export type StageConfig = {
   readonly entry: string;
   readonly servedAt: ServedAt;
   readonly secrets: StageSecrets;
-  readonly vars: Readonly<Record<string, string>>;
+  readonly vars: StageVars;
 };
 
 const WORKERS_DEV_SUBDOMAIN = "taimei-staging";
 
 const workersDevUrl = (workerName: string) =>
   `https://${workerName}.${WORKERS_DEV_SUBDOMAIN}.workers.dev`;
-
-export const AUTH_SERVICE_BINDING = "AUTH";
 
 const authWorkerNameOf = (config: WranglerConfig) => {
   const auth = config.services.find(
@@ -46,14 +80,29 @@ const customDomainOf = (config: WranglerConfig) => {
   );
 };
 
+const isStageVars = (
+  vars: Readonly<Record<string, string>>,
+): vars is StageVars =>
+  Object.keys(vars).sort().join() === envBindingsOf("plain_text").sort().join();
+
+const stageVarsOf = (config: WranglerConfig): StageVars => {
+  if (isStageVars(config.vars)) return config.vars;
+  throw new Error(
+    `wrangler.jsonc の vars は ${envBindingsOf("plain_text").join("・")} だけにする (今は ${Object.keys(config.vars).join("・")})。足す binding は src/app.ts の Env と infra/stages.ts の ENV_BINDINGS にも足す`,
+  );
+};
+
 export const productionStageOf = (config: WranglerConfig): StageConfig => ({
   workerName: config.name,
   hyperdriveName: "taimei",
   authWorkerName: authWorkerNameOf(config),
   entry: config.main,
   servedAt: { kind: "customDomain", domain: customDomainOf(config) },
-  secrets: { type: "secret_text", names: ["AUTH_SERVICE_KEY", "SENTRY_DSN"] },
-  vars: config.vars,
+  secrets: {
+    type: "secret_text",
+    bound: { AUTH_SERVICE_KEY: true, SENTRY_DSN: true },
+  },
+  vars: stageVarsOf(config),
 });
 
 const STAGING_AUTH_WORKER_NAME = "taimei-auth-staging";
@@ -69,7 +118,10 @@ export const STAGES: Readonly<Record<StageName, StageConfig>> = {
     authWorkerName: STAGING_AUTH_WORKER_NAME,
     entry: "testing/staging-worker.ts",
     servedAt: { kind: "workersDevBehindAccess" },
-    secrets: { type: "secrets_store_secret", names: ["AUTH_SERVICE_KEY"] },
+    secrets: {
+      type: "secrets_store_secret",
+      bound: { AUTH_SERVICE_KEY: true, SENTRY_DSN: false },
+    },
     vars: { AUTH_URL: workersDevUrl(STAGING_AUTH_WORKER_NAME) },
   },
   production: productionStageOf(productionWranglerConfig),
@@ -100,17 +152,15 @@ export const stageOutputs = (stage: StageConfig) =>
 
 export type WorkerBinding = { readonly name: string; readonly type: string };
 
+export const boundSecretsOf = ({ secrets }: StageConfig) =>
+  envBindingsOf("secret").filter((name) => secrets.bound[name]);
+
 const expectedBindings = (stage: StageConfig): WorkerBinding[] => [
   { name: "ASSETS", type: "assets" },
-  { name: "CF_VERSION_METADATA", type: "version_metadata" },
-  { name: "HYPERDRIVE", type: "hyperdrive" },
-  { name: AUTH_SERVICE_BINDING, type: "service" },
-  ...productionWranglerConfig.durable_objects.bindings.map(({ name }) => ({
-    name,
-    type: "durable_object_namespace",
-  })),
-  ...Object.keys(stage.vars).map((name) => ({ name, type: "plain_text" })),
-  ...stage.secrets.names.map((name) => ({ name, type: stage.secrets.type })),
+  ...Object.entries(ENV_BINDINGS)
+    .filter(([, kind]) => kind !== "secret" && kind !== "local_only")
+    .map(([name, type]) => ({ name, type })),
+  ...boundSecretsOf(stage).map((name) => ({ name, type: stage.secrets.type })),
 ];
 
 export type WorkerSettings = {

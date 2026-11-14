@@ -4,6 +4,7 @@ import { COMPANY_A, COMPANY_B } from "@/src/services/__tests__/db/seed";
 import {
   asAppRole,
   dbInRollback,
+  provideAppDb,
   type TestDb,
   withRollback,
   withRollbackDb,
@@ -206,3 +207,9 @@ describe("RLS (BYPASSRLS の無い role)", () => {
       );
     }));
 });
+
+it("Service に渡す試験の db は、asAppRole か asAppRoleInCompany が渡す db だけが型で通る (superuser の tx は RLS を通らない)", () =>
+  withRollback(async (tx) => {
+    // @ts-expect-error tx は taimei_app の role を通っていない
+    expect(provideAppDb(tx)).toBeTypeOf("function");
+  }));
