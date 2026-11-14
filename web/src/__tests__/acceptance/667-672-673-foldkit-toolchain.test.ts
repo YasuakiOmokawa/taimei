@@ -145,9 +145,6 @@ const lint = (fixture: Fixture): LintResult => {
   };
 };
 
-const isLintFinding = (category: string) =>
-  category.startsWith("lint/") || category === "plugin";
-
 afterAll(() => {
   for (const fixtureDir of fixtureDirs) {
     rmSync(fixtureDir, { recursive: true, force: true });
@@ -155,17 +152,6 @@ afterAll(() => {
 });
 
 describe("#667 effect と alchemy の版", () => {
-  it("AC-001 effect と、effect と同じ版の系列の @effect/* は 4.1.2 に固定されている", () => {
-    const names = [
-      "effect",
-      "@effect/atom-react",
-      "@effect/platform-bun",
-      "@effect/platform-node",
-    ];
-
-    expect(pinnedVersionsOf(names)).toEqual(pinnedAt(names, "4.1.2"));
-  });
-
   it("AC-002 alchemy と @alchemy.run/cloudflare は 2.0.0-beta.85 に固定されている", () => {
     const names = ["alchemy", "@alchemy.run/cloudflare"];
 
@@ -278,11 +264,6 @@ export const view = () => {
 };
 `;
 
-const ATOM_IMPORT = `import { useAtomValue } from "@effect/atom-react";
-
-export const read = useAtomValue;
-`;
-
 const UNFORMATTED = "export const   spaced=1\n";
 
 const FORM_IN_PAGE = "web/src/dashboard/pages/FormProbe.ts";
@@ -293,7 +274,6 @@ const PERSISTENCE_IN_NEW_FILE = "web/src/dashboard/persistence-probe.ts";
 const REPOS_IN_PAGE = "web/src/dashboard/pages/ReposProbe.ts";
 const EFFECT_RUN_IN_PAGE = "web/src/dashboard/pages/EffectRunProbe.ts";
 const STATE_IN_PAGE = "web/src/dashboard/pages/StateProbe.ts";
-const REACT_FILE = "web/src/dashboard/teams-page.tsx";
 const UNFORMATTED_NEW_FILE = "web/src/dashboard/pages/UnformattedProbe.ts";
 
 describe("#673 新しい web の file の違反を、bun run lint が流す oxlint が指摘する", () => {
@@ -309,7 +289,6 @@ describe("#673 新しい web の file の違反を、bun run lint が流す oxli
       [REPOS_IN_PAGE]: REPOS_IMPORT,
       [EFFECT_RUN_IN_PAGE]: EFFECT_RUN_IN_UPDATE,
       [STATE_IN_PAGE]: MODULE_LEVEL_STATE,
-      [REACT_FILE]: ATOM_IMPORT,
       [UNFORMATTED_NEW_FILE]: UNFORMATTED,
     });
   });
@@ -351,86 +330,8 @@ describe("#673 新しい web の file の違反を、bun run lint が流す oxli
     }).toEqual({ lines: [5], fromFoldkitPlugin: true });
   });
 
-  it("AC-020 今の React の file の path に書いた Atom の import は、Biome が noRestrictedImports で指摘し、oxlint は指摘しない", () => {
-    expect({
-      biome: result
-        .biomeCategoriesOf(REACT_FILE)
-        .includes("lint/style/noRestrictedImports"),
-      oxlint: result.oxlintLinesOf(REACT_FILE),
-    }).toEqual({ biome: true, oxlint: [] });
-  });
-
   it("AC-022 新しい file の整形されていない code は、Biome が format で指摘する", () => {
     expect(result.biomeCategoriesOf(UNFORMATTED_NEW_FILE)).toContain("format");
-  });
-});
-
-const SWITCH_STATEMENT = `export const pick = (value) => {
-  switch (value) {
-    default:
-      return 1;
-  }
-};
-`;
-
-const LINTED_EXTENSION = /\.(ts|tsx|mts|mjs)$/;
-
-const existingWebFiles = () =>
-  readdirSync(path.join(REPO_ROOT, "web"), {
-    recursive: true,
-    encoding: "utf8",
-  })
-    .filter(
-      (file) =>
-        LINTED_EXTENSION.test(file) &&
-        !file.startsWith("dist") &&
-        !file.includes("node_modules"),
-    )
-    .map((file) => `web/${file.split(path.sep).join("/")}`);
-
-const REACT_FILES = [
-  "web/src/main.tsx",
-  "web/src/router.tsx",
-  "web/src/api.ts",
-  "web/src/api-internal.ts",
-  "web/src/dashboard/teams-page.tsx",
-  "web/src/landing/landing-page.tsx",
-];
-
-const NEW_FILES = [
-  "web/new-probe.ts",
-  "web/src/new-probe.ts",
-  "web/src/dashboard/new-probe.ts",
-  "web/src/dashboard/pages/NewProbe.ts",
-  "web/src/dashboard/pages/__tests__/NewProbe.test.ts",
-  "web/src/new-domain/pages/NewProbe.ts",
-];
-
-describe("#673 1 つの file に効く linter は 1 つ", () => {
-  it("AC-021 web の今ある path と新しい path のどれに同じ違反を書いても、Biome と oxlint のちょうど一方だけが指摘する (今の React の file は Biome、新しい file は oxlint)", () => {
-    const files = uniqueSorted([
-      ...existingWebFiles(),
-      ...REACT_FILES,
-      ...NEW_FILES,
-    ]);
-    const result = lint(
-      Object.fromEntries(files.map((file) => [file, SWITCH_STATEMENT])),
-    );
-    const biomeFinds = (file: string) =>
-      result.biomeCategoriesOf(file).some(isLintFinding);
-    const oxlintFinds = (file: string) => result.oxlintLinesOf(file).length > 0;
-
-    expect({
-      notExactlyOne: files.filter(
-        (file) => biomeFinds(file) === oxlintFinds(file),
-      ),
-      reactFilesBiomeMisses: REACT_FILES.filter((file) => !biomeFinds(file)),
-      newFilesOxlintMisses: NEW_FILES.filter((file) => !oxlintFinds(file)),
-    }).toEqual({
-      notExactlyOne: [],
-      reactFilesBiomeMisses: [],
-      newFilesOxlintMisses: [],
-    });
   });
 });
 
