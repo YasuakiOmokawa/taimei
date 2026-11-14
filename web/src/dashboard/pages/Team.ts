@@ -17,12 +17,7 @@ import { iconView } from "../../shared/ui/icon-view";
 import { checkboxView, inputView } from "../../shared/ui/input-view";
 import { selectView } from "../../shared/ui/select-view";
 import { MyLevelEntry } from "../changed-by-mutation";
-import {
-  levelEntriesOf,
-  levelFieldName,
-  levels,
-  wantsToLearnFieldName,
-} from "../level";
+import { levelEntriesOf, levels } from "../level";
 import * as Mutation from "../mutation";
 import {
   BIAS_RULE,
@@ -326,24 +321,11 @@ const shownWantsToLearnOf = (model: Model, cell: Cell) =>
     () => cell.wantsToLearn,
   );
 
-const formFieldsOf = (model: Model, cell: Cell) => [
-  [levelFieldName(cell.skill.id), shownLevelOf(model, cell)] as const,
-  ...(shownWantsToLearnOf(model, cell)
-    ? [[wantsToLearnFieldName(cell.skill.id), "on"] as const]
-    : []),
-];
-
 const entriesOf = (model: Model, cells: ReadonlyArray<Cell>) =>
   levelEntriesOf(
     cells,
-    Array.reduce(
-      Array.flatMap(cells, (cell) => formFieldsOf(model, cell)),
-      new FormData(),
-      (form, [name, value]) => {
-        form.set(name, value);
-        return form;
-      },
-    ),
+    (cell) => shownLevelOf(model, cell),
+    (cell) => shownWantsToLearnOf(model, cell),
   );
 
 const sectionView = (

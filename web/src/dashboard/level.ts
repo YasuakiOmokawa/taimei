@@ -1,5 +1,6 @@
-import type { Level } from "../../../src/spa-contract";
-import type { Cell, MyLevelEntry } from "./skill-matrix";
+import { Level } from "../../../src/spa-contract";
+import type { MyLevelEntry } from "./changed-by-mutation";
+import type { Cell } from "./skill-matrix";
 
 export const levels: Record<Level, { symbol: string; label: string }> = {
   0: { symbol: "", label: "未経験" },
@@ -8,26 +9,22 @@ export const levels: Record<Level, { symbol: string; label: string }> = {
   3: { symbol: "◎", label: "教えられる" },
 };
 
-export const levelFromFormValue = (value: FormDataEntryValue | null) =>
-  typeof value === "string" && Object.hasOwn(levels, value)
-    ? (Number(value) as Level)
-    : undefined;
-
-export const levelFieldName = (skillId: string) => `level:${skillId}`;
-export const wantsToLearnFieldName = (skillId: string) => `wants:${skillId}`;
+export const levelFromSelectValue = (value: string): Level | undefined =>
+  Level.literals.find((level) => String(level) === value);
 
 const UNRECORDED_BUT_WANTS_TO_LEARN = 0;
 
 export const levelEntriesOf = (
   cells: readonly Cell[],
-  form: FormData,
-): MyLevelEntry[] =>
-  cells.flatMap(({ skill }) => {
-    const wantsToLearn = form.has(wantsToLearnFieldName(skill.id));
+  selectValueOf: (cell: Cell) => string,
+  wantsToLearnOf: (cell: Cell) => boolean,
+): (typeof MyLevelEntry.Type)[] =>
+  cells.flatMap((cell) => {
+    const wantsToLearn = wantsToLearnOf(cell);
     const level =
-      levelFromFormValue(form.get(levelFieldName(skill.id))) ??
+      levelFromSelectValue(selectValueOf(cell)) ??
       (wantsToLearn ? UNRECORDED_BUT_WANTS_TO_LEARN : undefined);
     return level === undefined
       ? []
-      : [{ skillId: skill.id, level, wantsToLearn }];
+      : [{ skillId: cell.skill.id, level, wantsToLearn }];
   });
