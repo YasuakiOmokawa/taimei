@@ -33,7 +33,6 @@ updates:
         patterns:
           - "typescript"
           - "@effect/tsgo"
-      # effect/reactivity は unstable で、@effect/atom-react は同じ版の effect に合わせて作られる
       effect:
         patterns:
           - "effect"

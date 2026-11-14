@@ -1,6 +1,6 @@
 import path from "node:path";
 import { build, type Rollup } from "vite";
-import { afterEach, expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 
 const webRoot = path.resolve(import.meta.dirname, "../..");
 const repoRoot = path.resolve(webRoot, "..");
@@ -19,13 +19,7 @@ const SECRET_NAMES = [
   "SENTRY_DSN",
 ];
 
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
-
-// vite は mode でなく NODE_ENV で本番の build にする。vitest の中は NODE_ENV が test
 const buildSpa = async () => {
-  vi.stubEnv("NODE_ENV", "production");
   const result = (await build({
     configFile: path.join(webRoot, "vite.config.ts"),
     mode: "production",

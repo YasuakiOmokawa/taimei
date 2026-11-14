@@ -5,7 +5,6 @@ import {
   HttpApiGroup,
   HttpApiMiddleware,
 } from "effect/http-api";
-// SPA の build の alias は @ を web/src に向けるので、repo 内は相対で読む
 import { LEVELS } from "../db/column-values";
 import { SkillId, TeamId } from "../db/ids";
 import type { RequestSession } from "./services/request-session";

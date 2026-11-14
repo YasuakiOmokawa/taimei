@@ -1,11 +1,10 @@
 import formsPlugin from "@tailwindcss/forms";
 import type { Config } from "tailwindcss";
 import defaultTheme from "tailwindcss/defaultTheme";
-import animatePlugin from "tailwindcss-animate";
 
 const config: Config = {
   darkMode: ["class"],
-  content: { relative: true, files: ["./index.html", "./src/**/*.{ts,tsx}"] },
+  content: { relative: true, files: ["./index.html", "./src/**/*.ts"] },
   theme: {
     extend: {
       fontFamily: {
@@ -93,6 +92,6 @@ const config: Config = {
     //   },
     // },
   },
-  plugins: [formsPlugin, animatePlugin],
+  plugins: [formsPlugin],
 };
 export default config;
