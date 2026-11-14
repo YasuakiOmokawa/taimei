@@ -167,8 +167,8 @@ const SHARED_TO_PAGE_FIXTURES = [
 
 const TEST_FIXTURES = [
   fixture(
-    "web/src/landing/__tests__/acceptance-fixture-landing-test-to-privacy.ts",
-    "../../privacy/facts",
+    "web/src/landing/__tests__/acceptance-fixture-landing-test-to-dashboard.ts",
+    "../../dashboard/skill-matrix",
   ),
   fixture(
     "web/src/dashboard/__tests__/acceptance-fixture-dashboard-test-to-landing-page.ts",
@@ -180,7 +180,7 @@ const TEST_FIXTURES = [
   ),
   fixture(
     "web/src/shared/ui/__tests__/acceptance-fixture-shared-ui-test-to-dashboard.ts",
-    "../../../dashboard/level",
+    "../../../dashboard/mutation",
   ),
 ];
 
