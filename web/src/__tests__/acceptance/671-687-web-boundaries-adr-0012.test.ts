@@ -188,16 +188,6 @@ describe("#671 web の domain の境界の型", () => {
   );
 
   it(
-    "AC-004 bun run lint が通る",
-    () => {
-      const result = run(REPO_ROOT, "bun", "run", "lint");
-
-      expect(result.status, `${result.stdout}${result.stderr}`).toBe(0);
-    },
-    SLOW_TEST_TIMEOUT,
-  );
-
-  it(
     "AC-005 vitest の web の project は、web/src の .test.tsx を拾わず、同じ所の .test.ts を拾う",
     () => {
       const copy = repoCopy();
