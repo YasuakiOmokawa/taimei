@@ -6,3 +6,4 @@ cd "$(dirname "$0")/.."
 tsc=$(node_modules/.bin/effect-tsgo get-exe-path) || { echo "$tsc" >&2; exit 1; }
 "$tsc" --noEmit
 "$tsc" --noEmit -p web
+"$tsc" -b web/domain-projects/index.json

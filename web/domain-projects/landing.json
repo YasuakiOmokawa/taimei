@@ -1,0 +1,6 @@
+{
+  "extends": "./base.json",
+  "include": ["../src/landing/**/*.ts"],
+  "exclude": ["../src/landing/pages", "../src/landing/**/__tests__"],
+  "references": [{ "path": "./shared.json" }, { "path": "./core.json" }]
+}

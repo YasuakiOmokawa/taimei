@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./core.json" },
+    { "path": "./shared.json" },
+    { "path": "./landing.json" },
+    { "path": "./privacy.json" },
+    { "path": "./dashboard.json" }
+  ]
+}

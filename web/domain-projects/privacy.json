@@ -1,0 +1,6 @@
+{
+  "extends": "./base.json",
+  "include": ["../src/privacy/**/*.ts"],
+  "exclude": ["../src/privacy/pages", "../src/privacy/**/__tests__"],
+  "references": [{ "path": "./shared.json" }, { "path": "./core.json" }]
+}
