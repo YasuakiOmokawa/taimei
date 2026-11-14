@@ -410,11 +410,27 @@ const openCreatedTeam =
     ),
   });
 
+const leaveDeletedTeam =
+  (changed: ChangedByMutation): Step =>
+  (model) =>
+    ChangedByMutation.guards.TeamDeleted(changed) &&
+    Equal.equals(model.route, DashboardRoute.Team({ teamId: changed.teamId }))
+      ? {
+          model,
+          commands: [
+            navigate(
+              DocumentNavigation.NavigateInternal({ href: teamsRouter() }),
+            ),
+          ],
+        }
+      : { model };
+
 const reflectMutationOutcome = Mutation.OutMessage.match<Step>({
   SucceededMutation: ({ changed, maybeCreatedTeamId }) =>
     Update.combine([
       reflectChange(changed),
       openCreatedTeam(maybeCreatedTeamId),
+      leaveDeletedTeam(changed),
     ]),
   RequiredSignIn: () => leaveToSignIn,
   ChangedSession: () => reloadDocument,
@@ -470,15 +486,15 @@ const foldTeamPage = (teamId: string) =>
     }),
   });
 
-const keepOnlySavingTeamPages: Step = (model) => ({
+const keepOnlySubmittingTeamPages: Step = (model) => ({
   model: modifyFields(model, {
-    teamPages: HashMap.filter(Team.isSaving),
+    teamPages: HashMap.filter(Team.isSubmitting),
   }),
 });
 
 const resetPages = Update.combine([
   foldTeamsPageReset,
-  keepOnlySavingTeamPages,
+  keepOnlySubmittingTeamPages,
 ]);
 
 const changeRoute =
@@ -645,6 +661,7 @@ const pageView = (model: Model, me: Me, h: HtmlBuilder<Message>): Html =>
         viewInputs: {
           teamId,
           myUserId: me.userId,
+          canManage: me.canManage,
           team: teamSlot(teamId).read(model).data,
           teamsHref: teamsRouter(),
         },

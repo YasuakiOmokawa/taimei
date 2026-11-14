@@ -6,8 +6,6 @@ import { modifyFields } from "foldkit/struct";
 import type { Team } from "../../../../src/spa-contract";
 import type { SpaHttpClient } from "../../shared/spa-http-client";
 import { Submission } from "../../shared/submission";
-import { rejectionAlertView } from "../../shared/ui/alert-text-view";
-import { buttonView } from "../../shared/ui/button-view";
 import {
   cardLoadingView,
   cardMessageView,
@@ -15,6 +13,7 @@ import {
 } from "../../shared/ui/card-view";
 import { inputView } from "../../shared/ui/input-view";
 import * as Mutation from "../mutation";
+import { submitFormView } from "../submit-form-view";
 
 export const Model = Schema.Struct({
   nameDraft: Schema.String,
@@ -115,35 +114,23 @@ const createTeamFormView = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.div(
     [h.Class("border-b p-6")],
     [
-      h.form(
-        [h.Class("space-y-1"), h.OnSubmit(Message.SubmittedCreateTeamForm())],
-        [
-          h.div(
-            [h.Class("flex flex-wrap items-center gap-2")],
-            [
-              inputView(
-                {
-                  id: TEAM_NAME_INPUT_ID,
-                  label: "チーム名",
-                  value: model.nameDraft,
-                  onInput: (value) => Message.UpdatedTeamName({ value }),
-                },
-                h,
-              ),
-              buttonView(
-                {
-                  look: "primarySmall",
-                  type: "submit",
-                  label: "チームを作る",
-                  submission: model.creation,
-                  isBlocked: false,
-                },
-                h,
-              ),
-            ],
+      submitFormView(
+        {
+          control: inputView(
+            {
+              id: TEAM_NAME_INPUT_ID,
+              label: "チーム名",
+              value: model.nameDraft,
+              onInput: (value) => Message.UpdatedTeamName({ value }),
+            },
+            h,
           ),
-          ...rejectionAlertView(model.creation, h),
-        ],
+          submitLabel: "チームを作る",
+          submission: model.creation,
+          isBlocked: false,
+          onSubmit: Message.SubmittedCreateTeamForm(),
+        },
+        h,
       ),
     ],
   );

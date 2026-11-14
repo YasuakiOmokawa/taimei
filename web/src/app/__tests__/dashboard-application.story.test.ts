@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { SkillId, TeamId } from "../../../../db/ids";
 import { SESSION_HEADER } from "../../../../src/spa-contract";
 import { ChangedByMutation } from "../../dashboard/changed-by-mutation";
+import * as Mutation from "../../dashboard/mutation";
+import * as Team from "../../dashboard/pages/Team";
 import { SpaHttpClient } from "../../shared/spa-http-client";
 import {
   init,
@@ -979,5 +981,30 @@ describe("取得の Command", () => {
     await run(LoadTeam({ teamId: "../members", request: 1 }));
 
     expect(requestedPaths).toEqual(["/api/teams/..%2Fmembers"]);
+  });
+});
+
+describe("チームの削除の成功", () => {
+  const teamDeleted = Message.GotTeamPageMessage({
+    teamId: TEAM_ID,
+    message: Team.Message.GotMutationMessage({
+      slotId: "deleting",
+      message: Mutation.Message.SucceededMutation({
+        changed: ChangedByMutation.TeamDeleted({ teamId: TEAM_ID }),
+        maybeCreatedTeamId: Option.none(),
+      }),
+    }),
+  });
+
+  it("消したチームの画面にいれば、一覧へ移る", () => {
+    expect(issuedBy(update(teamShown, teamDeleted))).toEqual(
+      issuedBy({ commands: [NavigateInternal({ href: TEAMS_ROUTE })] }),
+    );
+  });
+
+  it("成功が届く前に別の画面へ移っていれば、その画面のまま", () => {
+    const leftBeforeSuccess = received(teamShown, entered(MEMBERS_ROUTE));
+
+    expect(issuedBy(update(leftBeforeSuccess, teamDeleted))).toEqual([]);
   });
 });
