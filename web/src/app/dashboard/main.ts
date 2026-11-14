@@ -645,6 +645,7 @@ const pageView = (model: Model, me: Me, h: HtmlBuilder<Message>): Html =>
         viewInputs: {
           teamId,
           myUserId: me.userId,
+          canManage: me.canManage,
           team: teamSlot(teamId).read(model).data,
           teamsHref: teamsRouter(),
         },
