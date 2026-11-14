@@ -37,6 +37,8 @@ taimei-auth の取り込み (ADR-0022 の R1〜R7) を同じアカウントと�
 - 本番に 0% の gate (`version: { traffic: 0 }`) を足す前に、secret の置き場を決め直す。gate は `secret_text` を落とす (理由は ADR-0011 の「#648 で足したこと」)
 - `wrangler rollback` で戻した後は、次の main の push の deploy で定義に戻るまで `IaC drift` が差を報告する
 - `IaC drift` が落ちたら、出力の差を見て、定義に戻すか定義を直す PR を出す。dashboard で足した var と `wrangler secret put` で足した secret は binding の比較だけが拾い、alchemy の deploy では消えないので dashboard で消す。外れた custom domain は `alchemy drift` が拾い、alchemy の deploy で付け直る (taimei-auth の ADR-0022 の R6)
+- 手作業の SQL で `teams`・`team_assignments` を書く時は、書いた事業所ごとに、同じ transaction で `select bump_company_team_list('<事業所の id>')` を呼んでから commit する。呼んでいない事業所があると、commit がその id を挙げて落ちる
+- 手作業の SQL の後と、DB を backup から戻した後 (一覧の版が過去に戻る) は、GitHub Actions の Deploy を流し直す。流し直すまで、事業所の Durable Object に古いチームの一覧が残る (ADR-0008)
 - Hyperdrive を作り直す時、`wrangler hyperdrive create` の最後の「Would you like Wrangler to add it on your behalf?」に no と答える。yes にすると `wrangler.jsonc` の Hyperdrive の id が書き換わる
 
 ## IaC の外に残るもの
