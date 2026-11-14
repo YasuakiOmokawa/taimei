@@ -1,6 +1,6 @@
 import path from "node:path";
 import { build, type Rollup } from "vite";
-import { afterEach, expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 
 const webRoot = path.resolve(import.meta.dirname, "../..");
 const repoRoot = path.resolve(webRoot, "..");
@@ -19,13 +19,7 @@ const SECRET_NAMES = [
   "SENTRY_DSN",
 ];
 
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
-
-// vite は mode でなく NODE_ENV で本番の build にする。vitest の中は NODE_ENV が test
 const buildSpa = async () => {
-  vi.stubEnv("NODE_ENV", "production");
   const result = (await build({
     configFile: path.join(webRoot, "vite.config.ts"),
     mode: "production",
@@ -63,4 +57,16 @@ it("SPA の成果物に web の外の module は契約だけで、サーバー�
       emittedTexts.some((text) => text.includes(name)),
     ),
   ).toEqual([]);
+}, 60_000);
+
+const cssOf = (output: Awaited<ReturnType<typeof buildSpa>>) =>
+  output
+    .filter((o) => o.type === "asset" && o.fileName.endsWith(".css"))
+    .map((o) => (o.type === "asset" ? String(o.source) : ""))
+    .join("\n");
+
+it("repo の root から build しても、PostCSS は web の Tailwind の設定を読み、レベルの記号は Inter より ◎△ と大きさのそろう和文の font で描く", async () => {
+  expect(cssOf(await buildSpa())).toMatch(
+    /\.font-symbol\{font-family:Hiragino Sans,/,
+  );
 }, 60_000);

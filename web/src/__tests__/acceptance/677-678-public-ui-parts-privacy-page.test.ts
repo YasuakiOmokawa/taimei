@@ -23,7 +23,6 @@ import { describe, expect, it } from "vitest";
 import { privacyFacts } from "../../privacy/facts";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
-const REACT_PRIVACY_TEST = "web/src/privacy/__tests__/privacy-page.test.ts";
 const PRIVACY_DIR = "web/src/privacy";
 
 const BUTTON_BASE_CLASS =
@@ -405,16 +404,5 @@ describe("#678 プライバシーポリシーの page と application public", (
     expect(
       REACT_PRIVACY_TEST_NAMES.filter((name) => !sceneTests.includes(name)),
     ).toEqual([]);
-  });
-
-  it("AC-016 React の文面の試験は、今の 7 つの試験名を持ったまま残る", () => {
-    const reactTest = readRepoFile(REACT_PRIVACY_TEST);
-
-    expect({
-      rendersWithReact: reactTest.includes("react-dom/server"),
-      missingNames: REACT_PRIVACY_TEST_NAMES.filter(
-        (name) => !reactTest.includes(name),
-      ),
-    }).toEqual({ rendersWithReact: true, missingNames: [] });
   });
 });

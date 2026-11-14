@@ -1,17 +1,15 @@
 import formsPlugin from "@tailwindcss/forms";
 import type { Config } from "tailwindcss";
 import defaultTheme from "tailwindcss/defaultTheme";
-import animatePlugin from "tailwindcss-animate";
 
 const config: Config = {
   darkMode: ["class"],
-  content: { relative: true, files: ["./index.html", "./src/**/*.{ts,tsx}"] },
+  content: { relative: true, files: ["./index.html", "./src/**/*.ts"] },
   theme: {
     extend: {
       fontFamily: {
         sans: ['"Inter Variable"', ...defaultTheme.fontFamily.sans],
         lusitana: ["Lusitana", "serif"],
-        // Inter の ○ は和文フォントの ◎△ より小さいので、レベルの記号は和文フォントでそろえる
         symbol: [
           "Hiragino Sans",
           "Hiragino Kaku Gothic ProN",
@@ -85,14 +83,7 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
     },
-    // keyframes: {
-    //   shimmer: {
-    //     "100%": {
-    //       transform: "translateX(100%)",
-    //     },
-    //   },
-    // },
   },
-  plugins: [formsPlugin, animatePlugin],
+  plugins: [formsPlugin],
 };
 export default config;

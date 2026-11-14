@@ -32,7 +32,9 @@ const team = (detail: Partial<TeamDetail>): TeamDetail => ({
 });
 
 const tableOf = ({ roster }: ReturnType<typeof teamSkillMatrix>) => {
-  if (roster._tag !== "MatrixReady") throw new Error(roster._tag);
+  if (roster._tag !== "MatrixReady") {
+    throw new Error(roster._tag);
+  }
   return roster;
 };
 
@@ -172,7 +174,9 @@ it("メンバー一覧の順で割り当てたメンバーと候補に分け、�
     "u_1",
   );
 
-  if (roster._tag === "MembersUnavailable") throw new Error(roster._tag);
+  if (roster._tag === "MembersUnavailable") {
+    throw new Error(roster._tag);
+  }
   expect(roster.assigned.map((m) => m.userId)).toEqual(["u_1", "u_3"]);
   expect(roster.candidates.map((m) => m.userId)).toEqual(["u_2", "u_4"]);
   expect(roster.departedUserIds).toEqual(["u_gone_b", "u_gone_a"]);

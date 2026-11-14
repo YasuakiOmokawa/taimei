@@ -1,4 +1,5 @@
 import type { Level, TeamPage } from "../../../src/spa-contract";
+import type { MyLevelEntry } from "./changed-by-mutation";
 
 export type TeamDetail = TeamPage["team"];
 export type Member = NonNullable<TeamPage["members"]>[number];
@@ -68,7 +69,9 @@ export const teamSkillMatrix = (
     team.skills.map((skill) => cellOf(userId, skill));
   const assignedIds = new Set(team.assignedUserIds);
   const myCells = assignedIds.has(myUserId) ? cellsOf(myUserId) : [];
-  if (!members) return { myCells, roster: { _tag: "MembersUnavailable" } };
+  if (!members) {
+    return { myCells, roster: { _tag: "MembersUnavailable" } };
+  }
 
   const memberIds = new Set(members.map((m) => m.userId));
   const assigned = members.filter((m) => assignedIds.has(m.userId));
@@ -77,8 +80,9 @@ export const teamSkillMatrix = (
     candidates: members.filter((m) => !assignedIds.has(m.userId)),
     departedUserIds: team.assignedUserIds.filter((id) => !memberIds.has(id)),
   };
-  if (team.skills.length === 0 || assigned.length === 0)
+  if (team.skills.length === 0 || assigned.length === 0) {
     return { myCells, roster: { _tag: "MatrixIncomplete", ...assignment } };
+  }
   return {
     myCells,
     roster: {
@@ -98,12 +102,10 @@ export const teamSkillMatrix = (
   };
 };
 
-export type MyLevelEntry = Omit<TeamDetail["levels"][number], "userId">;
-
 export const withMyLevels = (
   team: TeamDetail,
   myUserId: string,
-  entries: readonly MyLevelEntry[],
+  entries: readonly (typeof MyLevelEntry.Type)[],
 ): TeamDetail => {
   const savedSkillIds = new Set(entries.map((entry) => entry.skillId));
   return {
