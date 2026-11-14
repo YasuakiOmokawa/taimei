@@ -17,6 +17,7 @@ import { Url } from "foldkit/url";
 import { Team as ListedTeam, TeamDetail } from "../../../../src/spa-contract";
 import { ChangedByMutation } from "../../dashboard/changed-by-mutation";
 import * as Mutation from "../../dashboard/mutation";
+import * as Members from "../../dashboard/pages/Members";
 import * as Team from "../../dashboard/pages/Team";
 import * as Teams from "../../dashboard/pages/Teams";
 import { withMyLevels } from "../../dashboard/skill-matrix";
@@ -52,17 +53,6 @@ const TeamPage = Schema.Struct({
 });
 type TeamPage = typeof TeamPage.Type;
 
-const MemberList = Schema.Struct({
-  members: Schema.Array(
-    Schema.Struct({
-      name: Schema.String,
-      email: Schema.String,
-      role: Schema.optionalKey(Schema.Literals(["OWNER", "ADMIN", "MEMBER"])),
-    }),
-  ),
-});
-type MemberList = typeof MemberList.Type;
-
 const OnNextEntry = Schema.Literals(["Revalidate", "UseAsIs", "Wait"]);
 type OnNextEntry = typeof OnNextEntry.Type;
 
@@ -92,7 +82,7 @@ export const Model = Schema.Struct({
   me: cachedOf(Me),
   teams: cachedOf(TeamList),
   teamById: Schema.HashMap(Schema.String, cachedOf(TeamPage)),
-  members: cachedOf(MemberList),
+  members: cachedOf(Members.MemberList),
   teamsPage: Teams.Model,
   teamPages: Schema.HashMap(Schema.String, Team.Model),
 });
@@ -116,7 +106,7 @@ export const Message = defineMessageUnion({
   SettledLoadMe: settledWith(Me),
   SettledLoadTeams: settledWith(TeamList),
   SettledLoadTeam: { teamId: Schema.String, ...settledWith(TeamPage) },
-  SettledLoadMembers: settledWith(MemberList),
+  SettledLoadMembers: settledWith(Members.MemberList),
   RequiredSignIn: {},
   ChangedSession: {},
 });
@@ -239,7 +229,7 @@ const teamSlot = (teamId: string): Slot<TeamPage> => ({
   load: (request) => LoadTeam({ teamId, request }),
 });
 
-const membersSlot: Slot<MemberList> = {
+const membersSlot: Slot<Members.MemberList> = {
   read: (model) => model.members,
   write: (model, next) => modifyFields(model, { members: () => next }),
   load: (request) => LoadMembers({ request }),
@@ -667,7 +657,7 @@ const pageView = (model: Model, me: Me, h: HtmlBuilder<Message>): Html =>
         },
         toParentMessage: toTeamPageMessage(teamId),
       }),
-    Members: () => h.empty,
+    Members: () => Members.view(model.members.data, h),
     NotFound: () => h.p([], ["Not Found"]),
   });
 
