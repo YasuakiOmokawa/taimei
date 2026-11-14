@@ -16,6 +16,7 @@ import path from "node:path";
 import { Effect, ManagedRuntime, Option } from "effect";
 import { fromString } from "foldkit/url";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
+import { dashboardPathsByRoute } from "../../app/__tests__/dashboard-route-paths";
 import { SpaHttpClient } from "../../shared/spa-http-client";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
@@ -461,12 +462,7 @@ afterEach(() => {
 });
 
 describe("#687 web/index.html の先読みと application dashboard の要求", () => {
-  it.each([
-    "/dashboard",
-    "/dashboard/teams",
-    `/dashboard/teams/${TEAM_ID}`,
-    "/dashboard/members",
-  ])(
+  it.each(Object.values(dashboardPathsByRoute(TEAM_ID)))(
     "AC-015 %s を開くと、先読みした fetch はすべて使われ、先読みの外の GET は 0 件である",
     async (pathname) => {
       const { earlyPaths, earlyFetches } = runEarlyFetchScript(pathname);
