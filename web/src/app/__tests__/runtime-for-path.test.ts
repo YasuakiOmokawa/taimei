@@ -7,8 +7,8 @@ it.each([
   "/dashboard/teams",
   "/dashboard/teams/t_1",
   "/dashboard/no-such-page",
-])("%s は React の dashboard に渡す", (pathname) => {
-  expect(runtimeForPath(pathname)).toBe("ReactDashboard");
+])("%s は application dashboard に渡す", (pathname) => {
+  expect(runtimeForPath(pathname)).toBe("FoldkitDashboard");
 });
 
 it.each(["/", "/privacy", "/no-such-page", "/dashboardx", "/service/1"])(

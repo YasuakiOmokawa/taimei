@@ -1,7 +1,7 @@
-export type RuntimeForPath = "FoldkitPublic" | "ReactDashboard";
+export type RuntimeForPath = "FoldkitPublic" | "FoldkitDashboard";
 
 const isDashboardPath = (pathname: string) =>
   pathname === "/dashboard" || pathname.startsWith("/dashboard/");
 
 export const runtimeForPath = (pathname: string): RuntimeForPath =>
-  isDashboardPath(pathname) ? "ReactDashboard" : "FoldkitPublic";
+  isDashboardPath(pathname) ? "FoldkitDashboard" : "FoldkitPublic";
