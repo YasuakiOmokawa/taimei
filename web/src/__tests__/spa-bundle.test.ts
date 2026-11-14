@@ -58,3 +58,15 @@ it("SPA の成果物に web の外の module は契約だけで、サーバー�
     ),
   ).toEqual([]);
 }, 60_000);
+
+const cssOf = (output: Awaited<ReturnType<typeof buildSpa>>) =>
+  output
+    .filter((o) => o.type === "asset" && o.fileName.endsWith(".css"))
+    .map((o) => (o.type === "asset" ? String(o.source) : ""))
+    .join("\n");
+
+it("repo の root から build しても、PostCSS は web の Tailwind の設定を読み、レベルの記号は Inter より ◎△ と大きさのそろう和文の font で描く", async () => {
+  expect(cssOf(await buildSpa())).toMatch(
+    /\.font-symbol\{font-family:Hiragino Sans,/,
+  );
+}, 60_000);

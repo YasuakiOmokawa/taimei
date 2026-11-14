@@ -24,11 +24,13 @@ const pages = [
 ];
 
 const template = await readFile(path.join(dist, "index.html"), "utf8");
-for (const marker of ['<div id="root"></div>', "<title>"])
-  if (!template.includes(marker))
+for (const marker of ['<div id="root"></div>', "<title>"]) {
+  if (!template.includes(marker)) {
     throw new Error(
       `dist/index.html に ${marker} が無い (vite build の直後に流す)`,
     );
+  }
+}
 
 const replacingWithoutDollarPatterns = (replacement: string) => () =>
   replacement;
@@ -37,10 +39,11 @@ const modelAfterCommandsSettle = async (
   step: Update.Return<Model, Message>,
 ): Promise<Model> => {
   let model = step.model;
-  for (const command of step.commands ?? [])
+  for (const command of step.commands ?? []) {
     model = await modelAfterCommandsSettle(
       update(model, await Effect.runPromise(command.effect)),
     );
+  }
   return model;
 };
 

@@ -69,7 +69,9 @@ export const teamSkillMatrix = (
     team.skills.map((skill) => cellOf(userId, skill));
   const assignedIds = new Set(team.assignedUserIds);
   const myCells = assignedIds.has(myUserId) ? cellsOf(myUserId) : [];
-  if (!members) return { myCells, roster: { _tag: "MembersUnavailable" } };
+  if (!members) {
+    return { myCells, roster: { _tag: "MembersUnavailable" } };
+  }
 
   const memberIds = new Set(members.map((m) => m.userId));
   const assigned = members.filter((m) => assignedIds.has(m.userId));
@@ -78,8 +80,9 @@ export const teamSkillMatrix = (
     candidates: members.filter((m) => !assignedIds.has(m.userId)),
     departedUserIds: team.assignedUserIds.filter((id) => !memberIds.has(id)),
   };
-  if (team.skills.length === 0 || assigned.length === 0)
+  if (team.skills.length === 0 || assigned.length === 0) {
     return { myCells, roster: { _tag: "MatrixIncomplete", ...assignment } };
+  }
   return {
     myCells,
     roster: {

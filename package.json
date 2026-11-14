@@ -4,7 +4,7 @@
     "node": "24.x"
   },
   "scripts": {
-    "build": "vite build --config web/vite.config.ts && bun --conditions=browser web/prerender.tsx",
+    "build": "vite build --config web/vite.config.ts && bun web/prerender.ts",
     "dev": "vite --config web/vite.config.ts",
     "start": "bash scripts/wrangler-dev.sh",
     "test": "vitest",

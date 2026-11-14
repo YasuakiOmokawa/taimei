@@ -10,7 +10,6 @@ const config: Config = {
       fontFamily: {
         sans: ['"Inter Variable"', ...defaultTheme.fontFamily.sans],
         lusitana: ["Lusitana", "serif"],
-        // Inter の ○ は和文フォントの ◎△ より小さいので、レベルの記号は和文フォントでそろえる
         symbol: [
           "Hiragino Sans",
           "Hiragino Kaku Gothic ProN",
@@ -84,13 +83,6 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
     },
-    // keyframes: {
-    //   shimmer: {
-    //     "100%": {
-    //       transform: "translateX(100%)",
-    //     },
-    //   },
-    // },
   },
   plugins: [formsPlugin],
 };
