@@ -11,15 +11,26 @@ const projectRoot = resolve(__dirname, "../../../../");
 export async function setup() {
   console.log("🔧 Setting up test database...");
   await waitForDb();
-  execSync("bunx drizzle-kit migrate", {
-    stdio: "inherit",
-    cwd: projectRoot,
-    env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL },
-  });
+  migrate();
   await runSql(
     readFileSync(resolve(projectRoot, "db/local-app-role.sql"), "utf8"),
   );
   console.log("✅ Test database ready");
+}
+
+function migrate() {
+  try {
+    execSync("bunx drizzle-kit migrate", {
+      stdio: "inherit",
+      cwd: projectRoot,
+      env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL },
+    });
+  } catch (cause) {
+    throw new Error(
+      "migration が失敗した。失敗した文は、同じ SQL を docker compose exec -T test_db psql -U postgres -d taimei_test で BEGIN; … ROLLBACK; して見る。migration を作り直した時は docker compose rm -sf test_db で test_db を空にしてから流し直す",
+      { cause },
+    );
+  }
 }
 
 export async function teardown() {

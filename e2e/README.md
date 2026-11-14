@@ -19,7 +19,7 @@ host には port を公開しない (Playwright UI の 9323 のみ) ので、dev
 
 ### 1. `NPM_TOKEN`
 
-`@taimei-code/auth-client` (GitHub Packages, private) を image の build と root の `bun install` で取得するため `read:packages` 権限を持つ GitHub PAT が必要。プロジェクトルート `.env` に書いておけば docker compose が自動読み込み。
+`@taimei-code/auth-client` (GitHub Packages, private) を image の build と root の `bun install` で取得するため `read:packages` 権限を持つ GitHub PAT が必要。環境変数で渡すか、プロジェクトルート `.env` に書く。無い時は `bun run e2e` が渡し方を出して止まる。image の build が `npm.pkg.github.com` の 401 で落ちる時は、渡した token が古い (環境変数は `.env` より優先される)。
 
 ### 2. taimei-auth
 
@@ -31,26 +31,22 @@ host には port を公開しない (Playwright UI の 9323 のみ) ので、dev
 
 ### 3. TLS 復号 proxy 配下の場合
 
-proxy の CA を `certs/palo-root.pem` に置く (gitignore 済み)。無いと image build 中の `bun install` / `npm ci` が `SELF_SIGNED_CERT_IN_CHAIN` で落ちる。
+proxy の CA を `certs/palo-root.pem` に置く (gitignore 済み)。無いと image build 中の `bun install` / `npm ci` が `SELF_SIGNED_CERT_IN_CHAIN` で落ちる。git worktree の `certs/` に pem が無い時は、`bun run e2e` が主の worktree の `certs/` から写す。
 
 ## 実行
 
 ### 全テスト実行
 
 ```bash
-E2E_SERVICE_COMMAND='npm test' \
-  docker compose -p taimei-e2e -f docker-compose.e2e.yml \
-  up --build --abort-on-container-exit --exit-code-from e2e
+bun run e2e
 ```
 
-`-p taimei-e2e` は dev compose (`docker-compose.yml`) と project / volume / network を分離するため必須。
+`scripts/e2e.sh` が、前回の volume を消してから (`down --volumes`)、project `taimei-e2e` で build して流す。project を分けるのは、dev compose (`docker-compose.yml`) と volume・network を混ぜないため。volume を毎回消すのは、taimei-auth の DB に前回の利用者と事業所を残さず、Postgres の init の script (`db/local-app-role.sql`) を必ず流すため。
 
 ### 特定 spec のみ実行 (高速)
 
 ```bash
-E2E_SERVICE_COMMAND='npx playwright test --grep "プライバシーポリシー" --reporter=line --retries=0' \
-  docker compose -p taimei-e2e -f docker-compose.e2e.yml \
-  up --build --abort-on-container-exit --exit-code-from e2e
+bun run e2e 'npx playwright test --grep "プライバシーポリシー" --reporter=line --retries=0'
 ```
 
 ### Cleanup
@@ -59,7 +55,7 @@ E2E_SERVICE_COMMAND='npx playwright test --grep "プライバシーポリシー"
 docker compose -p taimei-e2e -f docker-compose.e2e.yml down --volumes
 ```
 
-`--volumes` で `pg-data` と taimei-auth の DB の volume を消す。付けないと、次の起動で taimei-auth の DB が前回の利用者と事業所を持ったまま始まる。
+`bun run e2e` は始めに同じ片付けを行うので、手で流すのは container と volume を残したくない時だけ。
 
 ## ログの確認
 
