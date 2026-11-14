@@ -220,6 +220,48 @@ it("web/src/dashboard/mutation.ts の外では、契約の client から更新�
   ).toEqual([]);
 });
 
+const MUTATION_STARTS = `import * as Mutation from "../mutation";
+import { RenameTeam } from "../mutation";
+import type { Model } from "../mutation";
+import * as Other from "../other";
+
+export const viaSubmit = Mutation.submitRenameTeam(Mutation.init(), { teamId: "t", name: "n" });
+export const failed = Mutation.Message.FailedMutation({ message: "x" });
+export const args = Mutation.RenameTeamArgs;
+export const direct = Mutation.RenameTeam({ teamId: "t", name: "n" });
+export const other = Other.RenameTeam({ teamId: "t" });
+const Alias = Mutation;
+const { AddSkill } = Mutation;
+export const named = RenameTeam;
+export type Shown = Model;
+export { Alias, AddSkill };
+`;
+
+it("web/src/dashboard/mutation.ts の外では、更新の module の namespace から更新の Command を作る呼び出しと、namespace の別名・分割代入・名前の import の行が指摘され、submit*・Message の constructor・Args の参照・型だけの import・他の module の呼び出しは指摘されない", () => {
+  expect(
+    taimeiLinesOf("web/src/dashboard/pages/Probe.ts", MUTATION_STARTS),
+  ).toEqual([2, 9, 11, 12]);
+  expect(
+    taimeiLinesOf("web/src/dashboard/mutation.ts", MUTATION_STARTS),
+  ).toEqual([]);
+});
+
+it.each([
+  ["web/src/dashboard/pages/nested/Probe.ts", "../../mutation"],
+  ["web/src/dashboard/Probe.ts", "./mutation"],
+  ["web/src/dashboard/pages/Probe.ts", "./../mutation"],
+])(
+  "%s が %s を読んでも、更新の Command を作る呼び出しが指摘される",
+  (file, specifier) => {
+    expect(
+      taimeiLinesOf(
+        file,
+        `import * as Mutation from "${specifier}";\nexport const direct = Mutation.RenameTeam({ teamId: "t", name: "n" });\n`,
+      ),
+    ).toEqual([2]);
+  },
+);
+
 const contractGroups = Object.entries(SpaApi.groups).map(([name, group]) => ({
   name,
   isMutating: Object.values(group.endpoints).some(

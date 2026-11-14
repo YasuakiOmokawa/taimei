@@ -83,6 +83,7 @@
         "taimei/spa-http-client-only-in-foldkit-files": "error",
         "taimei/cause-lookup-only-in-failure-message": "error",
         "taimei/mutation-endpoint-only-in-mutation-module": "error",
+        "taimei/mutation-start-only-through-submit": "error",
         "typescript/consistent-type-assertions": [
           "error",
           {
@@ -213,7 +214,8 @@
     {
       "files": ["web/src/dashboard/mutation.ts"],
       "rules": {
-        "taimei/mutation-endpoint-only-in-mutation-module": "off"
+        "taimei/mutation-endpoint-only-in-mutation-module": "off",
+        "taimei/mutation-start-only-through-submit": "off"
       }
     },
     {
