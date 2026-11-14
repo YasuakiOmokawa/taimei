@@ -1,0 +1,14 @@
+{
+  "extends": "./base.json",
+  "include": ["../src/app/**/*.ts", "../src/main.ts"],
+  "references": [
+    { "path": "./landing.json" },
+    { "path": "./privacy.json" },
+    { "path": "./dashboard.json" },
+    { "path": "./landing.pages.json" },
+    { "path": "./privacy.pages.json" },
+    { "path": "./dashboard.pages.json" },
+    { "path": "./shared.json" },
+    { "path": "./core.json" }
+  ]
+}

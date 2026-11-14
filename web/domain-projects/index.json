@@ -3,8 +3,13 @@
   "references": [
     { "path": "./core.json" },
     { "path": "./shared.json" },
+    { "path": "./shared.tests.json" },
     { "path": "./landing.json" },
+    { "path": "./landing.pages.json" },
     { "path": "./privacy.json" },
-    { "path": "./dashboard.json" }
+    { "path": "./privacy.pages.json" },
+    { "path": "./dashboard.json" },
+    { "path": "./dashboard.pages.json" },
+    { "path": "./app.json" }
   ]
 }

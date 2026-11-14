@@ -1,0 +1,12 @@
+{
+  "extends": "./base.json",
+  "include": [
+    "../src/privacy/pages/**/*.ts",
+    "../src/privacy/**/__tests__/**/*.ts"
+  ],
+  "references": [
+    { "path": "./privacy.json" },
+    { "path": "./shared.json" },
+    { "path": "./core.json" }
+  ]
+}

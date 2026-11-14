@@ -1,0 +1,12 @@
+{
+  "extends": "./base.json",
+  "include": [
+    "../src/dashboard/pages/**/*.ts",
+    "../src/dashboard/**/__tests__/**/*.ts"
+  ],
+  "references": [
+    { "path": "./dashboard.json" },
+    { "path": "./shared.json" },
+    { "path": "./core.json" }
+  ]
+}
