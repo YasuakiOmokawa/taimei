@@ -674,8 +674,7 @@ test("チームの link にカーソルを乗せると先読みし、click で�
   await context.close();
 });
 
-// TanStack Router は loader を defaultPendingMs (1 秒) 待ってから描くので、それより早く出れば loader は取り直しを待っていない
-const FASTER_THAN_ROUTER_DEFAULT_PENDING_MS = 500;
+const CACHED_LIST_SHOWN_WITHIN_MS = 500;
 
 test("2 回目の一覧は、取り直しの応答を待たずに前に見た一覧を出す", async ({
   browser,
@@ -695,7 +694,7 @@ test("2 回目の一覧は、取り直しの応答を待たずに前に見た一
   await page.getByRole("link", { name: "チーム", exact: true }).first().click();
 
   await expect(teamItem(page, teamName)).toBeVisible({
-    timeout: FASTER_THAN_ROUTER_DEFAULT_PENDING_MS,
+    timeout: CACHED_LIST_SHOWN_WITHIN_MS,
   });
   await expect(page).toHaveURL(/\/dashboard\/teams$/);
   await (await heldList.promise).continue();

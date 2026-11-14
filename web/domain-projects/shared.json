@@ -1,0 +1,6 @@
+{
+  "extends": "./base.json",
+  "include": ["../src/shared/**/*.ts"],
+  "exclude": ["../src/shared/**/__tests__"],
+  "references": [{ "path": "./core.json" }]
+}

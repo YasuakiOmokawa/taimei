@@ -1,0 +1,21 @@
+{
+  "extends": "./base.json",
+  "files": [
+    "../../db/column-values.ts",
+    "../../db/company-id.ts",
+    "../../db/drizzle/schema.ts",
+    "../../db/ids.ts",
+    "../../db/scoped.ts",
+    "../../src/lib/report-error.ts",
+    "../../src/services/authorization-context.ts",
+    "../../src/services/company-context.ts",
+    "../../src/services/company-members-service.ts",
+    "../../src/services/company-scope.ts",
+    "../../src/services/company-team-list.ts",
+    "../../src/services/db-service.ts",
+    "../../src/services/failures.ts",
+    "../../src/services/request-session.ts",
+    "../../src/services/team-list-store.ts",
+    "../../src/spa-contract.ts"
+  ]
+}

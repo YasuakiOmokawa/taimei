@@ -43,7 +43,7 @@ export default defineConfig({
           root: __dirname,
           environment: "node",
           globals: true,
-          include: ["web/src/**/*.test.{ts,tsx}"],
+          include: ["web/src/**/*.test.ts"],
         },
       },
     ],

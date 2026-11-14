@@ -2,6 +2,7 @@
 
 - **Status**: Accepted (2026-10-10)。2026-10-12 に改訂した (#602)。#603〜#605 で移した。データ取得を Atom にする部分は #604 の prototype の結果で、#605 で確定した (2026-10-13)
 - **Date**: 2026-10-10 (改訂 2026-10-12)
+- **一部置き換え** (2026-11-14、#687): 画面のデータ取得 (Effect Atom) と router (TanStack Router) の決定、それを移す順序と #604 の確かめ、Atom の TanStack Query との違いは ADR-0012 が置き換えた。API の契約の決定は残る
 - **References**: ADR-0002 (事業所のデータに session 無しで触れない)、ADR-0006 (Static Assets の SPA と Worker)、taimei-auth の ADR-0017 (https://github.com/taimei-code/taimei-auth/blob/main/docs/adr/0017-effect-v4-full-adoption.md の「web への拡大」「SPA の API 契約」)
 
 ## Context
@@ -33,7 +34,7 @@ taimei で今書ける間違いと、移した後に何が止めるか:
 - Hono は残し、契約の外側で CSRF、`/auth` の route、`app.onError` の報告、`run_worker_first` で Worker に来た要求の振り分けを受け持つ。契約の handler の予期しない失敗 (defect) は HttpApi が応答にして `app.onError` に届かないので、HttpApi の側からも同じ `reportError` に送る (taimei-auth の `ErrorReporter` と同じ形、#603)。#603 の決定: 予期しない失敗 (DB・taimei-auth の一覧の失敗) も handler で defect にして本文の無い 500 にし、報告は `ErrorReporter` の 1 か所にする。`src/services/index.ts` の実行口は報告しない。予期しない失敗の class は `cause` を schema の項目に持つので、契約の失敗として宣言すると原因を応答に載せてしまう
 - 今の `requireSession` の役目 (session の検証、`x-taimei-session` の付与、要求の `x-taimei-session` が今の session と違う時の 409 `SessionChanged`、session を handler に渡すこと) を契約の middleware と Hono にどう分けるかは #603 で決める。session の検証は 1 要求に 1 回にし、409 は契約の失敗として宣言する。#603 の決定: Hono の route が session を確かめて `x-taimei-session` を応答に付け、結果 (session か `Unauthenticated`・`SessionChanged`) を要求ごとの `Context.Reference` で web handler に渡し、契約の middleware がそれを失敗か `CurrentSession` にする。`Context.Reference` で渡すのは、middleware が要求できる service を layer を組む時にしか満たせないからである
 - 認証は契約の middleware で行い、401 を client の型に入れる。#603 の決定: `SpaApi` の全 group を `.add` した後に API 全体へ 1 回掛ける
-- 画面のデータ取得は Effect Atom (契約の client の query と mutation) にする。router は TanStack Router のまま
+- 画面のデータ取得は Effect Atom (契約の client の query と mutation) にする。router は TanStack Router のまま (この行と、下の移す順序の #604・#605、#604 で確かめること、#604 の結果は ADR-0012 が置き換えた。今は application `dashboard` の Model が cache を持つ)
 - 移す順序:
   1. #603: API を契約に移し、SPA は契約の client で呼ぶ。データ取得は TanStack Query のまま、`queryFn` の中で契約の client を呼ぶ
   2. #604: TanStack Router + Atom の prototype で、#588 の振る舞いを保てるかを確かめる
@@ -62,8 +63,8 @@ taimei で今書ける間違いと、移した後に何が止めるか:
 
 | 引き換え | 大きさ | 埋め方 |
 | :-- | :-- | :-- |
-| SPA の bundle が大きくなる | taimei-auth では、Atom と契約の client で web の JS の gzip が main 比 +64.6 kB。改訂前の判断の検証の Worker では `HttpApiClient` が effect ごと 116,874 B。taimei の #605 は 180,164 → 182,912 B (+2,748 B、`@tanstack/react-query` を外した分と Atom を足した分がほぼ打ち消し合う) | #603・#605 で変更の前後の SPA の JS (gzip) を記録した。#605 で `@tanstack/react-query` を外した。画面の最初の API は `web/index.html` が JS を待たずに呼ぶので、JS が大きくなっても API の応答を待ち始める時刻は遅れない |
-| `HttpApi`・`AtomHttpApi`・`effect/reactivity`・`effect/ErrorReporter` (#660) が `@stability unstable` | effect の minor の更新で API が変わりうる | `effect` を `package.json` の exact pin のまま、Dependabot の更新の PR で上げる。壊れた箇所は typecheck とテストで一覧になる。taimei-auth と同じ扱い |
+| SPA の bundle が大きくなる (Atom の分は ADR-0012 で外した。今の大きさは ADR-0012) | taimei-auth では、Atom と契約の client で web の JS の gzip が main 比 +64.6 kB。改訂前の判断の検証の Worker では `HttpApiClient` が effect ごと 116,874 B。taimei の #605 は 180,164 → 182,912 B (+2,748 B、`@tanstack/react-query` を外した分と Atom を足した分がほぼ打ち消し合う) | #603・#605 で変更の前後の SPA の JS (gzip) を記録した。#605 で `@tanstack/react-query` を外した。画面の最初の API は `web/index.html` が JS を待たずに呼ぶので、JS が大きくなっても API の応答を待ち始める時刻は遅れない |
+| `HttpApi`・`AtomHttpApi`・`effect/reactivity`・`effect/ErrorReporter` (#660) が `@stability unstable` (`AtomHttpApi` と `effect/reactivity` は ADR-0012 で使わなくなった) | effect の minor の更新で API が変わりうる | `effect` を `package.json` の exact pin のまま、Dependabot の更新の PR で上げる。壊れた箇所は typecheck とテストで一覧になる。taimei-auth と同じ扱い |
 | 試験の事業所 id を作る `effect/Arbitrary` も `@stability unstable` (#629) | effect の minor の更新で、API か、`fixtureCompanyId` に同じ引数を渡して作る id が変わりうる | `tsconfig.json` の overrides で試験の file だけに許し、本体の code で使うと typecheck が落ちる。試験は id の値ではなく定数 (`COMPANY_A` など) で比べるので、id が変わっても期待値は直さずに済む |
 | `HttpApi.middleware()` は呼んだ時点で追加済みの group にしか掛からず、後から足した group は認証なしになる | 認証の掛け忘れ | `HttpApi.reflect` で契約の全 endpoint を数え上げ、cookie 無しの要求が 401 になるテストで止める。掛け方 (API 全体に 1 回か、group ごとか) は #603 で決め、Decision の認証の項に書いた |
 | Workers Free の CPU が増える | taimei-auth では起動時の JS が 32.7 → 40.7 ms、worker の gzip が +16% | #603 で変更の前後の Worker の bundle と起動時の CPU を記録し、本番に出す前に staging で CPU (p50・p95)・`exceededResources`・cold の TTFB を確かめる。CPU の上限での打ち切りが出たら本番に出さず、Paid にするか、この ADR を改めるかを決める |
@@ -89,7 +90,7 @@ taimei-auth の数値は、`taimei-code/taimei-auth@d63097b` の ADR-0017 の「
 
 - 失敗の応答の本文は `{ _tag, message }` (401・409 は `{ _tag }`) から契約の失敗 (`{ _tag }`) に変わり、`message` が無くなる。文言は SPA が失敗の型から引く。deploy の前に開いたタブは、応答の `x-taimei-session` に入る Worker の version が変わるので、次の API の応答で再読み込みして新しい SPA を取り直す (#612)。書き込みの要求は 409 になり、書き込まない
 - 型の外に残るもの: アプリの外の失敗 (Workers の CPU の上限での打ち切り、network、本体の予期しない失敗 (defect))、書き込みの後に何を古くするか・取り直すかの正しさ (`changed` を書くことは型が強いるが、宣言の正しさは e2e で止める)
-- TanStack Query の既定と違い、次の 3 つをしない。どれも 7 点の外で、要った時に足す
+- TanStack Query の既定と違い、次の 3 つをしない。どれも 7 点の外で、要った時に足す (Atom での足し方は ADR-0012 で古くなった。しないことは ADR-0012 の cache の節が引き継ぐ)
   - focus と再接続での取り直し。Workers Free の CPU を増やすので、足すかは観測で決める。足すなら query の atom に `Atom.refreshOnWindowFocus`
   - 失敗した読み取りの再試行。一時的な網・5xx の失敗がすぐ失敗の表示になる。足すなら `AtomHttpApi.Service` の `transformClient` に `HttpClient.retryTransient`
   - 値が同じ裏の取り直しで描き直さないこと (読む部品は取り直しの前後で 2 回描き直す)。足すなら `waiting` を落とした派生の atom を読ませる
