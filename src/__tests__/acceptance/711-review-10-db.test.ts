@@ -27,7 +27,7 @@ import {
 } from "@/src/services/__tests__/db/test-db";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
-const SLOW_TEST_TIMEOUT = 300_000;
+const SLOW_TEST_TIMEOUT = 240_000;
 
 const commitChecked = (tx: TestDb, write: (sp: TestDb) => Promise<unknown>) =>
   tx.transaction((sp) => withCommitCheck(sp, write).then(() => undefined));
