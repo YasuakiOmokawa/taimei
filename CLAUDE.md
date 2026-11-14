@@ -7,8 +7,8 @@ Effect の書き方 (Service・Layer・エラー・テスト) は `node_modules/
 ## 確かめ方
 
 - 規約の多くは型・lint・テストが止め、その文言と試験名が直し方を書く。CLAUDE.md に無い規約は、落ちた時の文言を読んで直す。
-- 終える前に `bun run typecheck`・`bun run lint`・`bun run test:db` を通す。bare の `tsc` は `web/` と Effect の診断を見ず、`vitest` は `@ts-expect-error` で書いた型の試験を見ない。
-- e2e の流し方と、手元で taimei-auth と一緒に配信して画面を確かめる手順は `e2e/CLAUDE.md`。
+- 終える前に `bun run check` を通す (型・lint・DB のテストをまとめて流す)。
+- e2e は `bun run e2e` (前提と spec の絞り方は `e2e/README.md`)、手元で taimei-auth と一緒に配信して画面を確かめるのは `bun run qa:serve` (ログインと止め方は、起動の後の出力に出る)。
 
 ## staging と本番
 
