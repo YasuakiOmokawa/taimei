@@ -78,6 +78,9 @@ export type Level = typeof Level.Type;
 
 export const Team = Schema.Struct({ id: TeamId, name: Schema.String });
 
+export const TeamList = Schema.Struct({ teams: Schema.Array(Team) });
+export type TeamList = typeof TeamList.Type;
+
 export const SkillLevel = Schema.Struct({
   skillId: SkillId,
   level: Level,
@@ -94,7 +97,7 @@ export const TeamDetail = Schema.Struct({
   ),
 });
 
-const TeamPage = Schema.Struct({
+export const TeamPage = Schema.Struct({
   team: TeamDetail,
   members: Schema.NullOr(
     Schema.Array(Schema.Struct({ userId: Schema.String, name: Schema.String })),
@@ -111,6 +114,24 @@ export const LevelEntry = Schema.Struct({
   wantsToLearn: Schema.Boolean,
 } satisfies Record<keyof typeof SkillLevel.fields, Schema.Top>);
 export type LevelEntry = typeof LevelEntry.Type;
+
+export const Me = Schema.Struct({
+  userId: Schema.String,
+  name: Schema.String,
+  canManage: Schema.Boolean,
+});
+export type Me = typeof Me.Type;
+
+export const MemberList = Schema.Struct({
+  members: Schema.Array(
+    Schema.Struct({
+      name: Schema.String,
+      email: Schema.String,
+      role: Schema.optionalKey(Schema.Literals(["OWNER", "ADMIN", "MEMBER"])),
+    }),
+  ),
+});
+export type MemberList = typeof MemberList.Type;
 
 const NameRequest = Schema.Struct({ name: Schema.String });
 const Empty = Schema.Struct({});
@@ -137,19 +158,11 @@ export class ManagerOnly extends HttpApiMiddleware.Service<
 const teamParams = { teamId: Schema.String };
 
 export class MeGroup extends HttpApiGroup.make("me").add(
-  HttpApiEndpoint.get("get", "/api/me", {
-    success: Schema.Struct({
-      userId: Schema.String,
-      name: Schema.String,
-      canManage: Schema.Boolean,
-    }),
-  }),
+  HttpApiEndpoint.get("get", "/api/me", { success: Me }),
 ) {}
 
 export class TeamsGroup extends HttpApiGroup.make("teams").add(
-  HttpApiEndpoint.get("list", "/api/teams", {
-    success: Schema.Struct({ teams: Schema.Array(Team) }),
-  }),
+  HttpApiEndpoint.get("list", "/api/teams", { success: TeamList }),
   HttpApiEndpoint.get("get", "/api/teams/:teamId", {
     params: teamParams,
     success: TeamPage,
@@ -218,17 +231,7 @@ export class TeamManagementGroup extends HttpApiGroup.make("teamManagement")
 
 export class MembersGroup extends HttpApiGroup.make("members").add(
   HttpApiEndpoint.get("list", "/api/members", {
-    success: Schema.Struct({
-      members: Schema.Array(
-        Schema.Struct({
-          name: Schema.String,
-          email: Schema.String,
-          role: Schema.optionalKey(
-            Schema.Literals(["OWNER", "ADMIN", "MEMBER"]),
-          ),
-        }),
-      ),
-    }),
+    success: MemberList,
     error: Unauthenticated,
   }),
 ) {}
