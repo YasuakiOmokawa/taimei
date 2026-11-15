@@ -1,6 +1,7 @@
-import { Array, Schema } from "effect";
+import { Array } from "effect";
 import { AsyncData } from "foldkit";
 import type { Html, HtmlBuilder } from "foldkit/html";
+import type { MemberList } from "../../../../src/spa-contract";
 import { newTabButtonLinkView } from "../../shared/ui/button-view";
 import {
   cardLoadingView,
@@ -8,20 +9,9 @@ import {
   cardView,
 } from "../../shared/ui/card-view";
 
-const Role = Schema.Literals(["OWNER", "ADMIN", "MEMBER"]);
-type Role = typeof Role.Type;
+type Member = MemberList["members"][number];
 
-const Member = Schema.Struct({
-  name: Schema.String,
-  email: Schema.String,
-  role: Schema.optionalKey(Role),
-});
-type Member = typeof Member.Type;
-
-export const MemberList = Schema.Struct({ members: Schema.Array(Member) });
-export type MemberList = typeof MemberList.Type;
-
-const ROLE_LABEL_OF_TAIMEI_AUTH: Record<Role, string> = {
+const ROLE_LABEL_OF_TAIMEI_AUTH: Record<NonNullable<Member["role"]>, string> = {
   OWNER: "オーナー",
   ADMIN: "管理者",
   MEMBER: "メンバー",

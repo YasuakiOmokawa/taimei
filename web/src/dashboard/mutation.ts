@@ -1,10 +1,11 @@
 import { Effect, Option, Schema } from "effect";
 import { Command, type Update } from "foldkit";
 import { defineMessageUnion } from "foldkit/message";
+import { SkillLevel } from "../../../src/spa-contract";
 import { failureMessageOf } from "../shared/failure-message";
 import { SpaHttpClient } from "../shared/spa-http-client";
 import { Submission } from "../shared/submission";
-import { ChangedByMutation, MyLevelEntry } from "./changed-by-mutation";
+import { ChangedByMutation } from "./changed-by-mutation";
 
 export const Model = Submission;
 export type Model = typeof Model.Type;
@@ -134,7 +135,7 @@ export const CreateTeam = Command.define("CreateTeam", {
 export const SaveMyLevelsArgs = {
   teamId: Schema.String,
   myUserId: Schema.String,
-  entries: Schema.Array(MyLevelEntry),
+  entries: Schema.Array(SkillLevel),
 };
 
 export const SaveMyLevels = Command.define("SaveMyLevels", {

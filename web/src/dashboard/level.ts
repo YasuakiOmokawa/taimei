@@ -1,5 +1,4 @@
-import { Level } from "../../../src/spa-contract";
-import type { MyLevelEntry } from "./changed-by-mutation";
+import { Level, type SkillLevel } from "../../../src/spa-contract";
 import type { Cell } from "./skill-matrix";
 
 export const levels: Record<Level, { symbol: string; label: string }> = {
@@ -8,6 +7,10 @@ export const levels: Record<Level, { symbol: string; label: string }> = {
   2: { symbol: "○", label: "一人でできる" },
   3: { symbol: "◎", label: "教えられる" },
 };
+
+export const UNRECORDED_MARK = "—";
+
+export const symbolOrBlank = (symbol: string) => symbol || "空欄";
 
 export const levelFromSelectValue = (value: string): Level | undefined =>
   Level.literals.find((level) => String(level) === value);
@@ -18,7 +21,7 @@ export const levelEntriesOf = (
   cells: readonly Cell[],
   selectValueOf: (cell: Cell) => string,
   wantsToLearnOf: (cell: Cell) => boolean,
-): (typeof MyLevelEntry.Type)[] =>
+): SkillLevel[] =>
   cells.flatMap((cell) => {
     const wantsToLearn = wantsToLearnOf(cell);
     const level =

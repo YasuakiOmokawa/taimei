@@ -14,7 +14,12 @@ import { defineMessageUnion } from "foldkit/message";
 import { UrlRequest } from "foldkit/navigation";
 import { modifyFields } from "foldkit/struct";
 import { Url } from "foldkit/url";
-import { Team as ListedTeam, TeamDetail } from "../../../../src/spa-contract";
+import {
+  Me,
+  MemberList,
+  TeamList,
+  TeamPage,
+} from "../../../../src/spa-contract";
 import { ChangedByMutation } from "../../dashboard/changed-by-mutation";
 import * as Mutation from "../../dashboard/mutation";
 import * as Members from "../../dashboard/pages/Members";
@@ -34,24 +39,6 @@ import {
   teamsRouter,
   urlToDashboardRoute,
 } from "./route";
-
-const Me = Schema.Struct({
-  userId: Schema.String,
-  name: Schema.String,
-  canManage: Schema.Boolean,
-});
-type Me = typeof Me.Type;
-
-const TeamList = Schema.Struct({ teams: Schema.Array(ListedTeam) });
-type TeamList = typeof TeamList.Type;
-
-const TeamPage = Schema.Struct({
-  team: TeamDetail,
-  members: Schema.NullOr(
-    Schema.Array(Schema.Struct({ userId: Schema.String, name: Schema.String })),
-  ),
-});
-type TeamPage = typeof TeamPage.Type;
 
 const OnNextEntry = Schema.Literals(["Revalidate", "UseAsIs", "Wait"]);
 type OnNextEntry = typeof OnNextEntry.Type;
@@ -82,7 +69,7 @@ export const Model = Schema.Struct({
   me: cachedOf(Me),
   teams: cachedOf(TeamList),
   teamById: Schema.HashMap(Schema.String, cachedOf(TeamPage)),
-  members: cachedOf(Members.MemberList),
+  members: cachedOf(MemberList),
   teamsPage: Teams.Model,
   teamPages: Schema.HashMap(Schema.String, Team.Model),
 });
@@ -106,7 +93,7 @@ export const Message = defineMessageUnion({
   SettledLoadMe: settledWith(Me),
   SettledLoadTeams: settledWith(TeamList),
   SettledLoadTeam: { teamId: Schema.String, ...settledWith(TeamPage) },
-  SettledLoadMembers: settledWith(Members.MemberList),
+  SettledLoadMembers: settledWith(MemberList),
   RequiredSignIn: {},
   ChangedSession: {},
 });
@@ -229,7 +216,7 @@ const teamSlot = (teamId: string): Slot<TeamPage> => ({
   load: (request) => LoadTeam({ teamId, request }),
 });
 
-const membersSlot: Slot<Members.MemberList> = {
+const membersSlot: Slot<MemberList> = {
   read: (model) => model.members,
   write: (model, next) => modifyFields(model, { members: () => next }),
   load: (request) => LoadMembers({ request }),
