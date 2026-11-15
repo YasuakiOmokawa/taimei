@@ -8,6 +8,10 @@ export const levels: Record<Level, { symbol: string; label: string }> = {
   3: { symbol: "◎", label: "教えられる" },
 };
 
+export const UNRECORDED_MARK = "—";
+
+export const symbolOrBlank = (symbol: string) => symbol || "空欄";
+
 export const levelFromSelectValue = (value: string): Level | undefined =>
   Level.literals.find((level) => String(level) === value);
 

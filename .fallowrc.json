@@ -29,6 +29,10 @@
     {
       "file": "web/src/dashboard/mutation.ts",
       "exports": ["Message"]
+    },
+    {
+      "file": "web/src/dashboard/my-levels-form.ts",
+      "exports": ["Model", "OutMessage", "init", "update"]
     }
   ],
   "boundaries": {

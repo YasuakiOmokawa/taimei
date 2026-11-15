@@ -25,6 +25,7 @@ import { SkillId, TeamId } from "../../../../db/ids";
 import { Submission } from "../../shared/submission";
 import { ChangedByMutation } from "../changed-by-mutation";
 import * as Mutation from "../mutation";
+import * as MyLevelsForm from "../my-levels-form";
 import { init, type Model, OutMessage, update, view } from "../pages/Team";
 
 const TEAM_ID = TeamId.make("00000000-0000-4000-8000-0000000000aa");
@@ -248,7 +249,10 @@ describe("自分のレベルの form", () => {
   it("未記入を選んだ下書きは、そのスキルが記入済みになると、記入済みの値を出して送る", () => {
     const unrecordedDraft: Model = {
       ...init(),
-      levelDrafts: HashMap.make([DESIGN.id, ""]),
+      myLevelsForm: {
+        ...MyLevelsForm.init(),
+        levelDrafts: HashMap.make([DESIGN.id, ""]),
+      },
     };
 
     scene(
