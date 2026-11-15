@@ -1,5 +1,4 @@
-import type { Level, TeamPage } from "../../../src/spa-contract";
-import type { MyLevelEntry } from "./changed-by-mutation";
+import type { Level, SkillLevel, TeamPage } from "../../../src/spa-contract";
 
 export type TeamDetail = TeamPage["team"];
 export type Member = NonNullable<TeamPage["members"]>[number];
@@ -105,7 +104,7 @@ export const teamSkillMatrix = (
 export const withMyLevels = (
   team: TeamDetail,
   myUserId: string,
-  entries: readonly (typeof MyLevelEntry.Type)[],
+  entries: readonly SkillLevel[],
 ): TeamDetail => {
   const savedSkillIds = new Set(entries.map((entry) => entry.skillId));
   return {

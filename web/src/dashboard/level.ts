@@ -1,5 +1,4 @@
-import { Level } from "../../../src/spa-contract";
-import type { MyLevelEntry } from "./changed-by-mutation";
+import { Level, type SkillLevel } from "../../../src/spa-contract";
 import type { Cell } from "./skill-matrix";
 
 export const levels: Record<Level, { symbol: string; label: string }> = {
@@ -18,7 +17,7 @@ export const levelEntriesOf = (
   cells: readonly Cell[],
   selectValueOf: (cell: Cell) => string,
   wantsToLearnOf: (cell: Cell) => boolean,
-): (typeof MyLevelEntry.Type)[] =>
+): SkillLevel[] =>
   cells.flatMap((cell) => {
     const wantsToLearn = wantsToLearnOf(cell);
     const level =

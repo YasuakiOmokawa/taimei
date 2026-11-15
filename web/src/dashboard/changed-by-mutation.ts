@@ -1,10 +1,6 @@
-import { Schema, Struct } from "effect";
+import { Schema } from "effect";
 import { defineTaggedUnion } from "foldkit/schema";
-import { TeamDetail } from "../../../src/spa-contract";
-
-export const MyLevelEntry = TeamDetail.fields.levels.value.mapFields(
-  Struct.omit(["userId"]),
-);
+import { SkillLevel } from "../../../src/spa-contract";
 
 export const ChangedByMutation = defineTaggedUnion({
   TeamList: {},
@@ -13,7 +9,7 @@ export const ChangedByMutation = defineTaggedUnion({
   MyLevels: {
     teamId: Schema.String,
     myUserId: Schema.String,
-    entries: Schema.Array(MyLevelEntry),
+    entries: Schema.Array(SkillLevel),
   },
 });
 export type ChangedByMutation = typeof ChangedByMutation.Type;

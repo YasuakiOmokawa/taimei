@@ -4,6 +4,7 @@ import type { Html, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
 import { modifyFields } from "foldkit/struct";
 import { ChevronLeft } from "lucide";
+import { SkillLevel } from "../../../../src/spa-contract";
 import type { SpaHttpClient } from "../../shared/spa-http-client";
 import { Submission } from "../../shared/submission";
 import { rejectionAlertView } from "../../shared/ui/alert-text-view";
@@ -16,7 +17,6 @@ import {
 import { iconView } from "../../shared/ui/icon-view";
 import { checkboxView, inputView } from "../../shared/ui/input-view";
 import { selectView } from "../../shared/ui/select-view";
-import { MyLevelEntry } from "../changed-by-mutation";
 import { levelEntriesOf, levels } from "../level";
 import * as Mutation from "../mutation";
 import {
@@ -51,7 +51,7 @@ const RenameDraft = Schema.Struct({
 export const Model = Schema.Struct({
   levelDrafts: Schema.HashMap(Schema.String, Schema.String),
   wantsToLearnDrafts: Schema.HashMap(Schema.String, Schema.Boolean),
-  pendingEntries: Schema.Array(MyLevelEntry),
+  pendingEntries: Schema.Array(SkillLevel),
   maybeRenameDraft: Schema.Option(RenameDraft),
   skillNameDraft: Schema.String,
   maybeAssigneeDraft: Schema.Option(Schema.String),

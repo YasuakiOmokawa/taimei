@@ -78,17 +78,19 @@ export type Level = typeof Level.Type;
 
 export const Team = Schema.Struct({ id: TeamId, name: Schema.String });
 
+export const SkillLevel = Schema.Struct({
+  skillId: SkillId,
+  level: Level,
+  wantsToLearn: Schema.Boolean,
+});
+export type SkillLevel = typeof SkillLevel.Type;
+
 export const TeamDetail = Schema.Struct({
   ...Team.fields,
   skills: Schema.Array(Schema.Struct({ id: SkillId, name: Schema.String })),
   assignedUserIds: Schema.Array(Schema.String),
   levels: Schema.Array(
-    Schema.Struct({
-      userId: Schema.String,
-      skillId: SkillId,
-      level: Level,
-      wantsToLearn: Schema.Boolean,
-    }),
+    Schema.Struct({ userId: Schema.String, ...SkillLevel.fields }),
   ),
 });
 
@@ -107,7 +109,7 @@ export const LevelEntry = Schema.Struct({
   skillId: Schema.String,
   level: Schema.Finite,
   wantsToLearn: Schema.Boolean,
-});
+} satisfies Record<keyof typeof SkillLevel.fields, Schema.Top>);
 export type LevelEntry = typeof LevelEntry.Type;
 
 const NameRequest = Schema.Struct({ name: Schema.String });
